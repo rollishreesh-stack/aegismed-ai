@@ -2,6 +2,7 @@ from flask import Flask, request, redirect, url_for, session, flash, render_temp
 import os
 import math
 import json
+import traceback
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "aerolung_crimson_elite_2026")
@@ -15,11 +16,10 @@ CLINICAL_DATABASE = {
     }
 }
 
-# --- HELPER TO PREVENT 500 ERRORS ---
+# --- BULLETPROOF FLOAT CONVERTER ---
 def safe_float(val, default):
     try:
-        if val is None or str(val).strip() == '':
-            return float(default)
+        if val is None or str(val).strip() == '': return float(default)
         return float(val)
     except ValueError:
         return float(default)
@@ -162,10 +162,7 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
     <title>AeroLung | Secure Initialization</title>
 </head>
 <body class="flex flex-col items-center justify-center h-screen antialiased relative">
-    
-    <div class="copyright-badge">
-        © 2026 Created By Shreesh Santoshkumar Rolli
-    </div>
+    <div class="copyright-badge">© 2026 Created By Shreesh Santoshkumar Rolli</div>
 
     <div class="glass-panel p-10 rounded-2xl w-full max-w-md shadow-2xl relative z-10">
         <div class="text-center mb-8">
@@ -205,9 +202,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <div class="copyright-badge">
-        © 2026 Created By Shreesh Santoshkumar Rolli
-    </div>
+    <div class="copyright-badge">© 2026 Created By Shreesh Santoshkumar Rolli</div>
 
     <nav class="glass-header px-6 py-4 flex justify-between items-center sticky top-0">
         <div class="flex items-center space-x-4">
@@ -231,7 +226,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
     <main class="flex-1 p-4 relative w-full max-w-[2000px] mx-auto z-10">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-            <div class="w-full mb-4 p-3 rounded text-sm font-mono text-center bg-rose-950/80 text-rose-200 border border-rose-800">
+            <div class="w-full mb-4 p-3 rounded text-sm font-mono text-left bg-rose-950/80 text-rose-200 border border-rose-800 whitespace-pre-wrap">
                 {{ messages[0] }}
             </div>
             {% endif %}
@@ -243,31 +238,27 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             <div class="xl:col-span-3">
                 <div class="glass-panel rounded flex flex-col border border-zinc-800 bg-zinc-900/80">
                     <div class="p-3 border-b border-zinc-800 bg-black/40">
-                        <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center">
-                            <svg class="w-4 h-4 text-zinc-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                            Control Parameters
-                        </h2>
+                        <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center">Control Parameters</h2>
                     </div>
                     
                     <form method="POST" action="/dashboard?tab=simulator" class="p-4 space-y-5">
-                        
                         <div>
                             <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Patient Mechanics</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">Compliance (C)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">Compliance</label>
                                     <input type="number" step="0.1" name="compliance" value="{{ inputs.compliance if inputs else '60.0' }}" class="clinical-input w-20">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">Resistance (R)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">Resistance</label>
                                     <input type="number" step="1" name="resistance" value="{{ inputs.resistance if inputs else '10' }}" class="clinical-input w-20">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">Dead Space (%)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">Dead Space %</label>
                                     <input type="number" step="1" name="vd_vt" value="{{ inputs.vd_vt if inputs else '30' }}" class="clinical-input w-20">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">Shunt (%)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">Shunt %</label>
                                     <input type="number" step="1" name="shunt" value="{{ inputs.shunt if inputs else '5' }}" class="clinical-input w-20">
                                 </div>
                             </div>
@@ -277,19 +268,19 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                             <h3 class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Ventilator Drive</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">PIP (cmH2O)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">PIP</label>
                                     <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '15' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">PEEP (cmH2O)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">PEEP</label>
                                     <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">Rate (bpm)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">Rate</label>
                                     <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '16' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">FiO2 (%)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">FiO2 %</label>
                                     <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '40' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
@@ -297,7 +288,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                                     <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-[11px] font-mono">VCO2 (mL/min)</label>
+                                    <label class="text-zinc-400 text-[11px] font-mono">VCO2</label>
                                     <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                             </div>
@@ -317,7 +308,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             {% else %}
             
             <div class="xl:col-span-4 flex flex-col gap-4">
-                
                 <div class="glass-panel rounded p-4 border border-zinc-800 bg-gradient-to-br from-zinc-900 to-black">
                     <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-2 border-b border-zinc-800 pb-1">AI Pathological Analysis</h3>
                     <p class="text-lg font-black text-white leading-tight mb-2">{{ sim_data.ai_condition }}</p>
@@ -397,19 +387,19 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
                         type: 'line',
                         data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Paw (cmH2O)', font: {size: 9} } } } }
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Paw', font: {size: 9} } } } }
                     });
 
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
                         type: 'line',
                         data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Flow (L/min)', font: {size: 9} } } } }
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Flow', font: {size: 9} } } } }
                     });
 
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
                         type: 'line',
                         data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 9} } } } }
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Volume', font: {size: 9} } } } }
                     });
 
                     const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
@@ -463,19 +453,27 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 
 @app.route('/')
 def home():
-    if 'user' in session: return redirect(url_for('dashboard'))
-    return render_template_string(LOGIN_HTML)
+    try:
+        if 'user' in session and session.get('user') in CLINICAL_DATABASE:
+            return redirect(url_for('dashboard'))
+        return render_template_string(LOGIN_HTML)
+    except Exception as e:
+        return f"CRITICAL BOOT ERROR: {str(e)} <br><pre>{traceback.format_exc()}</pre>"
 
 @app.route('/login', methods=['POST'])
 def login():
-    u = request.form.get('username')
-    p = request.form.get('password')
-    if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
-        session['user'] = u
-        session['role'] = CLINICAL_DATABASE[u]['role']
-        return redirect(url_for('dashboard'))
-    flash("Authentication Rejected: Invalid ID or Passkey.")
-    return redirect(url_for('home'))
+    try:
+        u = request.form.get('username', '')
+        p = request.form.get('password', '')
+        if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
+            session['user'] = u
+            session['role'] = CLINICAL_DATABASE[u]['role']
+            return redirect(url_for('dashboard'))
+        flash("Authentication Rejected: Invalid ID or Passkey.")
+        return redirect(url_for('home'))
+    except Exception as e:
+        flash(f"LOGIN FAULT:\n{traceback.format_exc()}")
+        return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
@@ -484,145 +482,160 @@ def logout():
 
 @app.route('/update_credentials', methods=['POST'])
 def update_credentials():
-    if 'user' not in session: return redirect(url_for('home'))
-    
-    current_user = session['user']
-    old_pass = request.form.get('current_password')
-    new_id = request.form.get('new_username', '').strip()
-    new_pass = request.form.get('new_password', '').strip()
-    
-    if CLINICAL_DATABASE[current_user]['password'] == old_pass:
-        if new_id != current_user and new_id in CLINICAL_DATABASE:
-            flash("System Error: New System ID is already taken.")
-        else:
-            role = CLINICAL_DATABASE[current_user]['role']
-            clearance = CLINICAL_DATABASE[current_user]['clearance']
-            del CLINICAL_DATABASE[current_user]
-            CLINICAL_DATABASE[new_id] = {'password': new_pass, 'role': role, 'clearance': clearance}
-            session['user'] = new_id
-            flash("Success: System Credentials Updated.")
-    else:
-        flash("Authorization Error: Incorrect current passkey.")
+    try:
+        if 'user' not in session or session.get('user') not in CLINICAL_DATABASE:
+            session.clear()
+            return redirect(url_for('home'))
         
-    return redirect(url_for('dashboard', tab='settings'))
+        current_user = session['user']
+        old_pass = request.form.get('current_password', '')
+        new_id = request.form.get('new_username', '').strip()
+        new_pass = request.form.get('new_password', '').strip()
+        
+        if CLINICAL_DATABASE[current_user]['password'] == old_pass:
+            if new_id != current_user and new_id in CLINICAL_DATABASE:
+                flash("System Error: New System ID is already taken.")
+            else:
+                role = CLINICAL_DATABASE[current_user]['role']
+                clearance = CLINICAL_DATABASE[current_user]['clearance']
+                del CLINICAL_DATABASE[current_user]
+                CLINICAL_DATABASE[new_id] = {'password': new_pass, 'role': role, 'clearance': clearance}
+                session['user'] = new_id
+                flash("Success: System Credentials Updated.")
+        else:
+            flash("Authorization Error: Incorrect current passkey.")
+            
+        return redirect(url_for('dashboard', tab='settings'))
+    except Exception as e:
+        flash(f"CONFIG FAULT:\n{traceback.format_exc()}")
+        return redirect(url_for('dashboard', tab='settings'))
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    if 'user' not in session: return redirect(url_for('home'))
-    active_tab = request.args.get('tab', 'simulator')
-    sim_data = None
-    inputs = None
-    
-    if request.method == 'POST' and active_tab == 'simulator':
-        try:
-            # Bulletproof extraction utilizing fallback defaults
-            vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
-            shunt_val = safe_float(request.form.get('shunt'), 5)
-            vco2 = safe_float(request.form.get('vco2'), 200)
-            c = safe_float(request.form.get('compliance'), 60.0)
-            r = safe_float(request.form.get('resistance'), 10)
-            pip = safe_float(request.form.get('pip'), 15)
-            peep = safe_float(request.form.get('peep'), 5)
-            rr = safe_float(request.form.get('rr'), 16)
-            ie = safe_float(request.form.get('ie_ratio'), 2.0)
-            fio2_val = safe_float(request.form.get('fio2'), 40)
+    try:
+        # THE MOST COMMON CAUSE OF 500 ERRORS: Session mismatch on server restart.
+        if 'user' not in session or session.get('user') not in CLINICAL_DATABASE:
+            session.clear()
+            return redirect(url_for('home'))
             
-            # Enforce hard limits to prevent division by zero math errors
-            rr = max(1.0, rr)     # Cannot have 0 breaths per min
-            ie = max(0.1, ie)     # Cannot have 0 I:E ratio
-            c = max(1.0, c)       # Cannot have 0 compliance
-            r = max(1.0, r)       # Cannot have 0 resistance
-            
-            vd_vt = vd_vt_val / 100.0
-            shunt = shunt_val / 100.0
-            fio2 = fio2_val / 100.0
-
-            inputs = {
-                'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
-                'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
-                'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100)
-            }
-            
-            # PATHOLOGY LOGIC
-            ai_condition = "Normal / Compensated Respiratory Mechanics"
-            ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
-            differentials = ["Healthy Lungs", "Post-operative monitoring"]
-            
-            if c <= 40 and shunt >= 0.15:
-                ai_condition = "Acute Restrictive Defect with Shunt"
-                ai_intervention = "Limit Vt to 4-6 mL/kg PBW. Optimize PEEP. Consider proning."
-                differentials = ["ARDS", "Cardiogenic Pulmonary Edema", "Severe Pneumonia"]
-            elif c <= 40 and r < 15 and shunt < 0.15:
-                ai_condition = "Chronic / Dry Restrictive Defect"
-                ai_intervention = "Target low tidal volumes. Avoid excessive PEEP."
-                differentials = ["Pulmonary Fibrosis", "Interstitial Lung Disease", "Kyphoscoliosis"]
-            elif r >= 20 and c >= 60:
-                ai_condition = "High-Compliance Obstructive Defect"
-                ai_intervention = "High risk for Auto-PEEP. Prolong Te, permissive hypercapnia."
-                differentials = ["COPD", "Emphysema"]
-            elif r >= 25 and c < 60:
-                ai_condition = "Acute Obstructive Defect (Bronchospasm)"
-                ai_intervention = "Maximize Expiratory Time (Te). Administer bronchodilators."
-                differentials = ["Status Asthmaticus", "Anaphylaxis"]
-
-            # KINEMATICS
-            dp = max(0.1, pip - peep)
-            peak_volume = dp * c 
-            min_vent = (peak_volume * rr) / 1000.0
-            alv_vent = ((peak_volume * (1 - vd_vt)) * rr) / 1000.0
-            
-            t_cycle = 60.0 / rr
-            t_i = t_cycle * (1 / (1 + ie))
-            t_e = t_cycle - t_i
-            
-            tau = (r / 1000.0) * c 
-            auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
-            
-            fev1_fvc_ratio = round((1 - math.exp(-1 / max(0.01, tau))) * 100, 1)
-            spirometry_class = "Restrictive/Normal" if fev1_fvc_ratio >= 70 else "Obstructive"
+        active_tab = request.args.get('tab', 'simulator')
+        sim_data = None
+        inputs = None
+        
+        if request.method == 'POST' and active_tab == 'simulator':
+            try:
+                # Fallback extraction to prevent math crashes
+                vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
+                shunt_val = safe_float(request.form.get('shunt'), 5)
+                vco2 = safe_float(request.form.get('vco2'), 200)
+                c = safe_float(request.form.get('compliance'), 60.0)
+                r = safe_float(request.form.get('resistance'), 10)
+                pip = safe_float(request.form.get('pip'), 15)
+                peep = safe_float(request.form.get('peep'), 5)
+                rr = safe_float(request.form.get('rr'), 16)
+                ie = safe_float(request.form.get('ie_ratio'), 2.0)
+                fio2_val = safe_float(request.form.get('fio2'), 40)
                 
-            mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
-            paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
-            p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
-            pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
-            aa_gradient = round(p_A_O2 - pao2, 1)
-            
-            # WAVEFORMS
-            t_pts, p_pts, v_pts, f_pts = [], [], [], []
-            res = 100
-            for i in range(res + 1):
-                t = (i / res) * t_cycle
-                t_pts.append(round(t, 3))
-                if t <= t_i:
-                    p_pts.append(round(pip, 1))
-                    v_pts.append(round(peak_volume * (1 - math.exp(-t / max(0.01, tau))), 1))
-                    f_pts.append(round(((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
-                else:
-                    t_exp = t - t_i
-                    p_pts.append(round(peep, 1))
-                    v_pts.append(round(peak_volume * math.exp(-t_exp / max(0.01, tau)), 1))
-                    f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
+                # Prevent Division By Zero
+                rr = max(1.0, rr)
+                ie = max(0.1, ie)
+                c = max(1.0, c)
+                r = max(1.0, r)
+                
+                vd_vt = vd_vt_val / 100.0
+                shunt = shunt_val / 100.0
+                fio2 = fio2_val / 100.0
+
+                inputs = {
+                    'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
+                    'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
+                    'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100)
+                }
+                
+                # AI Logic
+                ai_condition = "Normal / Compensated Respiratory Mechanics"
+                ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
+                differentials = ["Healthy Lungs", "Post-operative monitoring"]
+                
+                if c <= 40 and shunt >= 0.15:
+                    ai_condition = "Acute Restrictive Defect with Shunt"
+                    ai_intervention = "Limit Vt to 4-6 mL/kg PBW. Optimize PEEP."
+                    differentials = ["ARDS", "Cardiogenic Pulmonary Edema"]
+                elif c <= 40 and r < 15 and shunt < 0.15:
+                    ai_condition = "Chronic / Dry Restrictive Defect"
+                    ai_intervention = "Target low tidal volumes. Avoid excessive PEEP."
+                    differentials = ["Pulmonary Fibrosis", "Interstitial Lung Disease"]
+                elif r >= 20 and c >= 60:
+                    ai_condition = "High-Compliance Obstructive Defect"
+                    ai_intervention = "High risk for Auto-PEEP. Prolong Te."
+                    differentials = ["COPD", "Emphysema"]
+                elif r >= 25 and c < 60:
+                    ai_condition = "Acute Obstructive Defect (Bronchospasm)"
+                    ai_intervention = "Maximize Expiratory Time (Te). Administer bronchodilators."
+                    differentials = ["Status Asthmaticus", "Anaphylaxis"]
+
+                # Kinematics Math
+                dp = max(0.1, pip - peep)
+                peak_volume = dp * c 
+                min_vent = (peak_volume * rr) / 1000.0
+                alv_vent = ((peak_volume * (1 - vd_vt)) * rr) / 1000.0
+                
+                t_cycle = 60.0 / rr
+                t_i = t_cycle * (1 / (1 + ie))
+                t_e = t_cycle - t_i
+                
+                tau = (r / 1000.0) * c 
+                auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
+                
+                fev1_fvc_ratio = round((1 - math.exp(-1 / max(0.01, tau))) * 100, 1)
+                spirometry_class = "Restrictive/Normal" if fev1_fvc_ratio >= 70 else "Obstructive"
                     
-            waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+                mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
+                paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
+                p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
+                pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
+                aa_gradient = round(p_A_O2 - pao2, 1)
+                
+                # Waveform Gen
+                t_pts, p_pts, v_pts, f_pts = [], [], [], []
+                res = 100
+                for i in range(res + 1):
+                    t = (i / res) * t_cycle
+                    t_pts.append(round(t, 3))
+                    if t <= t_i:
+                        p_pts.append(round(pip, 1))
+                        v_pts.append(round(peak_volume * (1 - math.exp(-t / max(0.01, tau))), 1))
+                        f_pts.append(round(((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
+                    else:
+                        t_exp = t - t_i
+                        p_pts.append(round(peep, 1))
+                        v_pts.append(round(peak_volume * math.exp(-t_exp / max(0.01, tau)), 1))
+                        f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
+                        
+                waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
 
-            sim_data = {
-                'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
-                'differentials': differentials,
-                'peak_volume': round(peak_volume, 1), 'minute_vent': round(min_vent, 2),
-                'alveolar_vent': round(alv_vent, 2), 'paco2': paco2, 'pao2': pao2,
-                'aa_gradient': aa_gradient, 'mech_power': mech_power,
-                't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
-                'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
-                'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class
-            }
-        except Exception as e:
-            flash("System Warning: Could not process parameters. Defaulting engine.")
-            print(f"Server Error Handled: {e}")
+                sim_data = {
+                    'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
+                    'differentials': differentials, 'peak_volume': round(peak_volume, 1), 
+                    'minute_vent': round(min_vent, 2), 'alveolar_vent': round(alv_vent, 2), 
+                    'paco2': paco2, 'pao2': pao2, 'aa_gradient': aa_gradient, 'mech_power': mech_power,
+                    't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
+                    'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
+                    'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class
+                }
+            except Exception as math_err:
+                flash(f"PHYSICS ENGINE FAULT:\n{traceback.format_exc()}")
 
-    return render_template_string(
-        MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data,
-        inputs=inputs, user_role=session.get('role')
-    )
+        try:
+            return render_template_string(
+                MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data,
+                inputs=inputs, user_role=session.get('role')
+            )
+        except Exception as render_err:
+            return f"<div style='color:red; background:black; padding:20px; font-family:monospace;'><h3>UI RENDERING CRASH:</h3><pre>{traceback.format_exc()}</pre></div>"
+
+    except Exception as general_err:
+        return f"<div style='color:red; background:black; padding:20px; font-family:monospace;'><h3>CRITICAL SYSTEM FAULT:</h3><pre>{traceback.format_exc()}</pre></div>"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
