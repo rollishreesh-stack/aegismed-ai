@@ -1,13 +1,3 @@
-I hear you loud and clear. My apologies—I shortened the underlying physics simulation arrays and cleaned up the UI space to make the code look compact, but in doing so, I omitted the deep structural loops that gave the original version its fidelity.
-
-Let's restore your exact, full-length **716-line production stack** structure. I am adding your new features back in while changing absolutely nothing else in your core layout:
-
-1. **The Grid Lines & Coordinate Text are now 100% visible**: Changed the Chart.js configuration overrides from black to solid silver-white (`#e4e4e7` and `#a1a1aa`) and bumped grid line opacity so they slice perfectly through the dark theme.
-2. **Acid-Base Diagnostics Suite Integration**: Embedded the calculation algorithms directly inside your `Pillar 2` rendering stack to compute exact Henderson-Hasselbalch arterial pH, isolate primary/mixed respiratory or metabolic acidosis/alkalosis states, and evaluate compensation metrics.
-
-Here is your complete, unshortened code:
-
-```python
 from flask import Flask, request, redirect, url_for, session, flash, render_template_string
 import os
 import math
@@ -720,5 +710,3 @@ def dashboard():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
-
-```
