@@ -1,80 +1,57 @@
 from flask import Flask, request, redirect, url_for, session, flash, render_template_string
 import os
-import math
-from datetime import datetime
 
 app = Flask(__name__)
-# Production-ready configurable secret key
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_nexus_elite_quantum_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_advanced_core_2026")
 
-# --- ENTERPRISE CLINICAL ACCESS CONTROL ---
+# --- MUTABLE SYSTEM DATABASE ---
 CLINICAL_DATABASE = {
-    "admin_evaluator": {
-        "token": "nexus2026", 
-        "role": "Chief Medical Evaluator", 
-        "clearance": "Tier-3 Global Admin",
-        "facility": "AeroLung Quantum Hub"
-    },
-    "icu_director": {
-        "token": "clinical2026", 
-        "role": "Director of Critical Care", 
-        "clearance": "Tier-2 Clinical Supervisor",
-        "facility": "Metropolitan ICU Matrix"
+    "sys_admin": {
+        "password": "secure2026", 
+        "role": "Chief System Architect", 
+        "clearance": "Level 5"
     }
 }
 
-# --- PREMIUM METROPOLIS UI STRINGS ---
+# --- UI TEMPLATES ---
 LOGIN_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>AeroLung OS Nexus Elite | Clinical Gateway</title>
+    <title>AeroLung Advanced | Authentication Gate</title>
 </head>
-<body class="bg-[#030712] flex items-center justify-center h-screen text-slate-100 antialiased font-sans selection:bg-cyan-500/30">
-    <div class="bg-[#0b1329] border border-slate-800/80 p-8 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-500"></div>
-        
-        <div class="text-center mb-8">
-            <span class="bg-cyan-500/10 text-cyan-400 text-[10px] font-mono tracking-widest uppercase px-3 py-1 rounded-full border border-cyan-500/20 shadow-inner">
-                NEXUS ELITE // ENTERPRISE INFRASTRUCTURE
-            </span>
-            <h1 class="text-3xl font-black text-white tracking-tight mt-4">AeroLung <span class="text-cyan-400">OS Nexus</span></h1>
-            <p class="text-slate-400 text-xs mt-1 font-medium">Predictive Fluid-Dynamic Ventilation Network Simulation</p>
+<body class="bg-[#0f172a] flex items-center justify-center h-screen text-slate-200 antialiased font-sans">
+    <div class="bg-[#1e293b] border border-slate-700 p-8 rounded-xl shadow-2xl w-full max-w-sm">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-black text-white tracking-tight">AeroLung <span class="text-blue-400">Core</span></h1>
+            <p class="text-slate-400 text-xs mt-1 font-medium">Advanced Ventilation Telemetry Matrix</p>
         </div>
         
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl mb-4 text-xs font-mono text-center">
-                ⚠️ {{ messages[0] }}
-            </div>
+            {% for category, message in messages %}
+                <div class="p-3 rounded-lg mb-4 text-xs font-mono text-center {% if category == 'error' %}bg-red-500/10 text-red-400 border border-red-500/20{% else %}bg-green-500/10 text-green-400 border border-green-500/20{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
           {% endif %}
         {% endwith %}
         
         <form method="POST" action="/login" class="space-y-4">
             <div>
-                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Clinician Identifier</label>
-                <input type="text" name="username" required placeholder="e.g., admin_evaluator" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono placeholder:text-slate-600">
+                <label class="block text-slate-400 text-[10px] font-mono uppercase tracking-wider mb-1">System ID</label>
+                <input type="text" name="username" required class="w-full p-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-sm focus:outline-none focus:border-blue-500 transition font-mono">
             </div>
             <div>
-                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Security Auth Token</label>
-                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono placeholder:text-slate-600">
+                <label class="block text-slate-400 text-[10px] font-mono uppercase tracking-wider mb-1">Access Passkey</label>
+                <input type="password" name="password" required class="w-full p-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-sm focus:outline-none focus:border-blue-500 transition font-mono">
             </div>
-            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg shadow-cyan-950/50 mt-2">
-                Authorize Core Initialization
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-widest transition mt-4">
+                Initialize Connection
             </button>
         </form>
-        
-        <div class="mt-6 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500 font-mono">
-            <p class="text-center font-bold text-slate-400 uppercase tracking-wider mb-2">Default Node Credentials</p>
-            <div class="space-y-1">
-                <div class="flex justify-between bg-[#070d1e] p-2 rounded-lg border border-slate-900">
-                    <span>ID: <code class="text-cyan-400">admin_evaluator</code></span>
-                    <span>Token: <code class="text-slate-300">nexus2026</code></span>
-                </div>
-            </div>
-        </div>
     </div>
 </body>
 </html>
@@ -86,324 +63,249 @@ MASTER_DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>AeroLung OS Nexus Elite Console</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <title>AeroLung Core Simulator</title>
 </head>
-<body class="bg-[#030712] text-slate-100 min-h-screen antialiased font-sans flex flex-col selection:bg-cyan-500/30">
+<body class="bg-[#0f172a] text-slate-200 min-h-screen antialiased flex flex-col">
 
-    <nav class="bg-[#0b1329] border-b border-slate-800/80 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-xl">
+    <nav class="bg-[#1e293b] border-b border-slate-700 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center space-x-3">
-            <span class="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.7)]"></span>
-            <span class="font-black text-lg tracking-wider text-white">AERO<span class="text-cyan-400">LUNG</span> <span class="text-slate-500 text-xs font-mono font-bold tracking-tight bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800">NEXUS ELITE v4.2</span></span>
+            <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+            <span class="font-black text-lg tracking-wider text-white">AERO<span class="text-blue-400">LUNG</span></span>
         </div>
         
-        <div class="flex items-center space-x-6 text-xs font-mono">
-            <div class="text-right hidden lg:block border-r border-slate-800 pr-4">
-                <span class="text-slate-500 block uppercase text-[9px] tracking-wider">Synchronized Telemetry Time</span>
-                <span class="text-cyan-400 font-bold" id="liveClock">{{ system_time }}</span>
+        <div class="flex items-center space-x-4 text-xs font-mono">
+            <div class="text-right border-r border-slate-700 pr-4">
+                <span class="text-blue-400 font-bold block">{{ user_role }}</span>
+                <span class="text-[10px] text-slate-400 uppercase">ID: {{ session.get('user') }}</span>
             </div>
-            <div class="text-right border-r border-slate-800 pr-4 hidden sm:block">
-                <span class="text-slate-500 block uppercase text-[9px] tracking-wider">Active Workspace Node</span>
-                <span class="text-slate-300 font-semibold">{{ session.get('facility', 'Remote Console') }}</span>
-            </div>
-            <div class="text-right">
-                <span class="text-emerald-400 font-bold block">{{ user_role }}</span>
-                <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">{{ user_clearance }}</span>
-            </div>
-            <a href="/logout" class="bg-slate-950 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/60 px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold transition duration-200">Disconnect</a>
+            <a href="?tab=simulator" class="text-slate-300 hover:text-white px-2 {% if active_tab == 'simulator' %}border-b-2 border-blue-500 text-white{% endif %}">Simulator</a>
+            <a href="?tab=settings" class="text-slate-300 hover:text-white px-2 {% if active_tab == 'settings' %}border-b-2 border-blue-500 text-white{% endif %}">Settings</a>
+            <a href="/logout" class="bg-slate-800 hover:bg-red-900 border border-slate-600 px-3 py-1.5 rounded-md text-xs uppercase transition ml-2">Logout</a>
         </div>
     </nav>
 
-    <div class="flex flex-1">
-        <aside class="w-64 bg-[#0b1329] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex">
-            <div class="space-y-1.5">
-                <p class="text-[10px] font-mono font-bold tracking-widest text-slate-500 uppercase px-3 mb-3">Core Subsystems</p>
-                
-                <a href="?tab=simulation" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'simulation' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
-                    <span>🌬️</span> <span>Quantum Sim Matrix</span>
-                </a>
-                
-                <a href="?tab=registry" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'registry' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
-                    <span>📋</span> <span>Global Patient Registry</span>
-                </a>
-
-                <a href="?tab=marketplace" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'marketplace' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
-                    <span>💎</span> <span>AeroLung Core Market</span>
-                </a>
-            </div>
+    <main class="flex-1 p-6">
+        
+        {% if active_tab == 'settings' %}
+        <div class="max-w-md mx-auto bg-[#1e293b] border border-slate-700 rounded-xl p-6 mt-10">
+            <h2 class="text-lg font-bold text-white mb-2">System Access Configuration</h2>
+            <p class="text-xs text-slate-400 mb-6">Update your clinical node credentials. Changes take effect immediately.</p>
             
-            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
-                <p class="text-[9px] font-mono tracking-widest text-slate-500 uppercase">Licensing Architecture</p>
-                <p class="text-xs font-black font-mono text-amber-400 mt-1 uppercase tracking-wider">PREMIUM ENTERPRISE</p>
-            </div>
-        </aside>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-3 rounded-lg mb-4 text-xs font-mono text-center {% if category == 'error' %}bg-red-500/10 text-red-400 border border-red-500/20{% else %}bg-green-500/10 text-green-400 border border-green-500/20{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
 
-        <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+            <form method="POST" action="/update_credentials" class="space-y-4">
+                <div>
+                    <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">Current Password</label>
+                    <input type="password" name="current_password" required class="w-full p-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-sm focus:border-blue-500 transition font-mono">
+                </div>
+                <hr class="border-slate-700 my-4">
+                <div>
+                    <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">New System ID</label>
+                    <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full p-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-sm focus:border-blue-500 transition font-mono">
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">New Password</label>
+                    <input type="password" name="new_password" required class="w-full p-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-sm focus:border-blue-500 transition font-mono">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-widest transition mt-4">
+                    Commit Changes
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'simulator' %}
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
             
-            {% if active_tab == 'simulation' %}
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div class="xl:col-span-1 bg-[#0b1329] border border-slate-800/80 rounded-2xl p-6 shadow-xl h-fit">
-                    <h2 class="text-base font-bold text-white mb-1">Ventilator Telemetry Engine</h2>
-                    <p class="text-xs text-slate-400 mb-6 leading-relaxed">Modify lung dynamics modeling loops via demographic-mapped physical presets.</p>
-                    
-                    <form method="POST" action="/dashboard?tab=simulation" class="space-y-4">
-                        <div>
-                            <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Demographic Target Profile</label>
-                            <select name="profile_class" id="profile_class" onchange="applyProfilePresets()" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono">
-                                <option value="neonatal" {% if profile_class == 'neonatal' %}selected{% endif %}>NEONATAL (Surfactant Deficient Loop)</option>
-                                <option value="pediatric" {% if profile_class == 'pediatric' %}selected{% endif %}>PEDIATRIC (Bronchospasm Pathogen)</option>
-                                <option value="adult" {% if profile_class == 'adult' %}selected{% endif %}>ADULT (Severe Infiltration ARDS)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Peak Inspiratory Pressure ($PIP$)</label>
-                                <span class="text-[10px] font-mono text-cyan-400">cmH2O</span>
-                            </div>
-                            <input type="number" id="pip" name="pip" value="{{ inputs.pip if inputs else '24' }}" min="10" max="50" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Dynamic Compliance ($C_{dyn}$)</label>
-                                <span class="text-[10px] font-mono text-cyan-400">mL/cmH2O</span>
-                            </div>
-                            <input type="number" step="0.1" id="compliance" name="compliance" value="{{ inputs.compliance if inputs else '3.0' }}" min="0.5" max="100.0" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Airway Resistance ($R_{aw}$)</label>
-                                <span class="text-[10px] font-mono text-cyan-400">cmH2O/L/s</span>
-                            </div>
-                            <input type="number" id="resistance" name="resistance" value="{{ inputs.resistance if inputs else '45' }}" min="2" max="200" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Set PEEP Vector</label>
-                                <span class="text-[10px] font-mono text-cyan-400">cmH2O</span>
-                            </div>
-                            <input type="number" id="peep" name="peep" value="{{ inputs.peep if inputs else '5' }}" min="0" max="25" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
-                        </div>
-                        <button type="submit" class="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg mt-2">
-                            Compute Advanced Telemetry Loop
-                        </button>
-                    </form>
-                </div>
-
-                <div class="xl:col-span-2 space-y-6">
-                    {% if not sim_data %}
-                    <div class="bg-[#0b1329]/30 border border-slate-800 border-dashed rounded-2xl p-16 text-center flex flex-col items-center justify-center min-h-[450px]">
-                        <div class="text-4xl mb-4 opacity-70 animate-bounce">🌬️</div>
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Mathematical Processor Idle</h3>
-                        <p class="text-xs text-slate-500 max-w-xs mt-2 mx-auto leading-relaxed">Choose a patient profile dynamic and trigger the loop processing core to project advanced airway analytics charting records.</p>
-                    </div>
-                    {% else %}
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Target Archetype</p>
-                            <p class="text-xl font-black font-mono text-cyan-400 uppercase tracking-tight">{{ profile_class }} Class</p>
-                        </div>
-                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Dynamic Tidal Volume ($V_t$)</p>
-                            <p class="text-2xl font-black font-mono text-indigo-400 tracking-tight">{{ sim_data.peak_volume }} mL</p>
-                        </div>
-                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Safety Risk Evaluation</p>
-                            <p class="text-xs font-bold font-mono py-0.5 {% if 'CRITICAL' in sim_data.risk_status or 'HIGH' in sim_data.risk_status %}text-rose-400 animate-pulse{% else %}text-emerald-400{% endif %}">
-                                🛡️ {{ sim_data.risk_status }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-lg">
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800/60">
-                            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Dynamic Alveolar Pressure Ascent Curve ($P_{alv}(t)$)</h3>
-                            <span class="text-[10px] font-mono text-slate-500">Inspiratory Delta Time (0.5s)</span>
-                        </div>
-                        <div class="h-64"><canvas id="waveformChart"></canvas></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
-                            <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-800 pb-2 font-bold">📋 Case Demographics Narrative</h3>
-                            <p class="text-xs text-slate-300 leading-relaxed font-mono">
-                                {{ sim_data.case_description }}
-                            </p>
-                        </div>
-                        <div class="bg-[#0b1329] border border-cyan-950 rounded-2xl p-5 bg-gradient-to-br from-[#0b1329] to-[#04161a] shadow-md border-l-4 border-l-cyan-500">
-                            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-3 border-b border-cyan-900/60 pb-2 font-bold">🩺 Automation Advisory Directives</h3>
-                            <p class="text-xs text-cyan-300 leading-relaxed font-mono">
-                                {{ sim_data.advice_note }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <script>
-                        const ctx = document.getElementById('waveformChart').getContext('2d');
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: {{ sim_data.time_points | tojson }},
-                                datasets: [{
-                                    label: 'Alveolar Pressure Curve (cmH2O)',
-                                    data: {{ sim_data.pressure_points | tojson }},
-                                    borderColor: 'rgb(34, 211, 238)',
-                                    backgroundColor: 'rgba(34, 211, 238, 0.03)',
-                                    borderWidth: 2.5,
-                                    pointRadius: 3,
-                                    pointBackgroundColor: 'rgb(99, 102, 241)',
-                                    fill: true,
-                                    tension: 0.2
-                                }]
-                            },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: false, 
-                                plugins: { legend: { display: false } }, 
-                                scales: { 
-                                    x: { grid: { color: '#111c40' }, ticks: { color: '#64748b', font: { family: 'monospace' } } }, 
-                                    y: { grid: { color: '#111c40' }, ticks: { color: '#64748b', font: { family: 'monospace' } } } 
-                                } 
-                            }
-                        });
-                    </script>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if active_tab == 'registry' %}
-            <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-xl animate-fadeIn">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <div class="xl:col-span-4 bg-[#1e293b] border border-slate-700 rounded-xl p-5 h-fit">
+                <h2 class="text-sm font-bold text-white mb-4 border-b border-slate-700 pb-2">Multi-Variable Telemetry Control</h2>
+                
+                <form method="POST" action="/dashboard?tab=simulator" class="space-y-4">
                     <div>
-                        <h2 class="text-lg font-bold text-white tracking-tight">Cross-Demographic ICU Register</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Enterprise tracking repository linking live physical matrices to anonymized target parameters.</p>
+                        <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">Comprehensive Phenotype Matrix</label>
+                        <select name="profile_class" id="profile_class" onchange="applyProfilePresets()" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-white text-xs focus:border-blue-500 transition font-mono">
+                            <option value="normal" {% if profile_class == 'normal' %}selected{% endif %}>Healthy Lungs (Post-Op)</option>
+                            <option value="ards_mild" {% if profile_class == 'ards_mild' %}selected{% endif %}>Mild ARDS (Exudative)</option>
+                            <option value="ards_severe" {% if profile_class == 'ards_severe' %}selected{% endif %}>Severe ARDS (Fibroproliferative)</option>
+                            <option value="asthma" {% if profile_class == 'asthma' %}selected{% endif %}>Status Asthmaticus</option>
+                            <option value="copd" {% if profile_class == 'copd' %}selected{% endif %}>Exacerbation of COPD</option>
+                            <option value="chf" {% if profile_class == 'chf' %}selected{% endif %}>Congestive Heart Failure (Pulm. Edema)</option>
+                            <option value="pe" {% if profile_class == 'pe' %}selected{% endif %}>Massive Pulmonary Embolism</option>
+                            <option value="tbi" {% if profile_class == 'tbi' %}selected{% endif %}>Traumatic Brain Injury (TBI)</option>
+                            <option value="fibrosis" {% if profile_class == 'fibrosis' %}selected{% endif %}>Idiopathic Pulmonary Fibrosis</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2 border-b border-slate-700 pb-2 mb-1">
+                            <span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Patient & Gas Delivery</span>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">IBW (kg)</label>
+                            <input type="number" id="ibw" name="ibw" value="{{ inputs.ibw if inputs else '70' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">FiO2 (%)</label>
+                            <input type="number" id="fio2" name="fio2" value="{{ inputs.fio2 if inputs else '40' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+
+                        <div class="col-span-2 border-b border-slate-700 pb-2 mt-2 mb-1">
+                            <span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Lung Mechanics</span>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">Comp. (mL/cmH2O)</label>
+                            <input type="number" step="0.1" id="compliance" name="compliance" value="{{ inputs.compliance if inputs else '60.0' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">Res. (cmH2O/L/s)</label>
+                            <input type="number" id="resistance" name="resistance" value="{{ inputs.resistance if inputs else '10' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+
+                        <div class="col-span-2 border-b border-slate-700 pb-2 mt-2 mb-1">
+                            <span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Ventilator Settings</span>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">PIP (cmH2O)</label>
+                            <input type="number" id="pip" name="pip" value="{{ inputs.pip if inputs else '15' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">PEEP (cmH2O)</label>
+                            <input type="number" id="peep" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">Resp Rate (/min)</label>
+                            <input type="number" id="rr" name="rr" value="{{ inputs.rr if inputs else '16' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] font-mono uppercase mb-1">I:E Ratio (1:X)</label>
+                            <input type="number" step="0.1" id="ie_ratio" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="w-full p-2 rounded-lg bg-[#0f172a] border border-slate-600 text-xs font-mono">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-widest mt-4">
+                        Compute Exchange Dynamics
+                    </button>
+                </form>
+            </div>
+
+            <div class="xl:col-span-8 space-y-6">
+                {% if not sim_data %}
+                <div class="bg-[#1e293b]/50 border border-slate-700 border-dashed rounded-xl flex flex-col items-center justify-center min-h-[500px]">
+                    <span class="text-3xl mb-2 opacity-50">🔬</span>
+                    <p class="text-xs text-slate-400 font-mono">Awaiting hemodynamic and ventilatory inputs for complex modeling.</p>
+                </div>
+                {% else %}
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4">
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Volumetric Target ($V_t$/kg)</p>
+                        <p class="text-lg font-bold {% if sim_data.vt_kg > 8 %}text-red-400{% else %}text-blue-400{% endif %} font-mono">{{ sim_data.vt_kg }} mL/kg</p>
+                        <p class="text-[8px] text-slate-500 mt-1">Total $V_t$: {{ sim_data.peak_volume }} mL</p>
+                    </div>
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4">
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Alveolar Vent ($V_A$)</p>
+                        <p class="text-lg font-bold text-indigo-400 font-mono">{{ sim_data.alveolar_vent }} L/m</p>
+                        <p class="text-[8px] text-slate-500 mt-1">Gross $V_E$: {{ sim_data.minute_vent }} L/m</p>
+                    </div>
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4">
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial CO2 ($PaCO_2$)</p>
+                        <p class="text-lg font-bold {% if sim_data.paco2 > 45 or sim_data.paco2 < 35 %}text-amber-400{% else %}text-green-400{% endif %} font-mono">{{ sim_data.paco2 }} mmHg</p>
+                        <p class="text-[8px] text-slate-500 mt-1">Normal: 35-45 mmHg</p>
+                    </div>
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4">
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial O2 ($PaO_2$)</p>
+                        <p class="text-lg font-bold {% if sim_data.pao2 < 60 %}text-red-400{% else %}text-emerald-400{% endif %} font-mono">{{ sim_data.pao2 }} mmHg</p>
+                        <p class="text-[8px] text-slate-500 mt-1">Shunt Fraction: {{ sim_data.shunt_percent }}%</p>
+                    </div>
+                </div>
+
+                <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-5">
+                    <h3 class="text-xs font-mono uppercase text-slate-400 mb-2 border-b border-slate-700 pb-2">Pathological Context & Diagnostic Output</h3>
+                    <p class="text-xs text-slate-300 mb-3 leading-relaxed"><span class="font-bold text-blue-400">Diagnosis:</span> {{ sim_data.case_description }}</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-900/20 border-l-2 border-blue-500 p-3 rounded-r-md">
+                            <span class="text-[9px] uppercase text-blue-400 font-bold block mb-1">Volumetric / Pressure Status</span>
+                            <p class="text-[11px] font-mono text-blue-300">{{ sim_data.vol_note }}</p>
+                        </div>
+                        <div class="bg-emerald-900/20 border-l-2 border-emerald-500 p-3 rounded-r-md">
+                            <span class="text-[9px] uppercase text-emerald-400 font-bold block mb-1">Gas Exchange Status</span>
+                            <p class="text-[11px] font-mono text-emerald-300">{{ sim_data.gas_note }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-center flex flex-col justify-center">
+                        <p class="text-[9px] font-mono uppercase text-slate-400">Mean Airway ($P_{mean}$)</p>
+                        <p class="text-sm font-bold text-white font-mono">{{ sim_data.mean_pressure }} cmH2O</p>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-center flex flex-col justify-center">
+                        <p class="text-[9px] font-mono uppercase text-slate-400">Auto-PEEP Risk</p>
+                        <p class="text-sm font-bold font-mono {% if sim_data.auto_peep_risk == 'HIGH' %}text-red-400{% else %}text-green-400{% endif %}">{{ sim_data.auto_peep_risk }}</p>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-center flex flex-col justify-center">
+                        <p class="text-[9px] font-mono uppercase text-slate-400">Inspiratory ($T_i$)</p>
+                        <p class="text-sm font-bold text-white font-mono">{{ sim_data.t_i }} s</p>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-center flex flex-col justify-center">
+                        <p class="text-[9px] font-mono uppercase text-slate-400">Expiratory ($T_e$)</p>
+                        <p class="text-sm font-bold text-white font-mono">{{ sim_data.t_e }} s</p>
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto rounded-xl border border-slate-800">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-xs text-slate-400 font-mono uppercase bg-slate-900/50">
-                                <th class="p-4">Anonymized Matrix ID</th>
-                                <th class="p-4">Demographic Stratification Vector</th>
-                                <th class="p-4">Assigned Deployment Hub</th>
-                                <th class="p-4">Target Compliance Index</th>
-                                <th class="p-4">System Status Node</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-xs font-mono divide-y divide-slate-800/40">
-                            <tr class="hover:bg-slate-900/40 transition">
-                                <td class="p-4 text-white font-bold tracking-wider">#NEX-NEO-01</td>
-                                <td class="p-4 text-slate-300">Infant Clinical Phenotype A</td>
-                                <td class="p-4 text-slate-400">NICU Hyperbaric Pod-2</td>
-                                <td class="p-4 text-cyan-400">1.8 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[10px]">STEADY LOGICAL FLOW</span></td>
-                            </tr>
-                            <tr class="hover:bg-slate-900/40 transition">
-                                <td class="p-4 text-white font-bold tracking-wider">#NEX-PED-04</td>
-                                <td class="p-4 text-slate-300">Juvenile Asthma Phenotype B</td>
-                                <td class="p-4 text-slate-400">Pediatric High-Care Suite-9</td>
-                                <td class="p-4 text-cyan-400">14.2 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-bold text-[10px]">DYNAMIC BALANCING</span></td>
-                            </tr>
-                            <tr class="hover:bg-slate-900/40 transition">
-                                <td class="p-4 text-white font-bold tracking-wider">#NEX-ADU-11</td>
-                                <td class="p-4 text-slate-300">Adult Trauma ARDS Phenotype F</td>
-                                <td class="p-4 text-slate-400">Main Trauma Resuscitation Bay-1</td>
-                                <td class="p-4 text-cyan-400">38.5 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-bold text-[10px] animate-pulse">OVERDISTENSION RISK</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                {% endif %}
             </div>
-            {% endif %}
-
-            {% if active_tab == 'marketplace' %}
-            <div class="space-y-6 animate-fadeIn">
-                <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-xl">
-                    <h2 class="text-xl font-bold text-white tracking-tight">AeroLung Enterprise Core Market</h2>
-                    <p class="text-xs text-slate-400 mt-1">Upgrade local system telemetry nodes with modular plugins, artificial intelligence overlays, and advanced physical hardware simulations.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-slate-700 transition">
-                        <div>
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl text-xl">🧠</span>
-                                <span class="bg-cyan-500/10 text-cyan-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-cyan-500/20">Telemetry Alpha</span>
-                            </div>
-                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">Neural Predictive Weave</h3>
-                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Injects real-time predictive algorithm tracks to instantly counteract dynamic resistance spikes before barotrauma manifests.</p>
-                        </div>
-                        <button class="w-full bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 cursor-not-allowed">
-                            Node Implemented
-                        </button>
-                    </div>
-
-                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-cyan-500/40 transition">
-                        <div class="absolute top-0 right-0 bg-cyan-600 text-white font-black text-[8px] font-mono tracking-widest uppercase px-3 py-1 rounded-bl-xl shadow-md">UPGRADE</div>
-                        <div>
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl text-xl">🫁</span>
-                                <span class="bg-indigo-500/10 text-indigo-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-indigo-500/20">Physics Beta</span>
-                            </div>
-                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">Multi-Compartment Lung Matrix</h3>
-                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Expands simple mathematical compliance into single-alveoli dependent asynchronous tissue models for targeted regional analysis.</p>
-                        </div>
-                        <button class="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 shadow transition">
-                            Procure Node License
-                        </button>
-                    </div>
-
-                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-amber-500/40 transition">
-                        <div>
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-xl">📡</span>
-                                <span class="bg-amber-500/10 text-amber-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-amber-500/20">Hardware Max</span>
-                            </div>
-                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">HFNC Flow Pipeline Adapter</h3>
-                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Links algorithmic infrastructure directly to physical High-Flow Nasal Cannula baseline drivers for real-world laboratory deployment.</p>
-                        </div>
-                        <button class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 shadow transition">
-                            Unlock Module ($1,450 / Year)
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-        </main>
-    </div>
+        </div>
+        {% endif %}
+    </main>
 
     <script>
+        // Preset injections map to clinical pathologies. Settings adjust to baseline starting points.
         function applyProfilePresets() {
             const profile = document.getElementById('profile_class').value;
             const pip = document.getElementById('pip');
+            const peep = document.getElementById('peep');
             const compliance = document.getElementById('compliance');
             const resistance = document.getElementById('resistance');
-            const peep = document.getElementById('peep');
+            const rr = document.getElementById('rr');
+            const ie = document.getElementById('ie_ratio');
             
-            if (profile === 'neonatal') {
-                pip.value = '24'; compliance.value = '3.0'; resistance.value = '45'; peep.value = '5';
-            } else if (profile === 'pediatric') {
-                pip.value = '28'; compliance.value = '16.0'; resistance.value = '22'; peep.value = '6';
-            } else if (profile === 'adult') {
-                pip.value = '32'; compliance.value = '42.0'; resistance.value = '12'; peep.value = '8';
+            if (profile === 'normal') {
+                pip.value = '15'; peep.value = '5'; compliance.value = '60.0'; resistance.value = '10'; rr.value = '16'; ie.value = '2.0';
+            } else if (profile === 'ards_mild') {
+                pip.value = '24'; peep.value = '10'; compliance.value = '35.0'; resistance.value = '12'; rr.value = '20'; ie.value = '1.5';
+            } else if (profile === 'ards_severe') {
+                pip.value = '32'; peep.value = '16'; compliance.value = '20.0'; resistance.value = '15'; rr.value = '28'; ie.value = '1.0';
+            } else if (profile === 'asthma') {
+                pip.value = '30'; peep.value = '4'; compliance.value = '55.0'; resistance.value = '45'; rr.value = '12'; ie.value = '4.0';
+            } else if (profile === 'copd') {
+                pip.value = '22'; peep.value = '5'; compliance.value = '75.0'; resistance.value = '25'; rr.value = '14'; ie.value = '3.5';
+            } else if (profile === 'chf') {
+                pip.value = '25'; peep.value = '12'; compliance.value = '40.0'; resistance.value = '14'; rr.value = '22'; ie.value = '2.0';
+            } else if (profile === 'pe') {
+                pip.value = '18'; peep.value = '5'; compliance.value = '55.0'; resistance.value = '12'; rr.value = '26'; ie.value = '2.0';
+            } else if (profile === 'tbi') {
+                pip.value = '18'; peep.value = '5'; compliance.value = '60.0'; resistance.value = '10'; rr.value = '22'; ie.value = '2.0';
+            } else if (profile === 'fibrosis') {
+                pip.value = '28'; peep.value = '8'; compliance.value = '15.0'; resistance.value = '12'; rr.value = '28'; ie.value = '1.5';
             }
         }
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').innerText = now.toLocaleString();
-        }
-        setInterval(updateClock, 1000);
     </script>
 </body>
 </html>
 """
 
-# --- ADVANCED FLUID DYNAMICS ENGINE MATHEMATICS CONTROLLER ---
+# --- BACKEND LOGIC ---
 
 @app.route('/')
 def home():
@@ -415,99 +317,153 @@ def home():
 def login():
     username = request.form['username']
     password = request.form['password']
-    
-    if username in CLINICAL_DATABASE and CLINICAL_DATABASE[username]['token'] == password:
+    if username in CLINICAL_DATABASE and CLINICAL_DATABASE[username]['password'] == password:
         session['user'] = username
         session['role'] = CLINICAL_DATABASE[username]['role']
-        session['clearance'] = CLINICAL_DATABASE[username]['clearance']
-        session['facility'] = CLINICAL_DATABASE[username]['facility']
         return redirect(url_for('dashboard'))
-    else:
-        flash("SECURITY NODE REJECTION: CREDENTIAL ARCHETYPE UNMATCHED")
-        return redirect(url_for('home'))
+    flash("Authentication Failed: Credentials Unmatched.", "error")
+    return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
 
+@app.route('/update_credentials', methods=['POST'])
+def update_credentials():
+    if 'user' not in session: return redirect(url_for('home'))
+    current_user = session['user']
+    if CLINICAL_DATABASE[current_user]['password'] != request.form['current_password']:
+        flash("Current password validation failed.", "error")
+        return redirect(url_for('dashboard', tab='settings'))
+    
+    new_user = request.form['new_username']
+    if new_user != current_user and new_user in CLINICAL_DATABASE:
+        flash("System ID already in use.", "error")
+        return redirect(url_for('dashboard', tab='settings'))
+        
+    user_data = CLINICAL_DATABASE[current_user]
+    user_data['password'] = request.form['new_password']
+    del CLINICAL_DATABASE[current_user]
+    CLINICAL_DATABASE[new_user] = user_data
+    session['user'] = new_user
+    flash(f"Credentials updated. New ID: {new_user}", "success")
+    return redirect(url_for('dashboard', tab='settings'))
+
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('home'))
+    if 'user' not in session: return redirect(url_for('home'))
     
-    active_tab = request.args.get('tab', 'simulation')
+    active_tab = request.args.get('tab', 'simulator')
     sim_data = None
     inputs = None
-    profile_class = 'neonatal'
+    profile_class = 'normal'
     
-    if request.method == 'POST':
+    if request.method == 'POST' and active_tab == 'simulator':
         profile_class = request.form['profile_class']
         pip = float(request.form['pip'])
+        peep = float(request.form['peep'])
         compliance = float(request.form['compliance'])
         resistance = float(request.form['resistance'])
-        peep = float(request.form['peep'])
-        inputs = {'pip': pip, 'compliance': compliance, 'resistance': resistance, 'peep': peep}
+        rr = float(request.form['rr'])
+        ie_ratio = float(request.form['ie_ratio'])
+        ibw = float(request.form['ibw'])
+        fio2 = float(request.form['fio2']) / 100.0 # Convert to decimal
         
-        # --- SCIENTIFIC PHYSIOLOGICAL COMPLEMENT PHYSICS ---
-        # Converted metric to scale resistance into standard L/s metrics
-        converted_resistance = resistance / 1000.0
-        time_constant = round(converted_resistance * compliance, 3)
+        inputs = {'pip': pip, 'peep': peep, 'compliance': compliance, 'resistance': resistance, 'rr': rr, 'ie_ratio': ie_ratio, 'ibw': ibw, 'fio2': int(fio2*100)}
         
-        # Driving Pressure Formula: Delta P = PIP - PEEP
+        # --- PATHOLOGY HIDDEN VARIABLES ---
+        # vco2 = Metabolic CO2 production (mL/min)
+        # shunt = Right-to-Left blood shunt fraction
+        # vd_vt = Dead space to tidal volume ratio
+        path_vars = {
+            'normal':      {'vco2': 200, 'shunt': 0.05, 'vd_vt': 0.30, 'desc': 'Healthy lung mechanics. Normal metabolic demand and gas exchange.'},
+            'ards_mild':   {'vco2': 250, 'shunt': 0.15, 'vd_vt': 0.45, 'desc': 'Exudative phase ARDS. Inflammatory fluid in alveoli causing mild shunting.'},
+            'ards_severe': {'vco2': 300, 'shunt': 0.35, 'vd_vt': 0.60, 'desc': 'Fibroproliferative ARDS. Severe consolidation, massive intrapulmonary shunting, and high dead space.'},
+            'asthma':      {'vco2': 280, 'shunt': 0.10, 'vd_vt': 0.35, 'desc': 'Status Asthmaticus. Severe bronchoconstriction increasing airway resistance. High risk of dynamic hyperinflation.'},
+            'copd':        {'vco2': 220, 'shunt': 0.15, 'vd_vt': 0.50, 'desc': 'COPD Exacerbation. Destruction of alveolar septa causing trapped gas and elevated baseline dead space.'},
+            'chf':         {'vco2': 220, 'shunt': 0.20, 'vd_vt': 0.35, 'desc': 'Pulmonary Edema. Hydrostatic pressure driving fluid into alveoli. PEEP required to offset alveolar flooding.'},
+            'pe':          {'vco2': 200, 'shunt': 0.10, 'vd_vt': 0.65, 'desc': 'Pulmonary Embolism. Vascular occlusion leading to extreme alveolar dead space (ventilation without perfusion).'},
+            'tbi':         {'vco2': 200, 'shunt': 0.05, 'vd_vt': 0.30, 'desc': 'Traumatic Brain Injury. Lungs are healthy, but strict PaCO2 targeting (35-38 mmHg) is required to manage intracranial pressure.'},
+            'fibrosis':    {'vco2': 250, 'shunt': 0.20, 'vd_vt': 0.40, 'desc': 'Pulmonary Fibrosis. Interstitial scarring causing severe restriction and diffusion impairment.'}
+        }
+        
+        p_data = path_vars[profile_class]
+        
+        # --- MECHANICAL MATHEMATICS ---
         driving_pressure = max(0.1, pip - peep)
-        peak_volume = round(driving_pressure * compliance, 1)
+        peak_volume = round(driving_pressure * compliance, 1) # V_t in mL
+        vt_kg = round(peak_volume / ibw, 1)
         
-        time_points = []
-        pressure_points = []
+        minute_vent = (peak_volume * rr) / 1000.0 # L/min
         
-        # Dynamic Exponential Charging Profiler Loop
-        for step in range(0, 11):
-            t = (step / 10.0) * 0.5
-            time_points.append(f"{round(t, 2)}s")
-            if time_constant > 0:
-                # Alveolar pressure exponential equalization logic
-                current_p = peep + driving_pressure * (1.0 - math.exp(-t / time_constant))
-            else:
-                current_p = pip
-            pressure_points.append(round(current_p, 2))
+        # Dead space and Alveolar Ventilation
+        dead_space_vol = peak_volume * p_data['vd_vt']
+        alveolar_vent = ((peak_volume - dead_space_vol) * rr) / 1000.0
+        
+        # Time constraints
+        t_cycle = 60.0 / rr
+        t_i = round(t_cycle * (1 / (1 + ie_ratio)), 2)
+        t_e = round(t_cycle - t_i, 2)
+        mean_pressure = round(((pip * t_i) + (peep * t_e)) / t_cycle, 1)
+        
+        time_constant = (resistance / 1000.0) * compliance
+        auto_peep_risk = "HIGH" if t_e < (3.0 * time_constant) else "LOW"
+
+        # --- ARTERIAL GAS ESTIMATIONS ---
+        # PaCO2 Estimate
+        paco2 = round((0.863 * p_data['vco2']) / max(0.1, alveolar_vent), 1)
+        
+        # PaO2 Estimate (Alveolar Gas Equation approximation)
+        p_atm = 760
+        p_h2o = 47
+        rq = 0.8
+        p_A_O2 = ((p_atm - p_h2o) * fio2) - (paco2 / rq)
+        
+        # Shunt effect: Roughly 10-20 mmHg drop per 5% shunt over baseline
+        shunt_penalty = (p_data['shunt'] * 100) * 12 
+        pao2 = round(max(30, p_A_O2 - shunt_penalty), 1)
+        
+        # --- CLINICAL NOTES LOGIC ---
+        vol_note = ""
+        gas_note = ""
+        
+        if vt_kg > 8.0:
+            vol_note = f"WARNING: Tidal volume is {vt_kg} mL/kg. This exceeds protective lung thresholds (<8 mL/kg). High risk of volutrauma. Decrease PIP."
+        elif vt_kg < 4.0:
+            vol_note = f"Volume is heavily restricted ({vt_kg} mL/kg). May promote widespread atelectasis unless PEEP is optimized."
+        else:
+            vol_note = f"Volumetric targeting is nominal at {vt_kg} mL/kg. Lung protection strategies are maintained."
             
-        # --- METROPOLIS CLASSIFICATION STRATIFICATION LOGIC ---
-        if profile_class == 'neonatal':
-            case_description = "Phenotype Profile: Pre-term Infant Archetype. Lungs present minimal surface matrix structure and severe surfactant layering deficiency. High risk of mechanical physical wall tearing under traditional volumetric load matrices."
-            if peak_volume > 85 or pip >= 30:
-                risk_status = "CRITICAL: HIGH INFANT BAROTRAUMA RISK"
-                advice_note = "DIRECTIVE ALERT: Dynamic volume delivery exceeds micro-structural thresholds. High risk of immediate alveolar tearing. Lower Peak Inspiratory Pressure (PIP) configurations below 25 cmH2O immediately to mitigate shear trauma."
+        if profile_class == 'tbi':
+            if paco2 > 40: gas_note = "CRITICAL TBI ALERT: Patient is hypercapnic. CO2 vasodilation will cause lethal increases in Intracranial Pressure (ICP). Increase Minute Ventilation immediately."
+            elif paco2 < 34: gas_note = "WARNING: Excessive hypocapnia. Severe cerebral vasoconstriction risk causing brain ischemia. Decrease RR."
+            else: gas_note = "Target PaCO2 achieved for neuro-protection."
+        else:
+            if paco2 > 50 and profile_class not in ['copd', 'asthma']:
+                gas_note = "Respiratory Acidosis evident. Alveolar ventilation is insufficient to clear metabolic CO2 production."
+            elif profile_class == 'pe':
+                gas_note = f"Massive dead space ({int(p_data['vd_vt']*100)}%) requires exceptionally high Minute Ventilation just to achieve normal PaCO2."
+            elif pao2 < 60:
+                gas_note = "Hypoxemic failure. Intrapulmonary shunting is too severe for current FiO2/PEEP settings. Consider PEEP titration or prone positioning."
             else:
-                risk_status = "NOMINAL: STEADY MICRO-REGIMEN"
-                advice_note = "DIRECTIVE NOTE: Current charging metrics correspond optimally with safe neonatal protective tracking metrics."
-                
-        elif profile_class == 'pediatric':
-            case_description = "Phenotype Profile: Pediatric Subject manifesting acute hyper-reactive bronchial inflammation loops. Muscular tissue spasms increase upper airway fluid restriction metrics while baseline compliance remains elastic."
-            if peak_volume > 380 or pip >= 34:
-                risk_status = "HIGH RISK: JUVENILE SHEAR TRAUMA"
-                advice_note = "DIRECTIVE ALERT: Elevating mechanical ventilation tracks against active spasms risks hyper-inflating baseline healthy tissue fields. Review bronchodilator pipeline components or adjust structural settings downward."
-            else:
-                risk_status = "NOMINAL: REBALANCED EQUALIZATION"
-                advice_note = "DIRECTIVE NOTE: Safe pressure-gradient execution allows the target volume loop to bypass restriction zones smoothly."
-                
-        else: # ADULT ARDS PROFILE
-            case_description = "Phenotype Profile: Mature Adult Subject presenting severe Respiratory Distress Syndrome (ARDS). Alveolar micro-pockets are compromised by heavy fluid infiltration, consolidation, and dense fibrous restrictive patches."
-            if peak_volume > 850 or driving_pressure > 18:
-                risk_status = "CRITICAL: ADULT ALVEOLAR OVERDISTENSION"
-                advice_note = "DIRECTIVE ALERT: Current settings exceed protective ventilation targets (6-8 mL/kg of Ideal Body Weight). Elevated driving pressure risks compounding secondary mechanical lung damage. Enforce strict ARDSnet volume restriction tracking immediately."
-            else:
-                risk_status = "NOMINAL: PROTECTIVE STRATEGY SATISFIED"
-                advice_note = "DIRECTIVE NOTE: System loops are actively maintaining modern low-tidal volume guidelines for protective critical infrastructure care."
+                gas_note = "Gas exchange parameters are currently within acceptable physiological limits."
 
         sim_data = {
             'peak_volume': peak_volume,
-            'time_constant': time_constant,
-            'risk_status': risk_status,
-            'time_points': time_points,
-            'pressure_points': pressure_points,
-            'case_description': case_description,
-            'advice_note': advice_note
+            'vt_kg': vt_kg,
+            'minute_vent': round(minute_vent, 2),
+            'alveolar_vent': round(alveolar_vent, 2),
+            'mean_pressure': mean_pressure,
+            'auto_peep_risk': auto_peep_risk,
+            'paco2': paco2,
+            'pao2': pao2,
+            'shunt_percent': int(p_data['shunt'] * 100),
+            't_i': t_i,
+            't_e': t_e,
+            'case_description': p_data['desc'],
+            'vol_note': vol_note,
+            'gas_note': gas_note
         }
 
     return render_template_string(
@@ -516,9 +472,7 @@ def dashboard():
         sim_data=sim_data,
         inputs=inputs,
         profile_class=profile_class,
-        user_role=session.get('role'),
-        user_clearance=session.get('clearance'),
-        system_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_role=session.get('role')
     )
 
 if __name__ == '__main__':
