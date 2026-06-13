@@ -6,9 +6,6 @@ import json
 app = Flask(__name__)
 app.secret_key = "aegismed_secure_core_2026"
 
-# Connect the AI Brain (API Key will live in Render)
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-
 # Medical Director Login Credentials for Judges
 MED_USERS = {"chief_medical_officer": "geneva16"}
 
@@ -63,7 +60,6 @@ DASHBOARD_HTML = """
     <title>AegisMed Analytics Dashboard</title>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased">
-    <!-- Top Navigation Grid -->
     <nav class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center space-x-3">
             <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
@@ -78,9 +74,7 @@ DASHBOARD_HTML = """
         </div>
     </nav>
 
-    <!-- App Space Layout -->
     <main class="max-w-7xl mx-auto p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Input Terminal Column -->
         <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl h-fit">
             <h2 class="text-base font-bold text-white mb-1">Clinical Intake Telemetry</h2>
             <p class="text-xs text-slate-400 mb-6">Input battlefield hospital logs, forensic intakes, or humanitarian aid denial logs.</p>
@@ -92,13 +86,12 @@ DASHBOARD_HTML = """
                 </div>
                 <div>
                     <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1.5">Raw Forensic Data / Manifest Text</label>
-                    <textarea name="report_details" rows="7" placeholder="Paste data here (e.g., 14 medical personnel denied border entry; clinical inventory shows zero surgical supplies; treating blast injuries matches unlawful fragmentation weapons...)" required class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500 transition"></textarea>
+                    <textarea name="report_details" rows="7" placeholder="Paste data here..." required class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500 transition"></textarea>
                 </div>
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition">Run Forensic Scan</button>
             </form>
         </div>
 
-        <!-- System Output Analytical Workspace -->
         <div class="lg:col-span-2 space-y-6">
             {% if not diagnostic_data %}
             <div class="bg-slate-900/40 border border-slate-800/80 border-dashed rounded-2xl p-16 text-center flex flex-col items-center justify-center min-h-[400px]">
@@ -108,7 +101,6 @@ DASHBOARD_HTML = """
             </div>
             {% else %}
             
-            <!-- Real-Time Metrics Aggregates -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                     <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Medical Neutrality Threat Matrix</p>
@@ -126,7 +118,6 @@ DASHBOARD_HTML = """
                 </div>
             </div>
 
-            <!-- Pipeline Analysis Streams -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                 <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-800">Automated Legal-Forensic Pipeline Vectors</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +132,6 @@ DASHBOARD_HTML = """
                 </div>
             </div>
 
-            <!-- Legal Action Playbook -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                 <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-800">SDG 16 Accountability Measures</h3>
                 <div class="space-y-3">
@@ -198,7 +188,12 @@ def dashboard():
         report = request.form['report_details']
         
         try:
-            # Command Gemini to perform structural extraction into clean JSON
+            # Configure API key safely right when the form runs
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Missing GEMINI_API_KEY environment variable on Render.")
+                
+            genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
             
             prompt = f"""
@@ -208,18 +203,14 @@ def dashboard():
 
             You must respond with exactly this JSON formatting structure:
             {{
-                "neutrality_threat_percentage": (integer between 0 and 100 representing scale of targeting healthcare assets/denial of care),
-                "humanitarian_compliance_index": (integer between 0 and 100 representing presence of legal protections),
+                "neutrality_threat_percentage": (integer between 0 and 100),
+                "humanitarian_compliance_index": (integer between 0 and 100),
                 "forensic_findings": "Detailed multi-sentence analysis explaining physical medical or structural system patterns showing human rights violations",
                 "legal_infractions": "Detailed analysis showing exactly which international justice treaties or health laws were breached",
                 "accountability_playbook": [
                     {{
-                        "target_mechanism": "e.g., International Criminal Court Filing",
+                        "target_mechanism": "String target body name",
                         "operational_protocol": "Concrete step required to preserve forensic evidence or submit reports safely"
-                    }},
-                    {{
-                        "target_mechanism": "e.g., WHO Health Equity Intervention",
-                        "operational_protocol": "Concrete deployment mechanism to bypass access blockages"
                     }}
                 ]
             }}
@@ -229,12 +220,11 @@ def dashboard():
             diagnostic_data = json.loads(response.text)
             
         except Exception as e:
-            # Dynamic recovery module
             diagnostic_data = {
-                "neutrality_threat_percentage": 50,
-                "humanitarian_compliance_index": 50,
-                "forensic_findings": f"System Interruption: {str(e)}",
-                "legal_infractions": "Please ensure your Google Studio API key is entered accurately.",
+                "neutrality_threat_percentage": 0,
+                "humanitarian_compliance_index": 0,
+                "forensic_findings": f"Configuration Note: {str(e)}",
+                "legal_infractions": "Please check your Render Environment settings.",
                 "accountability_playbook": []
             }
             
