@@ -343,6 +343,28 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     </div>
                 </div>
 
+                <div class="glass-panel rounded-lg p-5 border border-sky-500/30 bg-zinc-950/90 shadow-xl">
+                    <h3 class="text-[10px] text-sky-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Spirometry Assay Diagnostics</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center mb-3">
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FEV1 Volume</span>
+                            <span class="text-lg font-mono font-black text-white">{{ sim_data.fev1_vol }} L</span>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FVC Capacity</span>
+                            <span class="text-lg font-mono font-black text-white">{{ sim_data.fvc_vol }} L</span>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FEV1/FVC Ratio</span>
+                            <span class="text-lg font-mono font-black text-sky-400">{{ sim_data.fev1_fvc_pct }}%</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded text-xs font-mono bg-sky-950/30 border border-sky-800 text-sky-200">
+                        <span class="text-[9px] text-sky-400 uppercase tracking-widest font-bold block mb-1">Pulmonary Function Interpretation:</span>
+                        <p class="text-zinc-300 text-[11px] leading-relaxed">{{ sim_data.spirometry_eval }}</p>
+                    </div>
+                </div>
+
                 <div class="glass-panel rounded-lg p-5 border border-zinc-800/80 bg-gradient-to-br from-zinc-950 to-black shadow-xl">
                     <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">AI Diagnostics Engine</h3>
                     <p class="text-xl font-black text-white leading-tight mb-3">{{ sim_data.ai_condition }}</p>
@@ -408,22 +430,32 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             </div>
 
             <div class="lg:col-span-5 flex flex-col gap-4">
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
+                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
                     <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-400 uppercase tracking-widest z-20">Pressure Waveform (Paw)</span>
                     <canvas id="pressureChart"></canvas>
                 </div>
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
+                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
                     <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-400 uppercase tracking-widest z-20">Airflow Dynamics (L/m)</span>
                     <canvas id="flowChart"></canvas>
                 </div>
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
+                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
                     <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-400 uppercase tracking-widest z-20">Volume Accumulation (mL)</span>
                     <canvas id="volumeChart"></canvas>
                 </div>
-                <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/50 shadow-lg h-[220px] flex items-center justify-center relative">
-                    <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Dynamic P-V Loop Trajectory</div>
-                    <div class="w-full h-full pt-6">
-                        <canvas id="pvLoopChart"></canvas>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/50 h-[220px] flex items-center justify-center relative">
+                        <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Dynamic P-V Loop</div>
+                        <div class="w-full h-full pt-6">
+                            <canvas id="pvLoopChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel rounded-lg p-4 border border-sky-900/60 bg-black/50 h-[220px] flex items-center justify-center relative">
+                        <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-sky-400 uppercase tracking-wider">FEV1 / FVC Spirogram Loop</div>
+                        <div class="w-full h-full pt-6">
+                            <canvas id="fevChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -477,8 +509,25 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
                             scales: {
-                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
-                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
+                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
+                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
+                            }
+                        }
+                    });
+
+                    // Spirometry Graph Vector Generation Mapping
+                    const spiroTime = waveData.spiro_t;
+                    const spiroVol = waveData.spiro_v;
+                    const spiroMap = spiroTime.map((t, i) => ({x: t, y: spiroVol[i]}));
+                    
+                    new Chart(document.getElementById('fevChart').getContext('2d'), {
+                        type: 'scatter',
+                        data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.05)', showLine: true, fill: true }] },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Expiratory Time (Seconds)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
+                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Exhaled Volume (Liters)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
                             }
                         }
                     });
@@ -555,7 +604,6 @@ def dashboard():
     preset = request.args.get('preset', '')
     sim_data = None
     
-    # --- MED-REPORT DIRECT ENTRANCE DICTIONARIES ---
     PRESETS = {
         "healthy": {"vt_input": 500, "pip": 20, "pplat": 13, "peep": 5, "peak_flow": 60, "peco2": 28, "cao2": 19.8, "cco2": 20.4, "cvo2": 14.8, "hco3_input": 24, "rr": 14, "fio2": 30, "ie_ratio": 2.0, "vco2": 200},
         "ards":    {"vt_input": 350, "pip": 35, "pplat": 29, "peep": 14, "peak_flow": 50, "peco2": 18, "cao2": 16.2, "cco2": 20.1, "cvo2": 11.2, "hco3_input": 21, "rr": 25, "fio2": 70, "ie_ratio": 1.5, "vco2": 220},
@@ -588,7 +636,6 @@ def dashboard():
                     'vco2': safe_float(request.form.get('vco2'), 200)
                 }
 
-            # Extrapolate baseline entities from dictionary structures
             vt = inputs['vt_input']
             pip = inputs['pip']
             pplat = inputs['pplat']
@@ -604,15 +651,15 @@ def dashboard():
             vco2 = inputs['vco2']
             fio2_val = inputs['fio2']
 
-            # 1. Compliance (C = Vt / (Pplat - PEEP))
+            # 1. Compliance
             driving_pressure = max(1.0, pplat - peep)
             compliance = vt / driving_pressure
             
-            # 2. Airway Resistance (R = (PIP - Pplat) / Flow_L_sec)
+            # 2. Airway Resistance
             flow_lsec = max(5.0, flow_lmin) / 60.0
             resistance = (pip - pplat) / flow_lsec
             
-            # 3. Dead Space Fraction (Vd/Vt via Enghoff Realization Equation)
+            # 3. Dead Space Fraction
             min_vent_est = (vt * rr) / 1000.0
             paco2_derived = round((0.863 * vco2) / (min_vent_est * 0.75), 1)
             if peco2 >= paco2_derived: 
@@ -620,24 +667,42 @@ def dashboard():
             vd_vt_ratio = (paco2_derived - peco2) / paco2_derived
             vd_vt_pct = round(vd_vt_ratio * 100, 1)
 
-            # 4. Classical Shunt Equation Execution (Qs/Qt = (CcO2 - CaO2) / (CcO2 - CvO2))
+            # 4. Shunt Fraction
             shunt_denominator = cco2 - cvo2
             if shunt_denominator <= 0: 
                 shunt_denominator = 5.0
             shunt_ratio = (cco2 - cao2) / shunt_denominator
             shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
 
-            # Mathematical feedback to respiratory circuit variables
+            # Circuit execution maps
             alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
             paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
             p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
             pao2 = round(max(30, p_A_O2 - (shunt_pct * 12)), 1)
             aa_gradient = round(p_A_O2 - pao2, 1)
-            
-            # Mechanical Power equations 
             mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
             
-            # Base clinical conditions matrices
+            # --- SPIROMETRY MODELLING LOGIC ENGINE ---
+            # Set structural theoretical Forced Vital Capacity constants based on scenario data
+            if compliance <= 30: # Restrictive disease context
+                fvc_vol = 2.4
+                decay_constant = 2.2 # Rapid opening, small ceiling volume
+                spirometry_eval = "Restrictive Curve Pattern: Preserved proportional FEV1/FVC ratio alongside marked baseline losses in total Forced Vital Capacity volumes."
+            elif resistance >= 25: # Obstructive disease context
+                fvc_vol = 4.5
+                decay_constant = 0.55 if resistance >= 30 else 0.72 # Long drawn out exhalation curves
+                spirometry_eval = "Obstructive Curve Pattern: Scooped expiratory tracing present. Marked deceleration of mid-expiratory flows, dropping total ratio clearly below normal clinical targets."
+            else: # Normal health context
+                fvc_vol = 5.0
+                decay_constant = 1.65
+                spirometry_eval = "Unremarkable Spirometry Curve: Forced Expiratory Volume metrics track cleanly above threshold values. Airway dimensions are pristine."
+
+            # Calculate dynamic volumes at t=1.0s and t=6.0s (FVC total duration profile)
+            fev1_vol = round(fvc_vol * (1.0 - math.exp(-decay_constant * 1.0)), 2)
+            fvc_vol_realized = round(fvc_vol * (1.0 - math.exp(-decay_constant * 6.0)), 2)
+            fev1_fvc_pct = round((fev1_vol / fvc_vol_realized) * 100, 1)
+
+            # Differential classifications
             ai_condition = "Physiologically Normal Lung Baseline"
             ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
             differentials = ["Healthy Control Context"]
@@ -655,11 +720,9 @@ def dashboard():
                 ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
                 differentials = ["Status Asthmaticus Attack", "Anaphylaxis Spasmodic Airway Closure"]
 
-            # Calculate Henderson-Hasselbalch equation mapping logs
-            try:
-                ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
-            except Exception:
-                ph = 7.40
+            # Henderson Hasselbalch
+            try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
+            except Exception: ph = 7.40
             
             acid_base_status = "Normal Balance"
             acid_base_delta_text = "System homeostatically stable. No clinical intervention requested."
@@ -679,7 +742,7 @@ def dashboard():
                     acid_base_status = "Metabolic Alkalosis"
                     acid_base_delta_text = "Elevated metabolic bicarbonate accumulation."
 
-            # Render wave loops inside browser environment cleanly
+            # Render wave loops
             t_cycle = 60.0 / rr
             t_i = t_cycle * (1 / (1 + ie))
             t_e = t_cycle - t_i
@@ -694,29 +757,40 @@ def dashboard():
                 if t <= t_i:
                     p_pts.append(round(pip, 1))
                     v_pts.append(round(vt * (1 - math.exp(-t / max(0.01, tau))), 1))
-                    f_pts.append(round(((vt / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
+                    f_pts.append(round(((vt / max(0.01, tau)) * math.exp(-t / max(0.01, tau))), 1) * 0.06)
                 else:
                     t_exp = t - t_i
                     p_pts.append(round(peep, 1))
                     v_pts.append(round(vt * math.exp(-t_exp / max(0.01, tau)), 1))
-                    f_pts.append(round(-((vt / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
+                    f_pts.append(round(-((vt / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))), 1) * 0.06)
             
+            # Formulate coordinates array specifically mapping the Spirogram curve loop
+            spiro_t_pts, spiro_v_pts = [], []
+            for step in range(61):
+                s_t = step * 0.1
+                spiro_t_pts.append(round(s_t, 2))
+                spiro_v_pts.append(round(fvc_vol * (1.0 - math.exp(-decay_constant * s_t)), 2))
+
             sim_data = {
-                'derived_compliance': round(compliance, 1),
-                'derived_resistance': round(resistance, 1),
-                'derived_vd_vt': vd_vt_pct,
-                'derived_shunt': shunt_pct,
+                'derived_compliance': round(compliance, 1), 'derived_resistance': round(resistance, 1),
+                'derived_vd_vt': vd_vt_pct, 'derived_shunt': shunt_pct,
+                'fev1_vol': fev1_vol, 'fvc_vol': fvc_vol_realized, 'fev1_fvc_pct': fev1_fvc_pct, 'spirometry_eval': spirometry_eval,
                 'ai_condition': ai_condition, 'ai_intervention': ai_intervention, 'differentials': differentials,
                 'paco2': paco2, 'pao2': pao2, 'aa_gradient': aa_gradient, 'mech_power': mech_power,
                 'ph': ph, 'hco3': hco3_input, 'acid_base_status': acid_base_status, 'acid_base_delta_text': acid_base_delta_text,
                 'peak_volume': vt, 'minute_vent': round(min_vent_est, 2), 'alveolar_vent': round(alv_vent, 2),
                 'auto_peep_risk': auto_peep_risk, 'time_const': round(tau, 3),
-                'waveform_data': json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+                'waveform_data': json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts, 'spiro_t': spiro_t_pts, 'spiro_v': spiro_v_pts})
             }
         except Exception:
             flash(f"CALCULATION ENGINE RUNTIME CRASH:\n{traceback.format_exc()}")
 
     return render_template_string(MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data, inputs=inputs, user_role=session.get('role', 'Chief Architect'))
+
+@app.route('/update_credentials', methods=['POST'])
+def update_credentials():
+    flash("Demo Architecture Configuration Blocked.")
+    return redirect(url_for('dashboard', tab='settings'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
