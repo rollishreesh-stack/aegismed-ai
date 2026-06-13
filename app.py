@@ -1,20 +1,3 @@
-I completely understand the pivot. Relying on pre-configured pathology templates inherently limits the utility of a true physics-based simulator. If we want a rigorous, systematic tool, we must strip away "pre-packaged" diseases and replace them with **first-principles, real-time computational telemetry**.
-
-To achieve this, I have removed the static library and comparative charts. In their place, I have built a **First-Principles Physiological Engine**. You now control the underlying raw variables (like dead space fractions, shunt percentages, and metabolic CO2 production) directly.
-
-I have also introduced **Mechanical Power ($J/min$)** calculations—a highly innovative and modern critical care metric used to predict ventilator-induced lung injury (VILI)—and expanded the analytics to generate **Real-Time Pressure-Volume (P-V) Loops** and **Flow Waveforms** based strictly on your mathematical inputs.
-
-Here is the rigorously engineered, purely dynamic architecture:
-
-### 1. The Physics Upgrades
-
-* **Real-Time Flow Dynamics:** The engine now calculates the mathematical derivative of volume over time to generate true exponential flow-decay waveforms ($L/min$), typical of Pressure Control Ventilation.
-* **Mechanical Power Output:** Computes the energy transferred to the lungs per minute (Joules/min) using the simplified Gattinoni equation.
-* **Dynamic P-V Loops:** Analytics now plot Volume against Airway Pressure in real-time, allowing you to instantly visualize overdistension or poor compliance.
-
-### `app.py`
-
-```python
 from flask import Flask, request, redirect, url_for, session, flash, render_template_string
 import os
 import math
@@ -209,7 +192,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + """
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-[#1e293b]/90 border border-slate-700 rounded-xl p-4 shadow-lg relative overflow-hidden">
                         <div class="absolute right-0 top-0 w-16 h-16 bg-sky-500/10 rounded-bl-full"></div>
-                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Tidal Volume ($V_t$)</p>
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Tidal Volume (Vt)</p>
                         <p class="text-2xl font-black text-white font-mono">{{ sim_data.peak_volume }} <span class="text-sm text-slate-500">mL</span></p>
                         <p class="text-[9px] text-sky-400 mt-1 font-mono">Min Vent: {{ sim_data.minute_vent }} L/m</p>
                     </div>
@@ -221,15 +204,15 @@ MASTER_DASHBOARD_HTML = BASE_CSS + """
                     </div>
                     <div class="bg-[#1e293b]/90 border border-slate-700 rounded-xl p-4 shadow-lg relative overflow-hidden">
                         <div class="absolute right-0 top-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full"></div>
-                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial CO2 ($PaCO_2$)</p>
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial CO2</p>
                         <p class="text-2xl font-black {% if sim_data.paco2 > 45 or sim_data.paco2 < 35 %}text-amber-400{% else %}text-emerald-400{% endif %} font-mono">{{ sim_data.paco2 }} <span class="text-sm text-slate-500">mmHg</span></p>
                         <p class="text-[9px] text-slate-500 mt-1 font-mono">Alv Vent: {{ sim_data.alveolar_vent }} L/m</p>
                     </div>
                     <div class="bg-[#1e293b]/90 border border-slate-700 rounded-xl p-4 shadow-lg relative overflow-hidden">
                         <div class="absolute right-0 top-0 w-16 h-16 bg-blue-500/10 rounded-bl-full"></div>
-                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial O2 ($PaO_2$)</p>
+                        <p class="text-[9px] font-mono uppercase text-slate-400 mb-1">Est. Arterial O2</p>
                         <p class="text-2xl font-black {% if sim_data.pao2 < 60 %}text-red-400{% else %}text-blue-400{% endif %} font-mono">{{ sim_data.pao2 }} <span class="text-sm text-slate-500">mmHg</span></p>
-                        <p class="text-[9px] text-slate-500 mt-1 font-mono">Alv O2 ($P_AO_2$): {{ sim_data.p_A_O2 }}</p>
+                        <p class="text-[9px] text-slate-500 mt-1 font-mono">Alv O2 (PAO2): {{ sim_data.p_A_O2 }}</p>
                     </div>
                 </div>
 
@@ -259,14 +242,14 @@ MASTER_DASHBOARD_HTML = BASE_CSS + """
                         <h3 class="text-xs font-mono uppercase text-sky-400 mb-4 border-b border-slate-700 pb-2 font-bold tracking-widest">Engine Diagnostics</h3>
                         <div class="space-y-4">
                             <div class="bg-[#0f172a] border border-slate-700 p-3 rounded-lg">
-                                <span class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Time Constant ($\tau$)</span>
+                                <span class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Time Constant (tau)</span>
                                 <p class="text-sm font-mono text-white">{{ sim_data.time_const }} seconds</p>
                                 <p class="text-[10px] text-slate-400 mt-1">Dictates time required for 63% of volume change.</p>
                             </div>
                             <div class="bg-[#0f172a] border border-slate-700 p-3 rounded-lg">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Expiratory Time / Auto-PEEP Risk</span>
                                 <p class="text-sm font-mono text-white">Te: {{ sim_data.t_e }}s <span class="text-slate-600">|</span> Risk: <span class="{% if sim_data.auto_peep_risk == 'HIGH' %}text-red-500{% else %}text-emerald-500{% endif %} font-bold">{{ sim_data.auto_peep_risk }}</span></p>
-                                <p class="text-[10px] text-slate-400 mt-1">Requires 3-4 $\tau$ for complete exhalation.</p>
+                                <p class="text-[10px] text-slate-400 mt-1">Requires 3-4 tau for complete exhalation.</p>
                             </div>
                             <div class="bg-[#0f172a] border border-slate-700 p-3 rounded-lg">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Gas Exchange Efficiency</span>
@@ -421,7 +404,6 @@ def dashboard():
         auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
         
         # Simplified Mechanical Power (Joules/min)
-        # Power = 0.098 * RR * Vt(L) * (PIP - DP/2)
         mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
         
         # Gas Exchange (First Principles)
@@ -441,15 +423,12 @@ def dashboard():
             
             if t <= t_i: # INSPIRATION
                 p_val = pip # Idealized square pressure
-                # Vol = Vmax * (1 - e^(-t/tau))
                 v_val = peak_volume * (1 - math.exp(-t / max(0.01, tau)))
-                # Flow (L/min) = dV/dt = (Vmax/tau) * e^(-t/tau) * (60/1000)
                 f_val = ((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06
             else: # EXPIRATION
                 t_exp = t - t_i
                 p_val = peep
                 v_val = peak_volume * math.exp(-t_exp / max(0.01, tau))
-                # Expiratory flow is negative derivative
                 f_val = -((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06
                 
             p_pts.append(round(p_val, 1))
@@ -473,5 +452,3 @@ def dashboard():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
-
-```
