@@ -322,7 +322,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                             </button>
                         </form>
                     </div>
-
                 </div>
             </div>
 
@@ -638,28 +637,28 @@ def dashboard():
     inputs = None
     if preset in PRESETS:
         inputs = PRESETS[preset]
-        request.method = 'POST' 
+    elif request.method == 'POST':
+        inputs = {
+            'vt_input': safe_float(request.form.get('vt_input'), 500),
+            'pip': safe_float(request.form.get('pip'), 22),
+            'pplat': safe_float(request.form.get('pplat'), 13),
+            'peep': safe_float(request.form.get('peep'), 5),
+            'peak_flow': safe_float(request.form.get('peak_flow'), 60),
+            'peco2': safe_float(request.form.get('peco2'), 28),
+            'cao2': safe_float(request.form.get('cao2'), 19.8),
+            'cco2': safe_float(request.form.get('cco2'), 20.4),
+            'cvo2': safe_float(request.form.get('cvo2'), 14.8),
+            'hco3_input': safe_float(request.form.get('hco3_input'), 24),
+            'rr': safe_float(request.form.get('rr'), 14),
+            'fio2': safe_float(request.form.get('fio2'), 30),
+            'ie_ratio': safe_float(request.form.get('ie_ratio'), 2.0),
+            'vco2': safe_float(request.form.get('vco2'), 200)
+        }
+    else:
+        inputs = PRESETS["healthy"]
         
-    if request.method == 'POST' and active_tab == 'simulator':
+    if active_tab == 'simulator':
         try:
-            if not preset:
-                inputs = {
-                    'vt_input': safe_float(request.form.get('vt_input'), 500),
-                    'pip': safe_float(request.form.get('pip'), 22),
-                    'pplat': safe_float(request.form.get('pplat'), 13),
-                    'peep': safe_float(request.form.get('peep'), 5),
-                    'peak_flow': safe_float(request.form.get('peak_flow'), 60),
-                    'peco2': safe_float(request.form.get('peco2'), 28),
-                    'cao2': safe_float(request.form.get('cao2'), 19.8),
-                    'cco2': safe_float(request.form.get('cco2'), 20.4),
-                    'cvo2': safe_float(request.form.get('cvo2'), 14.8),
-                    'hco3_input': safe_float(request.form.get('hco3_input'), 24),
-                    'rr': safe_float(request.form.get('rr'), 14),
-                    'fio2': safe_float(request.form.get('fio2'), 30),
-                    'ie_ratio': safe_float(request.form.get('ie_ratio'), 2.0),
-                    'vco2': safe_float(request.form.get('vco2'), 200)
-                }
-
             vt = inputs['vt_input']
             pip = inputs['pip']
             pplat = inputs['pplat']
@@ -697,18 +696,18 @@ def dashboard():
             alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
             paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
             p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
-            pao2 = round(max(30, p_A_O2 - (shunt_pct * 12)), 1)
+            pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
             aa_gradient = round(p_A_O2 - pao2, 1)
             mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
             
-            # --- EXTENDED EXPIRATORY SPIROMETRY MODELLING LOGIC ---
-            if compliance <= 30: 
+            # --- EXPIRATORY SPIROMETRY PATTERN CHECKING ---
+            if compliance <= 40: 
                 fvc_vol = 2.4
                 decay_constant = 2.2 
                 spirometry_eval = "Restrictive Curve Pattern: Preserved proportional FEV1/FVC ratio alongside marked losses in total functional volume architecture."
-            elif resistance >= 25: 
+            elif resistance >= 15: 
                 fvc_vol = 4.5
-                decay_constant = 0.55 if resistance >= 30 else 0.72 
+                decay_constant = 0.55 if resistance >= 25 else 0.72 
                 spirometry_eval = "Obstructive Curve Pattern: Classic scooped tracing present. Marked deceleration of mid-expiratory flows dropping ratios below targets."
             else: 
                 fvc_vol = 5.0
@@ -719,24 +718,36 @@ def dashboard():
             fvc_vol_realized = round(fvc_vol * (1.0 - math.exp(-decay_constant * 6.0)), 2)
             fev1_fvc_pct = round((fev1_vol / fvc_vol_realized) * 100, 1)
 
-            ai_condition = "Physiologically Normal Lung Baseline"
-            ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
-            differentials = ["Healthy Control Context"]
+            # --- DYNAMIC MATRIX ENGINE CLASSIFICATIONS (NEVER OVERLOOKS CUSTOM MANIPULATION) ---
+            restrictive_score = 0
+            obstructive_score = 0
 
-            if compliance <= 30 and shunt_pct >= 20:
+            if compliance <= 40: restrictive_score += 3
+            if compliance <= 30: restrictive_score += 3
+            if shunt_pct >= 18: restrictive_score += 2
+
+            if resistance >= 15: obstructive_score += 2
+            if resistance >= 25: obstructive_score += 4
+
+            if restrictive_score >= 3 and restrictive_score >= obstructive_score:
                 ai_condition = "Severe Restrictive Defect with Intrapulmonary Shunting"
                 ai_intervention = "CRITICAL: Lung-protective ventilation active. Vt limited to 4-6 mL/kg PBW. Elevate PEEP profile to recover shunt alveoli collapse structural regions."
-                differentials = ["Severe ARDS", "Bilateral Infiltrates", "Sepsis Shock Inundation"]
-            elif resistance >= 25 and compliance >= 75:
-                ai_condition = "High-Compliance Obstructive Disease Profile"
-                ai_intervention = "DANGER: Airway auto-peep trapping vector active. Drop respiratory frequency inputs and lengthen exhalation window constraints safely."
-                differentials = ["COPD Exacerbation", "Emphysema Air-Trapping Matrix"]
-            elif resistance >= 30 and compliance < 75:
-                ai_condition = "Acute Severe Reactive Airway Bronchospasm"
-                ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
-                differentials = ["Status Asthmaticus Attack", "Anaphylaxis Spasmodic Airway Closure"]
+                differentials = ["Severe ARDS Model Framework", "Bilateral Parenchymal Infiltrates", "Alveolar Inundation Collapse"]
+            elif obstructive_score >= 3:
+                if compliance >= 45:
+                    ai_condition = "High-Compliance Obstructive Disease Profile"
+                    ai_intervention = "DANGER: Airway auto-peep trapping vector active. Drop respiratory frequency inputs and lengthen exhalation window constraints safely."
+                    differentials = ["COPD Dynamic Exacerbation", "Emphysema Destruction Air-Trapping Matrix"]
+                else:
+                    ai_condition = "Acute Severe Reactive Airway Bronchospasm"
+                    ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
+                    differentials = ["Status Asthmaticus Attack Cycle", "Anaphylaxis Spasmodic Airway Closure"]
+            else:
+                ai_condition = "Physiologically Normal Lung Baseline"
+                ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
+                differentials = ["Healthy Control Context"]
 
-            try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
+            try: ph = round(6.1 + math.log10(max(1.0, hco3_input) / (0.0301 * max(1.0, paco2))), 2)
             except Exception: ph = 7.40
             
             acid_base_status = "Normal Balance"
