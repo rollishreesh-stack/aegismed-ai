@@ -4,37 +4,49 @@ import math
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "aerolung_enterprise_pro_system_2026"
+# Production-ready configurable secret key
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_nexus_elite_quantum_2026")
 
+# --- ENTERPRISE CLINICAL ACCESS CONTROL ---
 CLINICAL_DATABASE = {
-    "icu_specialist": {"token": "ventilator2026", "role": "Attending Intensivist", "clearance": "Tier-1 Critical Care"},
-    "olympiad_judge": {"token": "innovation2026", "role": "Chief Medical Evaluator", "clearance": "Global System Admin"}
+    "admin_evaluator": {
+        "token": "nexus2026", 
+        "role": "Chief Medical Evaluator", 
+        "clearance": "Tier-3 Global Admin",
+        "facility": "AeroLung Quantum Hub"
+    },
+    "icu_director": {
+        "token": "clinical2026", 
+        "role": "Director of Critical Care", 
+        "clearance": "Tier-2 Clinical Supervisor",
+        "facility": "Metropolitan ICU Matrix"
+    }
 }
 
-# --- MASTER ENTERPRISE PLATFORM UI ---
+# --- PREMIUM METROPOLIS UI STRINGS ---
 LOGIN_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>AeroLung OS Pro | Clinical Gate</title>
+    <title>AeroLung OS Nexus Elite | Clinical Gateway</title>
 </head>
-<body class="bg-[#0b0f19] flex items-center justify-center h-screen text-slate-100 antialiased font-sans">
-    <div class="bg-[#111827] border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-indigo-500"></div>
+<body class="bg-[#030712] flex items-center justify-center h-screen text-slate-100 antialiased font-sans selection:bg-cyan-500/30">
+    <div class="bg-[#0b1329] border border-slate-800/80 p-8 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-500"></div>
         
         <div class="text-center mb-8">
-            <span class="bg-teal-500/10 text-teal-400 text-[10px] font-mono tracking-widest uppercase px-3 py-1 rounded-full border border-teal-500/20">
-                AeroLung OS Pro // Cross-Demographic Ventilation Network
+            <span class="bg-cyan-500/10 text-cyan-400 text-[10px] font-mono tracking-widest uppercase px-3 py-1 rounded-full border border-cyan-500/20 shadow-inner">
+                NEXUS ELITE // ENTERPRISE INFRASTRUCTURE
             </span>
-            <h1 class="text-3xl font-black text-white tracking-tight mt-4">AeroLung <span class="text-teal-400">OS Pro</span></h1>
-            <p class="text-slate-400 text-xs mt-1">Autonomous Multi-Profile Ventilation Simulation Infrastructure</p>
+            <h1 class="text-3xl font-black text-white tracking-tight mt-4">AeroLung <span class="text-cyan-400">OS Nexus</span></h1>
+            <p class="text-slate-400 text-xs mt-1 font-medium">Predictive Fluid-Dynamic Ventilation Network Simulation</p>
         </div>
         
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <div class="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-4 text-xs font-mono text-center">
+            <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl mb-4 text-xs font-mono text-center">
                 ⚠️ {{ messages[0] }}
             </div>
           {% endif %}
@@ -42,23 +54,25 @@ LOGIN_HTML = """
         
         <form method="POST" action="/login" class="space-y-4">
             <div>
-                <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1">User ID / Clinician ID</label>
-                <input type="text" name="username" required placeholder="e.g., icu_specialist" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-white text-sm focus:outline-none focus:border-teal-500 transition">
+                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Clinician Identifier</label>
+                <input type="text" name="username" required placeholder="e.g., admin_evaluator" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono placeholder:text-slate-600">
             </div>
             <div>
-                <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1">Security Authentication Token</label>
-                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-white text-sm focus:outline-none focus:border-teal-500 transition">
+                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Security Auth Token</label>
+                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono placeholder:text-slate-600">
             </div>
-            <button type="submit" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
-                Authorize Terminal Connection
+            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg shadow-cyan-950/50 mt-2">
+                Authorize Core Initialization
             </button>
         </form>
         
-        <div class="mt-6 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500 font-mono space-y-1">
-            <p class="text-center font-bold text-slate-400 uppercase tracking-wider mb-2">Available System Credentials</p>
-            <div class="flex justify-between bg-[#151f32] p-2 rounded-lg">
-                <span>ID: <code class="text-teal-400">icu_specialist</code></span>
-                <span>Token: <code class="text-slate-300">ventilator2026</code></span>
+        <div class="mt-6 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500 font-mono">
+            <p class="text-center font-bold text-slate-400 uppercase tracking-wider mb-2">Default Node Credentials</p>
+            <div class="space-y-1">
+                <div class="flex justify-between bg-[#070d1e] p-2 rounded-lg border border-slate-900">
+                    <span>ID: <code class="text-cyan-400">admin_evaluator</code></span>
+                    <span>Token: <code class="text-slate-300">nexus2026</code></span>
+                </div>
             </div>
         </div>
     </div>
@@ -73,126 +87,152 @@ MASTER_DASHBOARD_HTML = """
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>AeroLung OS Pro Console</title>
+    <title>AeroLung OS Nexus Elite Console</title>
 </head>
-<body class="bg-[#0b0f19] text-slate-100 min-h-screen antialiased font-sans flex flex-col">
+<body class="bg-[#030712] text-slate-100 min-h-screen antialiased font-sans flex flex-col selection:bg-cyan-500/30">
 
-    <nav class="bg-[#111827] border-b border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
+    <nav class="bg-[#0b1329] border-b border-slate-800/80 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-xl">
         <div class="flex items-center space-x-3">
-            <span class="w-2.5 h-2.5 bg-teal-400 rounded-full animate-pulse"></span>
-            <span class="font-black text-lg tracking-wider text-white">AERO<span class="text-teal-400">LUNG</span> <span class="text-slate-400 text-sm font-light font-mono">PRO v3.0</span></span>
+            <span class="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.7)]"></span>
+            <span class="font-black text-lg tracking-wider text-white">AERO<span class="text-cyan-400">LUNG</span> <span class="text-slate-500 text-xs font-mono font-bold tracking-tight bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800">NEXUS ELITE v4.2</span></span>
         </div>
         
         <div class="flex items-center space-x-6 text-xs font-mono">
-            <div class="text-right hidden md:block border-r border-slate-800 pr-4">
-                <span class="text-slate-500 block uppercase text-[10px]">System Timestamp</span>
-                <span class="text-teal-400 font-bold" id="liveClock">{{ system_time }}</span>
+            <div class="text-right hidden lg:block border-r border-slate-800 pr-4">
+                <span class="text-slate-500 block uppercase text-[9px] tracking-wider">Synchronized Telemetry Time</span>
+                <span class="text-cyan-400 font-bold" id="liveClock">{{ system_time }}</span>
+            </div>
+            <div class="text-right border-r border-slate-800 pr-4 hidden sm:block">
+                <span class="text-slate-500 block uppercase text-[9px] tracking-wider">Active Workspace Node</span>
+                <span class="text-slate-300 font-semibold">{{ session.get('facility', 'Remote Console') }}</span>
             </div>
             <div class="text-right">
-                <span class="text-slate-400 font-bold block">{{ user_role }}</span>
-                <span class="text-[10px] text-slate-500 uppercase tracking-widest">{{ user_clearance }}</span>
+                <span class="text-emerald-400 font-bold block">{{ user_role }}</span>
+                <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">{{ user_clearance }}</span>
             </div>
-            <a href="/logout" class="bg-slate-800 hover:bg-red-950 border border-slate-700 hover:border-red-900 px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold transition">Disconnect</a>
+            <a href="/logout" class="bg-slate-950 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/60 px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold transition duration-200">Disconnect</a>
         </div>
     </nav>
 
     <div class="flex flex-1">
-        
-        <aside class="w-64 bg-[#111827] border-r border-slate-800 p-4 flex flex-col justify-between hidden md:flex">
-            <div class="space-y-2">
-                <p class="text-[10px] font-mono font-bold tracking-widest text-slate-500 uppercase px-3 mb-4">Command Subsystems</p>
+        <aside class="w-64 bg-[#0b1329] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex">
+            <div class="space-y-1.5">
+                <p class="text-[10px] font-mono font-bold tracking-widest text-slate-500 uppercase px-3 mb-3">Core Subsystems</p>
                 
-                <a href="?tab=simulation" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'simulation' %}bg-teal-600/10 text-teal-400 border border-teal-500/20{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-white{% endif %}">
-                    <span>🌬️</span> <span>ICU Waveform Engine</span>
+                <a href="?tab=simulation" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'simulation' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
+                    <span>🌬️</span> <span>Quantum Sim Matrix</span>
                 </a>
                 
-                <a href="?tab=registry" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'registry' %}bg-teal-600/10 text-teal-400 border border-teal-500/20{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-white{% endif %}">
+                <a href="?tab=registry" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'registry' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
                     <span>📋</span> <span>Global Patient Registry</span>
+                </a>
+
+                <a href="?tab=marketplace" class="flex items-center space-x-3 px-3 py-3 rounded-xl transition font-medium text-sm {% if active_tab == 'marketplace' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm{% else %}text-slate-400 hover:bg-slate-900 hover:text-white{% endif %}">
+                    <span>💎</span> <span>AeroLung Core Market</span>
                 </a>
             </div>
             
-            <div class="bg-[#1f2937]/40 p-4 rounded-xl border border-slate-800/60 text-center">
-                <p class="text-[10px] font-mono text-slate-500">Cross-Demographic Node</p>
-                <p class="text-xs font-bold font-mono text-teal-400">SECURE LOCALHOST</p>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                <p class="text-[9px] font-mono tracking-widest text-slate-500 uppercase">Licensing Architecture</p>
+                <p class="text-xs font-black font-mono text-amber-400 mt-1 uppercase tracking-wider">PREMIUM ENTERPRISE</p>
             </div>
         </aside>
 
         <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
             
             {% if active_tab == 'simulation' %}
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-xl h-fit">
-                    <h2 class="text-base font-bold text-white mb-1">Ventilator Telemetry Controls</h2>
-                    <p class="text-xs text-slate-400 mb-6">Select a targeted patient demographic block and scale input variables.</p>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div class="xl:col-span-1 bg-[#0b1329] border border-slate-800/80 rounded-2xl p-6 shadow-xl h-fit">
+                    <h2 class="text-base font-bold text-white mb-1">Ventilator Telemetry Engine</h2>
+                    <p class="text-xs text-slate-400 mb-6 leading-relaxed">Modify lung dynamics modeling loops via demographic-mapped physical presets.</p>
                     
                     <form method="POST" action="/dashboard?tab=simulation" class="space-y-4">
                         <div>
-                            <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1.5">Target Patient Demographic</label>
-                            <select name="profile_class" id="profile_class" onchange="applyProfilePresets()" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-white text-sm focus:outline-none focus:border-teal-500 transition font-mono">
-                                <option value="neonatal" {% if profile_class == 'neonatal' %}selected{% endif %}>NEONATAL (Premature / RDS Archetype)</option>
-                                <option value="pediatric" {% if profile_class == 'pediatric' %}selected{% endif %}>PEDIATRIC (Child / Acute Asthma Profile)</option>
-                                <option value="adult" {% if profile_class == 'adult' %}selected{% endif %}>ADULT (Mature / Severe ARDS / Trauma)</option>
+                            <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider mb-1.5">Demographic Target Profile</label>
+                            <select name="profile_class" id="profile_class" onchange="applyProfilePresets()" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500 transition font-mono">
+                                <option value="neonatal" {% if profile_class == 'neonatal' %}selected{% endif %}>NEONATAL (Surfactant Deficient Loop)</option>
+                                <option value="pediatric" {% if profile_class == 'pediatric' %}selected{% endif %}>PEDIATRIC (Bronchospasm Pathogen)</option>
+                                <option value="adult" {% if profile_class == 'adult' %}selected{% endif %}>ADULT (Severe Infiltration ARDS)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1.5">Peak Inspiratory Pressure (PIP) [cmH2O]</label>
-                            <input type="number" id="pip" name="pip" value="{{ inputs.pip if inputs else '25' }}" min="10" max="45" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-sm text-white focus:outline-none focus:border-teal-500 transition">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Peak Inspiratory Pressure ($PIP$)</label>
+                                <span class="text-[10px] font-mono text-cyan-400">cmH2O</span>
+                            </div>
+                            <input type="number" id="pip" name="pip" value="{{ inputs.pip if inputs else '24' }}" min="10" max="50" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
                         </div>
                         <div>
-                            <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1.5">Dynamic Lung Compliance [mL/cmH2O]</label>
-                            <input type="number" step="0.1" id="compliance" name="compliance" value="{{ inputs.compliance if inputs else '2.5' }}" min="0.5" max="60.0" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-sm text-white focus:outline-none focus:border-teal-500 transition">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Dynamic Compliance ($C_{dyn}$)</label>
+                                <span class="text-[10px] font-mono text-cyan-400">mL/cmH2O</span>
+                            </div>
+                            <input type="number" step="0.1" id="compliance" name="compliance" value="{{ inputs.compliance if inputs else '3.0' }}" min="0.5" max="100.0" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
                         </div>
                         <div>
-                            <label class="block text-slate-400 text-xs font-mono uppercase tracking-wider mb-1.5">Airway Resistance [cmH2O/L/s]</label>
-                            <input type="number" id="resistance" name="resistance" value="{{ inputs.resistance if inputs else '50' }}" min="5" max="150" class="w-full p-3 rounded-xl bg-[#1f2937] border border-slate-700 text-sm text-white focus:outline-none focus:border-teal-500 transition">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Airway Resistance ($R_{aw}$)</label>
+                                <span class="text-[10px] font-mono text-cyan-400">cmH2O/L/s</span>
+                            </div>
+                            <input type="number" id="resistance" name="resistance" value="{{ inputs.resistance if inputs else '45' }}" min="2" max="200" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
                         </div>
-                        <button type="submit" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
-                            Execute Local Mathematical Loop
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-slate-400 text-[11px] font-mono uppercase tracking-wider">Set PEEP Vector</label>
+                                <span class="text-[10px] font-mono text-cyan-400">cmH2O</span>
+                            </div>
+                            <input type="number" id="peep" name="peep" value="{{ inputs.peep if inputs else '5' }}" min="0" max="25" class="w-full p-3 rounded-xl bg-[#111c40] border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono">
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition shadow-lg mt-2">
+                            Compute Advanced Telemetry Loop
                         </button>
                     </form>
                 </div>
 
-                <div class="lg:col-span-2 space-y-6">
+                <div class="xl:col-span-2 space-y-6">
                     {% if not sim_data %}
-                    <div class="bg-[#111827]/40 border border-slate-800 border-dashed rounded-2xl p-16 text-center flex flex-col items-center justify-center min-h-[400px]">
-                        <div class="text-3xl mb-3">🌬️</div>
-                        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest font-mono">Fluid Systems Standing By</h3>
-                        <p class="text-xs text-slate-500 max-w-xs mt-1 mx-auto">Select a demographic classification and hit recalculate to view custom physiological analytics mapping logs.</p>
+                    <div class="bg-[#0b1329]/30 border border-slate-800 border-dashed rounded-2xl p-16 text-center flex flex-col items-center justify-center min-h-[450px]">
+                        <div class="text-4xl mb-4 opacity-70 animate-bounce">🌬️</div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Mathematical Processor Idle</h3>
+                        <p class="text-xs text-slate-500 max-w-xs mt-2 mx-auto leading-relaxed">Choose a patient profile dynamic and trigger the loop processing core to project advanced airway analytics charting records.</p>
                     </div>
                     {% else %}
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Demographic Focus</p>
-                            <p class="text-xl font-black font-mono text-teal-400 uppercase">{{ profile_class }} Suite</p>
+                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
+                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Target Archetype</p>
+                            <p class="text-xl font-black font-mono text-cyan-400 uppercase tracking-tight">{{ profile_class }} Class</p>
                         </div>
-                        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Peak Volume Output</p>
-                            <p class="text-2xl font-black font-mono text-cyan-400">{{ sim_data.peak_volume }} mL</p>
+                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
+                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Dynamic Tidal Volume ($V_t$)</p>
+                            <p class="text-2xl font-black font-mono text-indigo-400 tracking-tight">{{ sim_data.peak_volume }} mL</p>
                         </div>
-                        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Safety Risk Metrics</p>
-                            <p class="text-base font-black font-mono {% if 'CRITICAL' in sim_data.risk_status or 'HIGH' in sim_data.risk_status %}text-red-500{% else %}text-emerald-400{% endif %}">
-                                {{ sim_data.risk_status }}
+                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
+                            <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Safety Risk Evaluation</p>
+                            <p class="text-xs font-bold font-mono py-0.5 {% if 'CRITICAL' in sim_data.risk_status or 'HIGH' in sim_data.risk_status %}text-rose-400 animate-pulse{% else %}text-emerald-400{% endif %}">
+                                🛡️ {{ sim_data.risk_status }}
                             </p>
                         </div>
                     </div>
 
-                    <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6">
-                        <h3 class="text-xs font-mono uppercase tracking-wider text-teal-400 mb-4 pb-2 border-b border-slate-800">Alveolar Pressure Charging Profile</h3>
+                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-lg">
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800/60">
+                            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Dynamic Alveolar Pressure Ascent Curve ($P_{alv}(t)$)</h3>
+                            <span class="text-[10px] font-mono text-slate-500">Inspiratory Delta Time (0.5s)</span>
+                        </div>
                         <div class="h-64"><canvas id="waveformChart"></canvas></div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6">
-                            <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-800 pb-2">📋 Case Description Log</h3>
+                        <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-5 shadow-md">
+                            <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-800 pb-2 font-bold">📋 Case Demographics Narrative</h3>
                             <p class="text-xs text-slate-300 leading-relaxed font-mono">
                                 {{ sim_data.case_description }}
                             </p>
                         </div>
-                        <div class="bg-[#111827] border border-teal-900 rounded-2xl p-6 bg-gradient-to-br from-[#111827] to-[#0d2221]">
-                            <h3 class="text-xs font-mono uppercase tracking-wider text-teal-400 mb-3 border-b border-teal-900 pb-2">🩺 Clinical Advisory Panel Advice Note</h3>
-                            <p class="text-xs text-teal-300 leading-relaxed font-mono">
+                        <div class="bg-[#0b1329] border border-cyan-950 rounded-2xl p-5 bg-gradient-to-br from-[#0b1329] to-[#04161a] shadow-md border-l-4 border-l-cyan-500">
+                            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-3 border-b border-cyan-900/60 pb-2 font-bold">🩺 Automation Advisory Directives</h3>
+                            <p class="text-xs text-cyan-300 leading-relaxed font-mono">
                                 {{ sim_data.advice_note }}
                             </p>
                         </div>
@@ -205,15 +245,26 @@ MASTER_DASHBOARD_HTML = """
                             data: {
                                 labels: {{ sim_data.time_points | tojson }},
                                 datasets: [{
-                                    label: 'Pressure Track (cmH2O)',
+                                    label: 'Alveolar Pressure Curve (cmH2O)',
                                     data: {{ sim_data.pressure_points | tojson }},
-                                    borderColor: 'rgb(45, 212, 191)',
-                                    backgroundColor: 'rgba(45, 212, 191, 0.05)',
-                                    borderWidth: 2,
-                                    fill: true
+                                    borderColor: 'rgb(34, 211, 238)',
+                                    backgroundColor: 'rgba(34, 211, 238, 0.03)',
+                                    borderWidth: 2.5,
+                                    pointRadius: 3,
+                                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                                    fill: true,
+                                    tension: 0.2
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { color: '#1f2937' } } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                plugins: { legend: { display: false } }, 
+                                scales: { 
+                                    x: { grid: { color: '#111c40' }, ticks: { color: '#64748b', font: { family: 'monospace' } } }, 
+                                    y: { grid: { color: '#111c40' }, ticks: { color: '#64748b', font: { family: 'monospace' } } } 
+                                } 
+                            }
                         });
                     </script>
                     {% endif %}
@@ -222,49 +273,103 @@ MASTER_DASHBOARD_HTML = """
             {% endif %}
 
             {% if active_tab == 'registry' %}
-            <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-xl animate-fadeIn">
                 <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                     <div>
-                        <h2 class="text-lg font-bold text-white">Cross-Demographic ICU Register</h2>
-                        <p class="text-xs text-slate-400">Global clinical tracking node mapping neonatal, pediatric, and adult simulation matrices.</p>
+                        <h2 class="text-lg font-bold text-white tracking-tight">Cross-Demographic ICU Register</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Enterprise tracking repository linking live physical matrices to anonymized target parameters.</p>
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-800 text-xs text-slate-400 font-mono uppercase bg-[#1f2937]/30">
-                                <th class="p-4">Patient ID</th>
-                                <th class="p-4">Demographic Archetype</th>
-                                <th class="p-4">Assigned Location</th>
-                                <th class="p-4">Target Compliance Vector</th>
-                                <th class="p-4">Status</th>
+                            <tr class="border-b border-slate-800 text-xs text-slate-400 font-mono uppercase bg-slate-900/50">
+                                <th class="p-4">Anonymized Matrix ID</th>
+                                <th class="p-4">Demographic Stratification Vector</th>
+                                <th class="p-4">Assigned Deployment Hub</th>
+                                <th class="p-4">Target Compliance Index</th>
+                                <th class="p-4">System Status Node</th>
                             </tr>
                         </thead>
-                        <tbody class="text-xs font-mono divide-y divide-slate-800/60">
-                            <tr class="hover:bg-slate-800/20">
-                                <td class="p-4 text-white font-bold">#NEO-8841</td>
-                                <td class="p-4 text-slate-300">Neonatal (26w Premature)</td>
-                                <td class="p-4 text-slate-400">NICU Pod-4</td>
-                                <td class="p-4 text-teal-400">1.8 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold text-[10px]">MONITORING</span></td>
+                        <tbody class="text-xs font-mono divide-y divide-slate-800/40">
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="p-4 text-white font-bold tracking-wider">#NEX-NEO-01</td>
+                                <td class="p-4 text-slate-300">Infant Clinical Phenotype A</td>
+                                <td class="p-4 text-slate-400">NICU Hyperbaric Pod-2</td>
+                                <td class="p-4 text-cyan-400">1.8 mL/cmH2O</td>
+                                <td class="p-4"><span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[10px]">STEADY LOGICAL FLOW</span></td>
                             </tr>
-                            <tr class="hover:bg-slate-800/20">
-                                <td class="p-4 text-white font-bold">#PED-4029</td>
-                                <td class="p-4 text-slate-300">Pediatric (7y Severe Asthma)</td>
-                                <td class="p-4 text-slate-400">Childrens Wing Bed-12</td>
-                                <td class="p-4 text-teal-400">12.5 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-bold text-[10px]">STABILIZING</span></td>
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="p-4 text-white font-bold tracking-wider">#NEX-PED-04</td>
+                                <td class="p-4 text-slate-300">Juvenile Asthma Phenotype B</td>
+                                <td class="p-4 text-slate-400">Pediatric High-Care Suite-9</td>
+                                <td class="p-4 text-cyan-400">14.2 mL/cmH2O</td>
+                                <td class="p-4"><span class="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-bold text-[10px]">DYNAMIC BALANCING</span></td>
                             </tr>
-                            <tr class="hover:bg-slate-800/20">
-                                <td class="p-4 text-white font-bold">#ADU-1105</td>
-                                <td class="p-4 text-slate-300">Adult (54y Acute ARDS Crisis)</td>
-                                <td class="p-4 text-slate-400">Main ICU Trauma Bay-2</td>
-                                <td class="p-4 text-teal-400">35.0 mL/cmH2O</td>
-                                <td class="p-4"><span class="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full font-bold text-[10px]">CRITICAL INSUGGENCE</span></td>
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="p-4 text-white font-bold tracking-wider">#NEX-ADU-11</td>
+                                <td class="p-4 text-slate-300">Adult Trauma ARDS Phenotype F</td>
+                                <td class="p-4 text-slate-400">Main Trauma Resuscitation Bay-1</td>
+                                <td class="p-4 text-cyan-400">38.5 mL/cmH2O</td>
+                                <td class="p-4"><span class="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-bold text-[10px] animate-pulse">OVERDISTENSION RISK</span></td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if active_tab == 'marketplace' %}
+            <div class="space-y-6 animate-fadeIn">
+                <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-xl font-bold text-white tracking-tight">AeroLung Enterprise Core Market</h2>
+                    <p class="text-xs text-slate-400 mt-1">Upgrade local system telemetry nodes with modular plugins, artificial intelligence overlays, and advanced physical hardware simulations.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-slate-700 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl text-xl">🧠</span>
+                                <span class="bg-cyan-500/10 text-cyan-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-cyan-500/20">Telemetry Alpha</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">Neural Predictive Weave</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Injects real-time predictive algorithm tracks to instantly counteract dynamic resistance spikes before barotrauma manifests.</p>
+                        </div>
+                        <button class="w-full bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 cursor-not-allowed">
+                            Node Implemented
+                        </button>
+                    </div>
+
+                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-cyan-500/40 transition">
+                        <div class="absolute top-0 right-0 bg-cyan-600 text-white font-black text-[8px] font-mono tracking-widest uppercase px-3 py-1 rounded-bl-xl shadow-md">UPGRADE</div>
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl text-xl">🫁</span>
+                                <span class="bg-indigo-500/10 text-indigo-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-indigo-500/20">Physics Beta</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">Multi-Compartment Lung Matrix</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Expands simple mathematical compliance into single-alveoli dependent asynchronous tissue models for targeted regional analysis.</p>
+                        </div>
+                        <button class="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 shadow transition">
+                            Procure Node License
+                        </button>
+                    </div>
+
+                    <div class="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:border-amber-500/40 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-xl">📡</span>
+                                <span class="bg-amber-500/10 text-amber-400 text-[9px] font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-amber-500/20">Hardware Max</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white mb-1.5 font-mono">HFNC Flow Pipeline Adapter</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed font-mono">Links algorithmic infrastructure directly to physical High-Flow Nasal Cannula baseline drivers for real-world laboratory deployment.</p>
+                        </div>
+                        <button class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold py-2.5 rounded-xl text-[11px] font-mono uppercase tracking-wider mt-6 shadow transition">
+                            Unlock Module ($1,450 / Year)
+                        </button>
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -278,13 +383,14 @@ MASTER_DASHBOARD_HTML = """
             const pip = document.getElementById('pip');
             const compliance = document.getElementById('compliance');
             const resistance = document.getElementById('resistance');
+            const peep = document.getElementById('peep');
             
             if (profile === 'neonatal') {
-                pip.value = '25'; compliance.value = '2.5'; resistance.value = '50';
+                pip.value = '24'; compliance.value = '3.0'; resistance.value = '45'; peep.value = '5';
             } else if (profile === 'pediatric') {
-                pip.value = '28'; compliance.value = '15.0'; resistance.value = '20';
+                pip.value = '28'; compliance.value = '16.0'; resistance.value = '22'; peep.value = '6';
             } else if (profile === 'adult') {
-                pip.value = '30'; compliance.value = '40.0'; resistance.value = '10';
+                pip.value = '32'; compliance.value = '42.0'; resistance.value = '12'; peep.value = '8';
             }
         }
         function updateClock() {
@@ -297,7 +403,7 @@ MASTER_DASHBOARD_HTML = """
 </html>
 """
 
-# --- BACKEND MATHEMATICS CONTROLLER MATRIX ---
+# --- ADVANCED FLUID DYNAMICS ENGINE MATHEMATICS CONTROLLER ---
 
 @app.route('/')
 def home():
@@ -314,9 +420,10 @@ def login():
         session['user'] = username
         session['role'] = CLINICAL_DATABASE[username]['role']
         session['clearance'] = CLINICAL_DATABASE[username]['clearance']
+        session['facility'] = CLINICAL_DATABASE[username]['facility']
         return redirect(url_for('dashboard'))
     else:
-        flash("SECURITY SYSTEM REJECTION: UNVERIFIED CLINICAL LOGINS")
+        flash("SECURITY NODE REJECTION: CREDENTIAL ARCHETYPE UNMATCHED")
         return redirect(url_for('home'))
 
 @app.route('/logout')
@@ -339,48 +446,59 @@ def dashboard():
         pip = float(request.form['pip'])
         compliance = float(request.form['compliance'])
         resistance = float(request.form['resistance'])
-        inputs = {'pip': pip, 'compliance': compliance, 'resistance': resistance}
+        peep = float(request.form['peep'])
+        inputs = {'pip': pip, 'compliance': compliance, 'resistance': resistance, 'peep': peep}
         
-        # Core Classical Scaling Math
+        # --- SCIENTIFIC PHYSIOLOGICAL COMPLEMENT PHYSICS ---
+        # Converted metric to scale resistance into standard L/s metrics
         converted_resistance = resistance / 1000.0
         time_constant = round(converted_resistance * compliance, 3)
-        peak_volume = round(pip * compliance, 1)
+        
+        # Driving Pressure Formula: Delta P = PIP - PEEP
+        driving_pressure = max(0.1, pip - peep)
+        peak_volume = round(driving_pressure * compliance, 1)
         
         time_points = []
         pressure_points = []
+        
+        # Dynamic Exponential Charging Profiler Loop
         for step in range(0, 11):
             t = (step / 10.0) * 0.5
             time_points.append(f"{round(t, 2)}s")
-            current_p = pip * (1.0 - math.exp(-t / time_constant)) if time_constant > 0 else pip
+            if time_constant > 0:
+                # Alveolar pressure exponential equalization logic
+                current_p = peep + driving_pressure * (1.0 - math.exp(-t / time_constant))
+            else:
+                current_p = pip
             pressure_points.append(round(current_p, 2))
             
-        # DYNAMIC PROFILE STRATIFICATION RULES LOGIC
+        # --- METROPOLIS CLASSIFICATION STRATIFICATION LOGIC ---
         if profile_class == 'neonatal':
-            case_description = f"Patient Profile: Pre-term Infant (estimated 26 weeks gestational age). Lungs are characteristically small, fragile, and deficient in natural surfactant layers, creating a high-risk matrix for physical wall collapse."
-            if peak_volume > 90 or pip >= 32:
-                risk_status = "CRITICAL: NEONATAL BAROTRAUMA"
-                advice_note = "ADVICE NOTE: IMMEDIATE ACTION REQUIRED. Volumetric target delivery exceeds 90mL in a neonatal lung architecture. This will cause severe alveolar tearing. Reduce Peak Inspiratory Pressure (PIP) down below 25 cmH2O immediately to safeguard tissue integrity."
+            case_description = "Phenotype Profile: Pre-term Infant Archetype. Lungs present minimal surface matrix structure and severe surfactant layering deficiency. High risk of mechanical physical wall tearing under traditional volumetric load matrices."
+            if peak_volume > 85 or pip >= 30:
+                risk_status = "CRITICAL: HIGH INFANT BAROTRAUMA RISK"
+                advice_note = "DIRECTIVE ALERT: Dynamic volume delivery exceeds micro-structural thresholds. High risk of immediate alveolar tearing. Lower Peak Inspiratory Pressure (PIP) configurations below 25 cmH2O immediately to mitigate shear trauma."
             else:
-                risk_status = "NOMINAL: SAFE REGIMEN"
-                advice_note = "ADVICE NOTE: Current operational volume satisfies baseline micro-ventilation patterns. Maintain target compliance tracking parameters."
+                risk_status = "NOMINAL: STEADY MICRO-REGIMEN"
+                advice_note = "DIRECTIVE NOTE: Current charging metrics correspond optimally with safe neonatal protective tracking metrics."
                 
         elif profile_class == 'pediatric':
-            case_description = f"Patient Profile: Pediatric Subject (7 years old) presenting with acute status asthmaticus. Airways exhibit muscular bronchospasms and local mucosal edema, significantly decreasing standard fluid transit indices."
-            if peak_volume > 450 or pip >= 35:
-                risk_status = "HIGH RISK: PEDIATRIC SHEAR STRESS"
-                advice_note = "ADVICE NOTE: Elevated pressures are fighting against bronchospasm restrictions. Volumetric loading is creeping into unsafe juvenile structural expansion thresholds. Consider introducing immediate bronchodilator therapies or transitioning tracking variables."
+            case_description = "Phenotype Profile: Pediatric Subject manifesting acute hyper-reactive bronchial inflammation loops. Muscular tissue spasms increase upper airway fluid restriction metrics while baseline compliance remains elastic."
+            if peak_volume > 380 or pip >= 34:
+                risk_status = "HIGH RISK: JUVENILE SHEAR TRAUMA"
+                advice_note = "DIRECTIVE ALERT: Elevating mechanical ventilation tracks against active spasms risks hyper-inflating baseline healthy tissue fields. Review bronchodilator pipeline components or adjust structural settings downward."
             else:
-                risk_status = "NOMINAL: SAFE REGIMEN"
-                advice_note = "ADVICE NOTE: Mechanical pressure curve effectively bypasses upper airway restriction nodes without introducing sheer strain to small-scale lung tissues."
+                risk_status = "NOMINAL: REBALANCED EQUALIZATION"
+                advice_note = "DIRECTIVE NOTE: Safe pressure-gradient execution allows the target volume loop to bypass restriction zones smoothly."
                 
         else: # ADULT ARDS PROFILE
-            case_description = f"Patient Profile: Mature Adult Subject (54 years old) exhibiting severe, acute Respiratory Distress Syndrome (ARDS) secondary to system-wide trauma. Large tissue surface area but severely compromised by fluid infiltration and localized fibrosis pockets."
-            if peak_volume > 900 or pip >= 40:
+            case_description = "Phenotype Profile: Mature Adult Subject presenting severe Respiratory Distress Syndrome (ARDS). Alveolar micro-pockets are compromised by heavy fluid infiltration, consolidation, and dense fibrous restrictive patches."
+            if peak_volume > 850 or driving_pressure > 18:
                 risk_status = "CRITICAL: ADULT ALVEOLAR OVERDISTENSION"
-                advice_note = "ADVICE NOTE: WARNING. Calculated peak volume delivery is pushing past the physiological protective ventilation threshold (6-8 mL/kg of ideal body weight). High risk of escalating mechanical lung injury. Implement lung-protective low-tidal volume protocols immediately."
+                advice_note = "DIRECTIVE ALERT: Current settings exceed protective ventilation targets (6-8 mL/kg of Ideal Body Weight). Elevated driving pressure risks compounding secondary mechanical lung damage. Enforce strict ARDSnet volume restriction tracking immediately."
             else:
-                risk_status = "NOMINAL: SAFE REGIMEN"
-                advice_note = "ADVICE NOTE: System is maintaining safe low-tidal volume ventilation parameters compliant with standard ARDSnet clinical strategies."
+                risk_status = "NOMINAL: PROTECTIVE STRATEGY SATISFIED"
+                advice_note = "DIRECTIVE NOTE: System loops are actively maintaining modern low-tidal volume guidelines for protective critical infrastructure care."
 
         sim_data = {
             'peak_volume': peak_volume,
@@ -404,4 +522,4 @@ def dashboard():
     )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
