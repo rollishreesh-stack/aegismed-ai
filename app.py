@@ -24,36 +24,47 @@ def safe_float(val, default):
     except ValueError:
         return float(default)
 
-# --- PREMIUM UI CSS & REALISTIC LUNG SVG ---
+# --- MODERNIZED LAYOUT & PREMIUM TYPOGRAPHY CSS ---
 BASE_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;600;800;900&family=JetBrains+Mono:wght=400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&family=JetBrains+Mono:wght=400;700&display=swap');
     
-    body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #e4e4e7; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;}
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: #09090b; 
+        color: #e4e4e7; 
+        overflow-x: hidden; 
+        min-height: 100vh; 
+        display: flex; 
+        flex-direction: column;
+    }
+    
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     
     @keyframes bioBreathe {
-        0% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.15; filter: drop-shadow(0 0 30px rgba(225,29,72,0.1)); }
-        40% { transform: translate(-50%, -50%) scale(1.06); opacity: 0.4; filter: drop-shadow(0 0 80px rgba(225,29,72,0.4)); }
-        100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.15; filter: drop-shadow(0 0 30px rgba(225,29,72,0.1)); }
+        0% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.12; filter: drop-shadow(0 0 30px rgba(225,29,72,0.1)); }
+        40% { transform: translate(-50%, -50%) scale(1.04); opacity: 0.3; filter: drop-shadow(0 0 80px rgba(225,29,72,0.3)); }
+        100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.12; filter: drop-shadow(0 0 30px rgba(225,29,72,0.1)); }
     }
     
     .living-lung {
         position: fixed; top: 50%; left: 50%; 
-        width: 90vw; max-width: 850px; 
+        width: 95vw; max-width: 900px; 
         z-index: 0; pointer-events: none; 
-        animation: bioBreathe 4.5s ease-in-out infinite;
+        animation: bioBreathe 5s ease-in-out infinite;
     }
     
     .glass-panel {
-        background: rgba(24, 24, 27, 0.6);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(63, 63, 70, 0.4);
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+        background: rgba(18, 18, 24, 0.75);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(63, 63, 70, 0.45);
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.9);
         position: relative;
         z-index: 10;
+        height: 100%;
     }
+    
     .glass-header {
         background: rgba(9, 9, 11, 0.95);
         backdrop-filter: blur(24px);
@@ -67,17 +78,18 @@ BASE_CSS = """
         border: 1px solid #3f3f46;
         color: #fff;
         text-align: right;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        font-size: 14px;
         width: 100%;
         transition: all 0.2s;
     }
     .clinical-input:focus {
         border-color: #e11d48;
         outline: none;
-        box-shadow: 0 0 10px rgba(225,29,72,0.2);
+        box-shadow: 0 0 12px rgba(225,29,72,0.3);
     }
     
     ::-webkit-scrollbar { width: 6px; }
@@ -137,33 +149,34 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>AeroLung | Secure Initialization</title>
+    <title>AeroLung | Clinical Access</title>
 </head>
 <body class="flex flex-col items-center justify-center h-screen antialiased relative">
-    <div class="glass-panel p-10 rounded-2xl w-full max-w-md shadow-2xl relative z-10">
+    <div class="glass-panel p-10 rounded-2xl w-full max-w-md flex flex-col justify-center shadow-2xl relative z-10">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-black tracking-tight text-white">AERO<span class="text-rose-600">LUNG</span></h1>
+            <p class="text-sm text-zinc-400 mt-2 font-medium">Advanced Clinical Analysis Engine</p>
         </div>
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <div class="p-3 rounded mb-6 text-xs font-mono text-center bg-rose-950/50 text-rose-300 border border-rose-800">{{ messages[0] }}</div>
+            <div class="p-3 rounded mb-6 text-sm text-center bg-rose-950/50 text-rose-300 border border-rose-800 font-medium">{{ messages[0] }}</div>
           {% endif %}
         {% endwith %}
         <form method="POST" action="/login" class="space-y-6">
             <div>
-                <label class="block text-zinc-400 text-xs font-mono uppercase tracking-widest mb-2">System ID</label>
-                <input type="text" name="username" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono">
+                <label class="block text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">System ID</label>
+                <input type="text" name="username" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded-lg focus:border-rose-500 focus:outline-none font-medium">
             </div>
             <div>
-                <label class="block text-zinc-400 text-xs font-mono uppercase tracking-widest mb-2">Access Passkey</label>
-                <input type="password" name="password" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono">
+                <label class="block text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">Access Passkey</label>
+                <input type="password" name="password" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded-lg focus:border-rose-500 focus:outline-none font-medium">
             </div>
-            <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-4 rounded text-sm uppercase tracking-widest transition mt-4">
-                Authenticate
+            <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-4 rounded-lg text-sm uppercase tracking-widest transition duration-200 mt-4">
+                Authenticate System
             </button>
         </form>
     </div>
-    <footer class="absolute bottom-6 text-zinc-600 text-[10px] font-mono tracking-widest uppercase z-10">
+    <footer class="absolute bottom-6 text-zinc-600 text-xs tracking-wider uppercase z-10 font-medium">
         © 2026 Created By Shreesh Santoshkumar Rolli
     </footer>
 </body>
@@ -177,357 +190,368 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>AeroLung | Enterprise Dashboard</title>
+    <title>AeroLung | Portal Dashboard</title>
 </head>
-<body class="min-h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col relative antialiased">
 
-    <nav class="glass-header px-6 py-4 flex justify-between items-center sticky top-0">
+    <nav class="glass-header px-8 py-5 flex justify-between items-center sticky top-0">
         <div class="flex items-center space-x-4">
             <div class="relative flex items-center justify-center w-8 h-8 rounded bg-rose-950 border border-rose-800">
-                <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,1)]"></span>
+                <span class="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(244,63,94,1)]"></span>
             </div>
-            <span class="font-black text-2xl tracking-widest text-white">AERO<span class="text-rose-600">LUNG</span></span>
+            <span class="font-black text-2xl tracking-wider text-white">AERO<span class="text-rose-600">LUNG</span></span>
         </div>
         
-        <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-8 font-semibold text-sm">
             <div class="text-right pr-4 border-r border-zinc-800 hidden sm:block">
-                <span class="text-white font-bold block text-sm">{{ user_role }}</span>
-                <span class="text-[10px] text-zinc-500 uppercase font-mono tracking-widest">Authorized</span>
+                <span class="text-white block">{{ user_role }}</span>
+                <span class="text-[11px] text-zinc-500 uppercase tracking-wider">Operational Mode</span>
             </div>
-            <a href="?tab=simulator" class="text-xs font-mono text-zinc-300 hover:text-white transition">Dashboard</a>
-            <a href="?tab=settings" class="text-xs font-mono text-zinc-300 hover:text-white transition">Config</a>
-            <a href="/logout" class="text-xs font-mono text-rose-500 hover:text-rose-400 transition ml-4 border border-rose-900 px-3 py-1 rounded bg-rose-950/30">Logout</a>
+            <a href="?tab=simulator" class="text-zinc-300 hover:text-white transition duration-200">System Dashboard</a>
+            <a href="?tab=settings" class="text-zinc-300 hover:text-white transition duration-200">Configuration</a>
+            <a href="/logout" class="text-rose-500 hover:text-rose-400 transition duration-200 ml-2 border border-rose-900/60 px-4 py-2 rounded-lg bg-rose-950/30">Sign Out</a>
         </div>
     </nav>
 
-    <main class="flex-1 p-4 md:p-6 w-full max-w-[2000px] mx-auto relative z-10">
+    <main class="flex-1 p-6 w-full max-w-[2400px] mx-auto relative z-10 flex flex-col justify-stretch">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-            <div class="w-full mb-6 p-3 rounded text-sm font-mono text-left bg-rose-950/80 text-rose-200 border border-rose-800 whitespace-pre-wrap shadow-lg">
+            <div class="w-full mb-6 p-4 rounded-xl text-sm font-medium bg-rose-950/80 text-rose-200 border border-rose-800 shadow-xl">
                 {{ messages[0] }}
             </div>
             {% endif %}
         {% endwith %}
 
         {% if active_tab == 'simulator' %}
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-1">
             
-            <div class="lg:col-span-3">
-                <div class="glass-panel rounded-lg flex flex-col border border-zinc-800 bg-zinc-950/90 shadow-2xl overflow-hidden">
+            <div class="lg:col-span-3 flex flex-col">
+                <div class="glass-panel rounded-xl flex flex-col border border-zinc-800 bg-zinc-950/95 shadow-2xl overflow-hidden justify-between">
                     
-                    <div class="p-4 border-b border-zinc-800 bg-black/40 grid grid-cols-2 gap-2">
-                        <a href="?tab=simulator&preset=healthy" class="text-[10px] text-center font-mono font-bold bg-zinc-800 text-zinc-300 py-1.5 px-2 rounded hover:bg-zinc-700 transition">Case 1: Healthy Control</a>
-                        <a href="?tab=simulator&preset=ards" class="text-[10px] text-center font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-900/50 py-1.5 px-2 rounded hover:bg-rose-900/50 transition">Case 2: Severe ARDS</a>
-                        <a href="?tab=simulator&preset=copd" class="text-[10px] text-center font-mono font-bold bg-amber-950/60 text-amber-300 border border-amber-900/50 py-1.5 px-2 rounded hover:bg-amber-900/50 transition">Case 3: Floppy COPD</a>
-                        <a href="?tab=simulator&preset=asthma" class="text-[10px] text-center font-mono font-bold bg-blue-950/60 text-blue-300 border border-blue-900/50 py-1.5 px-2 rounded hover:bg-blue-900/50 transition">Case 4: Severe Asthma</a>
+                    <div>
+                        <div class="p-4 border-b border-zinc-800 bg-black/40 grid grid-cols-2 gap-2">
+                            <a href="?tab=simulator&preset=healthy" class="text-xs text-center font-bold bg-zinc-800 text-zinc-300 py-2.5 px-3 rounded-lg hover:bg-zinc-700 transition duration-150">Case 1: Healthy</a>
+                            <a href="?tab=simulator&preset=ards" class="text-xs text-center font-bold bg-rose-950/60 text-rose-300 border border-rose-900/50 py-2.5 px-3 rounded-lg hover:bg-rose-900/50 transition duration-150">Case 2: ARDS</a>
+                            <a href="?tab=simulator&preset=copd" class="text-xs text-center font-bold bg-amber-950/60 text-amber-300 border border-amber-900/50 py-2.5 px-3 rounded-lg hover:bg-amber-900/50 transition duration-150">Case 3: COPD</a>
+                            <a href="?tab=simulator&preset=asthma" class="text-xs text-center font-bold bg-blue-950/60 text-blue-300 border border-blue-900/50 py-2.5 px-3 rounded-lg hover:bg-blue-900/50 transition duration-150">Case 4: Asthma</a>
+                        </div>
+
+                        <div class="p-4 border-b border-zinc-800 bg-zinc-900/40">
+                            <h2 class="text-xs font-extrabold text-white uppercase tracking-widest">Clinical Parameters Panel</h2>
+                        </div>
+                        
+                        <form method="POST" action="/dashboard?tab=simulator" class="p-5 space-y-5">
+                            <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                                <div>
+                                    <h3 class="text-[11px] text-rose-500 font-bold uppercase tracking-wider mb-3 border-b border-zinc-800/60 pb-1">Ventilatory Inputs</h3>
+                                    <div class="space-y-2.5">
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Tidal Volume (Vt) [mL]</label>
+                                            <input type="number" step="10" name="vt_input" value="{{ inputs.vt_input if inputs else '500' }}" class="clinical-input w-24">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Peak Insp Pressure (PIP)</label>
+                                            <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '22' }}" class="clinical-input w-24">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Plateau Pressure (Pplat)</label>
+                                            <input type="number" step="1" name="pplat" value="{{ inputs.pplat if inputs else '13' }}" class="clinical-input w-24">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Total PEEP</label>
+                                            <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-24">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Peak Flow Rate [L/min]</label>
+                                            <input type="number" step="5" name="peak_flow" value="{{ inputs.peak_flow if inputs else '60' }}" class="clinical-input w-24">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Mixed Expired CO2 (PECO2)</label>
+                                            <input type="number" step="1" name="peco2" value="{{ inputs.peco2 if inputs else '28' }}" class="clinical-input w-24 text-amber-400">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-[11px] text-teal-400 font-bold uppercase tracking-wider mb-3 border-b border-zinc-800/60 pb-1">Lab Variables Matrix</h3>
+                                    <div class="space-y-2.5">
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Arterial O2 Content (CaO2)</label>
+                                            <input type="number" step="0.1" name="cao2" value="{{ inputs.cao2 if inputs else '19.8' }}" class="clinical-input w-24 text-teal-400">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Capillary O2 Content (CcO2)</label>
+                                            <input type="number" step="0.1" name="cco2" value="{{ inputs.cco2 if inputs else '20.4' }}" class="clinical-input w-24 text-teal-400">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Mixed Venous Content (CvO2)</label>
+                                            <input type="number" step="0.1" name="cvo2" value="{{ inputs.cvo2 if inputs else '14.8' }}" class="clinical-input w-24 text-teal-400">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Metabolic Serum HCO3</label>
+                                            <input type="number" step="1" name="hco3_input" value="{{ inputs.hco3_input if inputs else '24' }}" class="clinical-input w-24 text-teal-400">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-[11px] text-blue-400 font-bold uppercase tracking-wider mb-3 border-b border-zinc-800/60 pb-1">Machine Controls</h3>
+                                    <div class="space-y-2.5">
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Respiratory Rate (RR)</label>
+                                            <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '14' }}" class="clinical-input w-24 border-blue-900/40">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">FiO2 % Setting</label>
+                                            <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '30' }}" class="clinical-input w-24 border-blue-900/40">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Inspiratory/Expiratory Ratio</label>
+                                            <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="clinical-input w-24 border-blue-900/40">
+                                        </div>
+                                        <div class="flex justify-between items-center gap-4">
+                                            <label class="text-zinc-400 text-xs font-medium">Metabolic VCO2 Rate</label>
+                                            <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="clinical-input w-24 border-blue-900/40">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-extrabold py-4 rounded-xl text-xs uppercase tracking-widest transition duration-200 shadow-md">
+                                Calculate System Framework
+                            </button>
+                        </form>
                     </div>
 
-                    <div class="p-4 border-b border-zinc-800/80 bg-zinc-900/50">
-                        <h2 class="text-xs font-black text-white uppercase tracking-widest flex items-center">Clinical Metrics Intake</h2>
-                    </div>
-                    
-                    <form method="POST" action="/dashboard?tab=simulator" class="p-5 space-y-6">
-                        <div>
-                            <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Physiological Telemetry</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Tidal Volume (Vt) [mL]</label>
-                                    <input type="number" step="10" name="vt_input" value="{{ inputs.vt_input if inputs else '500' }}" class="clinical-input w-24">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Peak Insp Pressure (PIP)</label>
-                                    <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '22' }}" class="clinical-input w-24">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Plateau Pressure (Pplat)</label>
-                                    <input type="number" step="1" name="pplat" value="{{ inputs.pplat if inputs else '13' }}" class="clinical-input w-24">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Total PEEP</label>
-                                    <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-24">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Peak Flow Rate [L/min]</label>
-                                    <input type="number" step="5" name="peak_flow" value="{{ inputs.peak_flow if inputs else '60' }}" class="clinical-input w-24">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Mixed Expired CO2 (PECO2)</label>
-                                    <input type="number" step="1" name="peco2" value="{{ inputs.peco2 if inputs else '28' }}" class="clinical-input w-24 text-amber-500">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-[10px] text-teal-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Lab Values / ABG Matrix</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Arterial O2 Content (CaO2)</label>
-                                    <input type="number" step="0.1" name="cao2" value="{{ inputs.cao2 if inputs else '19.8' }}" class="clinical-input w-24 text-teal-400">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Capillary O2 Content (CcO2)</label>
-                                    <input type="number" step="0.1" name="cco2" value="{{ inputs.cco2 if inputs else '20.4' }}" class="clinical-input w-24 text-teal-400">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Mixed Venous Content (CvO2)</label>
-                                    <input type="number" step="0.1" name="cvo2" value="{{ inputs.cvo2 if inputs else '14.8' }}" class="clinical-input w-24 text-teal-400">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Metabolic Serum HCO3</label>
-                                    <input type="number" step="1" name="hco3_input" value="{{ inputs.hco3_input if inputs else '24' }}" class="clinical-input w-24 text-teal-400">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Ventilator Settings</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Respiratory Rate (RR)</label>
-                                    <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '14' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">FiO2 %</label>
-                                    <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '30' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">I:E Ratio</label>
-                                    <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Metabolic VCO2 Output</label>
-                                    <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full bg-zinc-200 hover:bg-white text-black font-black py-4 rounded text-xs uppercase tracking-widest transition mt-4">
-                            Process Calculations
-                        </button>
-                    </form>
                 </div>
             </div>
 
             {% if not sim_data %}
-            <div class="lg:col-span-9 glass-panel rounded-lg flex flex-col items-center justify-center min-h-[600px] border border-zinc-800/50 border-dashed bg-black/40">
-                <div class="w-12 h-12 border-2 border-rose-900 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">System Ready | Map a patient medical report to begin</p>
+            <div class="lg:col-span-9 glass-panel rounded-xl flex flex-col items-center justify-center border-2 border-zinc-800/60 border-dashed bg-black/30">
+                <div class="w-12 h-12 border-4 border-rose-950 border-t-rose-500 rounded-full animate-spin mb-4"></div>
+                <p class="text-sm text-zinc-400 tracking-widest uppercase font-semibold">Awaiting Matrix Mapping | Select or load clinical variables</p>
             </div>
             {% else %}
             
-            <div class="lg:col-span-4 flex flex-col gap-4">
+            <div class="lg:col-span-4 flex flex-col gap-5 overflow-y-auto">
                 
-                <div class="glass-panel rounded-lg p-5 border border-amber-500/30 bg-zinc-950/90 shadow-xl">
-                    <h3 class="text-[10px] text-amber-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Report Formula Realizations</h3>
-                    <div class="grid grid-cols-2 gap-3 text-left">
-                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">1. Derived Compliance</span>
-                            <span class="text-2xl font-mono font-black text-white">{{ sim_data.derived_compliance }}</span>
-                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">mL/cmH2O</span>
+                <div class="glass-panel rounded-xl p-5 border border-amber-500/20 bg-zinc-950/95 shadow-xl flex flex-col justify-between">
+                    <h3 class="text-xs text-amber-400 font-extrabold uppercase tracking-widest mb-3.5 border-b border-zinc-800/80 pb-2">Derived Elastic Coefficients</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-black/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                            <span class="text-[11px] text-zinc-400 uppercase font-semibold tracking-wide">Static Compliance</span>
+                            <span class="text-3xl font-black text-white my-1 font-mono tracking-tight">{{ sim_data.derived_compliance }}</span>
+                            <span class="text-[11px] text-zinc-500 font-medium">mL/cmH2O</span>
                         </div>
-                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">2. Airway Resistance</span>
-                            <span class="text-2xl font-mono font-black text-white">{{ sim_data.derived_resistance }}</span>
-                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">cmH2O/L/s</span>
+                        <div class="bg-black/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                            <span class="text-[11px] text-zinc-400 uppercase font-semibold tracking-wide">Airway Resistance</span>
+                            <span class="text-3xl font-black text-white my-1 font-mono tracking-tight">{{ sim_data.derived_resistance }}</span>
+                            <span class="text-[11px] text-zinc-500 font-medium">cmH2O/L/s</span>
                         </div>
-                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">3. Dead Space % (Vd/Vt)</span>
-                            <span class="text-2xl font-mono font-black text-amber-400">{{ sim_data.derived_vd_vt }}%</span>
-                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">Enghoff Realized</span>
+                        <div class="bg-black/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                            <span class="text-[11px] text-zinc-400 uppercase font-semibold tracking-wide">Dead Space Ratio</span>
+                            <span class="text-3xl font-black text-amber-400 my-1 font-mono tracking-tight">{{ sim_data.derived_vd_vt }}%</span>
+                            <span class="text-[11px] text-zinc-500 font-medium">Enghoff Realization</span>
                         </div>
-                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">4. Shunt Fraction %</span>
-                            <span class="text-2xl font-mono font-black text-teal-400">{{ sim_data.derived_shunt }}%</span>
-                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">Content Calculated</span>
+                        <div class="bg-black/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                            <span class="text-[11px] text-zinc-400 uppercase font-semibold tracking-wide">Shunt Fraction</span>
+                            <span class="text-3xl font-black text-teal-400 my-1 font-mono tracking-tight">{{ sim_data.derived_shunt }}%</span>
+                            <span class="text-[11px] text-zinc-500 font-medium">Content Extrapolated</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="glass-panel rounded-lg p-5 border border-sky-500/30 bg-zinc-950/90 shadow-xl">
-                    <h3 class="text-[10px] text-sky-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Spirometry Assay Diagnostics</h3>
-                    <div class="grid grid-cols-3 gap-2 text-center mb-3">
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FEV1 Volume</span>
-                            <span class="text-lg font-mono font-black text-white">{{ sim_data.fev1_vol }} L</span>
+                <div class="glass-panel rounded-xl p-5 border border-sky-500/20 bg-zinc-950/95 shadow-xl flex flex-col justify-between">
+                    <h3 class="text-xs text-sky-400 font-extrabold uppercase tracking-widest mb-3.5 border-b border-zinc-800/80 pb-2">Spirometry Pulmonary Assays</h3>
+                    <div class="grid grid-cols-3 gap-3 mb-4">
+                        <div class="bg-black/50 p-3 rounded-xl border border-zinc-800 text-center">
+                            <span class="text-[10px] text-zinc-400 uppercase font-semibold block">FEV1</span>
+                            <span class="text-xl font-bold text-white font-mono block mt-1">{{ sim_data.fev1_vol }}L</span>
                         </div>
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FVC Capacity</span>
-                            <span class="text-lg font-mono font-black text-white">{{ sim_data.fvc_vol }} L</span>
+                        <div class="bg-black/50 p-3 rounded-xl border border-zinc-800 text-center">
+                            <span class="text-[10px] text-zinc-400 uppercase font-semibold block">FVC</span>
+                            <span class="text-xl font-bold text-white font-mono block mt-1">{{ sim_data.fvc_vol }}L</span>
                         </div>
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">FEV1/FVC Ratio</span>
-                            <span class="text-lg font-mono font-black text-sky-400">{{ sim_data.fev1_fvc_pct }}%</span>
+                        <div class="bg-black/50 p-3 rounded-xl border border-zinc-800 text-center">
+                            <span class="text-[10px] text-zinc-400 uppercase font-semibold block">Ratio %</span>
+                            <span class="text-xl font-bold text-sky-400 font-mono block mt-1">{{ sim_data.fev1_fvc_pct }}%</span>
                         </div>
                     </div>
-                    <div class="p-3 rounded text-xs font-mono bg-sky-950/30 border border-sky-800 text-sky-200">
-                        <span class="text-[9px] text-sky-400 uppercase tracking-widest font-bold block mb-1">Pulmonary Function Interpretation:</span>
-                        <p class="text-zinc-300 text-[11px] leading-relaxed">{{ sim_data.spirometry_eval }}</p>
+                    <div class="p-4 rounded-xl text-xs bg-sky-950/20 border border-sky-900/60 text-sky-200">
+                        <span class="text-[10px] text-sky-400 uppercase tracking-wider font-extrabold block mb-1">Functional Interpretation</span>
+                        <p class="text-zinc-300 text-xs leading-relaxed font-medium">{{ sim_data.spirometry_eval }}</p>
                     </div>
                 </div>
 
-                <div class="glass-panel rounded-lg p-5 border border-zinc-800/80 bg-gradient-to-br from-zinc-950 to-black shadow-xl">
-                    <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">AI Diagnostics Engine</h3>
-                    <p class="text-xl font-black text-white leading-tight mb-3">{{ sim_data.ai_condition }}</p>
-                    <div class="text-[11px] text-zinc-400 font-mono mb-4 bg-black/50 p-2 rounded border border-zinc-900">
-                        <span class="text-zinc-500 uppercase tracking-wider block mb-1 text-[9px]">Computed Differentials</span> 
-                        {{ sim_data.differentials | join(', ') }}
+                <div class="glass-panel rounded-xl p-5 border border-zinc-800 bg-gradient-to-br from-zinc-950 to-zinc-900 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xs text-rose-500 font-extrabold uppercase tracking-widest mb-3.5 border-b border-zinc-800/80 pb-2">AI Expert Analysis Model</h3>
+                        <p class="text-xl font-extrabold text-white leading-snug mb-3">{{ sim_data.ai_condition }}</p>
+                        <div class="text-xs text-zinc-300 mb-4 bg-black/60 p-3 rounded-xl border border-zinc-900 font-medium">
+                            <span class="text-zinc-500 uppercase tracking-wide block mb-1.5 text-[10px] font-bold">Computed Differential Criteria</span> 
+                            {{ sim_data.differentials | join(', ') }}
+                        </div>
                     </div>
-                    <div class="bg-rose-950/40 border border-rose-900/50 p-3 rounded text-xs text-rose-200 font-mono leading-relaxed">
-                        <strong class="text-rose-400 block mb-1">RECOMMENDED PROTOCOL:</strong>
+                    <div class="bg-rose-950/30 border border-rose-900/50 p-4 rounded-xl text-xs text-rose-200 leading-relaxed font-medium">
+                        <strong class="text-rose-400 block mb-1 font-extrabold text-[10px] tracking-wider uppercase">Clinical Stabilization Protocol</strong>
                         {{ sim_data.ai_intervention }}
                     </div>
                 </div>
 
-                <div class="glass-panel rounded-lg p-5 border border-purple-900/60 bg-zinc-950/90 shadow-xl">
-                    <h3 class="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Acid-Base Diagnostic Suite</h3>
-                    <div class="grid grid-cols-3 gap-2 text-center mb-4">
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">Computed pH</span>
-                            <span class="text-lg font-mono font-black {% if sim_data.ph < 7.35 %}text-red-400{% elif sim_data.ph > 7.45 %}text-blue-400{% else %}text-emerald-400{% endif %}">{{ sim_data.ph }}</span>
-                        </div>
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">PaCO2</span>
-                            <span class="text-lg font-mono font-black text-amber-400">{{ sim_data.paco2 }}</span>
-                        </div>
-                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
-                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">Serum HCO3</span>
-                            <span class="text-lg font-mono font-black text-teal-400">{{ sim_data.hco3 }}</span>
+                <div class="glass-panel rounded-xl p-5 border border-purple-900/40 bg-zinc-950/95 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xs text-purple-400 font-extrabold uppercase tracking-widest mb-3.5 border-b border-zinc-800/80 pb-2">Systemic Acid-Base Equilibrium</h3>
+                        <div class="grid grid-cols-3 gap-3 text-center mb-4">
+                            <div class="bg-black/50 p-3 rounded-xl border border-zinc-800">
+                                <span class="text-[10px] text-zinc-400 uppercase font-semibold block">pH Tension</span>
+                                <span class="text-xl font-bold font-mono mt-1 block {% if sim_data.ph < 7.35 %}text-red-400{% elif sim_data.ph > 7.45 %}text-blue-400{% else %}text-emerald-400{% endif %}">{{ sim_data.ph }}</span>
+                            </div>
+                            <div class="bg-black/50 p-3 rounded-xl border border-zinc-800">
+                                <span class="text-[10px] text-zinc-400 uppercase font-semibold block">PaCO2</span>
+                                <span class="text-xl font-bold font-mono text-amber-400 mt-1 block">{{ sim_data.paco2 }}</span>
+                            </div>
+                            <div class="bg-black/50 p-3 rounded-xl border border-zinc-800">
+                                <span class="text-[10px] text-zinc-400 uppercase font-semibold block">Plasma HCO3</span>
+                                <span class="text-xl font-bold font-mono text-teal-400 mt-1 block">{{ sim_data.hco3 }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="p-3 rounded text-xs font-mono bg-purple-950/30 border border-purple-800 text-purple-200">
-                        <div class="flex justify-between items-center border-b border-purple-900/50 pb-1.5 mb-1.5">
-                            <span class="text-purple-400 text-[10px] uppercase font-bold tracking-wider">Primary State:</span>
-                            <span class="font-bold text-white uppercase">{{ sim_data.acid_base_status }}</span>
+                    <div class="p-4 rounded-xl text-xs bg-purple-950/20 border border-purple-900/60 text-purple-200">
+                        <div class="flex justify-between items-center border-b border-purple-900/40 pb-2 mb-2">
+                            <span class="text-purple-400 text-[10px] uppercase font-extrabold tracking-wider">Identified Pathology</span>
+                            <span class="font-extrabold text-white uppercase tracking-wide">{{ sim_data.acid_base_status }}</span>
                         </div>
-                        <div class="text-[11px] leading-relaxed text-zinc-300">
-                            {{ sim_data.acid_base_delta_text }}
-                        </div>
+                        <p class="text-zinc-300 text-xs font-medium leading-relaxed">{{ sim_data.acid_base_delta_text }}</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Minute Ventilation</p>
-                        <p class="text-3xl font-black text-white font-mono">{{ sim_data.minute_vent }}<span class="text-xs text-zinc-600 ml-1">L/m</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Alv Vent: {{ sim_data.alveolar_vent }} L/m</p>
+                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
+                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Minute Ventilation</p>
+                        <p class="text-3xl font-black text-white font-mono tracking-tight my-1">{{ sim_data.minute_vent }}<span class="text-xs text-zinc-500 font-medium ml-1">L/m</span></p>
+                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">Alveolar: {{ sim_data.alveolar_vent }} L/m</p>
                     </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Arterial Tension</p>
-                        <p class="text-3xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.pao2 }}<span class="text-xs text-zinc-600 ml-1">mmHg</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">A-a Grad: {{ sim_data.aa_gradient }}</p>
+                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
+                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Arterial Tension</p>
+                        <p class="text-3xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono tracking-tight my-1">{{ sim_data.pao2 }}<span class="text-xs text-zinc-500 font-medium ml-1">mmHg</span></p>
+                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">A-a Gradient: {{ sim_data.aa_gradient }}</p>
                     </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Mech Power</p>
-                        <p class="text-3xl font-black {% if sim_data.mech_power > 17 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.mech_power }}<span class="text-xs text-zinc-600 ml-1">J/m</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Threshold: &lt;17 J/m</p>
+                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
+                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Mechanical Power</p>
+                        <p class="text-3xl font-black {% if sim_data.mech_power > 17 %}text-rose-400{% else %}text-white{% endif %} font-mono tracking-tight my-1">{{ sim_data.mech_power }}<span class="text-xs text-zinc-500 font-medium ml-1">J/m</span></p>
+                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">Safety Cap: &lt;17 J/m</p>
                     </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg flex flex-col justify-center">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Auto-PEEP Risk</p>
-                        <p class="text-2xl font-black {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-500{% endif %} font-mono tracking-widest mt-1">{{ sim_data.auto_peep_risk }}</p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">RC τ = {{ sim_data.time_const }}s</p>
+                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
+                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Auto-PEEP Trapping</p>
+                        <p class="text-2xl font-black {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-400{% endif %} tracking-widest my-1 font-mono">{{ sim_data.auto_peep_risk }}</p>
+                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">RC Time Constant: {{ sim_data.time_const }}s</p>
                     </div>
                 </div>
+
             </div>
 
-            <div class="lg:col-span-5 flex flex-col gap-4">
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-400 uppercase tracking-widest z-20">Pressure Waveform (Paw)</span>
-                    <canvas id="pressureChart"></canvas>
-                </div>
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-400 uppercase tracking-widest z-20">Airflow Dynamics (L/m)</span>
-                    <canvas id="flowChart"></canvas>
-                </div>
-                <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[130px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-400 uppercase tracking-widest z-20">Volume Accumulation (mL)</span>
-                    <canvas id="volumeChart"></canvas>
+            <div class="lg:col-span-5 flex flex-col gap-4 justify-between h-full">
+                
+                <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex-1 flex flex-col min-h-[140px] relative justify-center">
+                    <span class="absolute top-3 right-4 text-[10px] font-bold text-blue-400 uppercase tracking-widest z-20">Pressure Tracing Curve (Paw)</span>
+                    <div class="w-full h-full pt-4"><canvas id="pressureChart"></canvas></div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/50 h-[220px] flex items-center justify-center relative">
-                        <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Dynamic P-V Loop</div>
-                        <div class="w-full h-full pt-6">
-                            <canvas id="pvLoopChart"></canvas>
-                        </div>
+                <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex-1 flex flex-col min-h-[140px] relative justify-center">
+                    <span class="absolute top-3 right-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest z-20">Flow Waveform Vectors (L/m)</span>
+                    <div class="w-full h-full pt-4"><canvas id="flowChart"></canvas></div>
+                </div>
+                
+                <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex-1 flex flex-col min-h-[140px] relative justify-center">
+                    <span class="absolute top-3 right-4 text-[10px] font-bold text-rose-400 uppercase tracking-widest z-20">Volume Integration Wave (mL)</span>
+                    <div class="w-full h-full pt-4"><canvas id="volumeChart"></canvas></div>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-[1.5] min-h-[260px]">
+                    
+                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex flex-col relative justify-center">
+                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-zinc-300 uppercase tracking-wider">Dynamic P-V Loop</div>
+                        <div class="w-full h-full pt-6"><canvas id="pvLoopChart"></canvas></div>
                     </div>
                     
-                    <div class="glass-panel rounded-lg p-4 border border-sky-900/60 bg-black/50 h-[220px] flex items-center justify-center relative">
-                        <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-sky-400 uppercase tracking-wider">FEV1 / FVC Spirogram Loop</div>
-                        <div class="w-full h-full pt-6">
-                            <canvas id="fevChart"></canvas>
-                        </div>
+                    <div class="glass-panel rounded-xl p-4 border border-sky-950/60 bg-black/40 shadow-xl flex flex-col relative justify-center">
+                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-sky-400 uppercase tracking-wider">Spirometry Tracing Matrix</div>
+                        <div class="w-full h-full pt-6"><canvas id="fevChart"></canvas></div>
                     </div>
+                    
                 </div>
 
                 <script>
                     const waveData = {{ sim_data.waveform_data | safe }};
                     
-                    Chart.defaults.color = '#e4e4e7';
-                    Chart.defaults.font.family = "'JetBrains Mono', monospace";
+                    Chart.defaults.color = '#a1a1aa';
+                    Chart.defaults.font.family = "'Inter', sans-serif";
+                    Chart.defaults.font.weight = 500;
                     Chart.defaults.elements.point.radius = 0;
-                    Chart.defaults.elements.line.borderWidth = 2.0;
-                    Chart.defaults.elements.line.tension = 0.3;
+                    Chart.defaults.elements.line.borderWidth = 2.5;
+                    Chart.defaults.elements.line.tension = 0.25;
                     
                     const commonOptions = {
                         responsive: true, maintainAspectRatio: false, animation: false,
                         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        layout: { padding: { left: 10, right: 10, top: 15, bottom: 5 } },
+                        layout: { padding: { left: 6, right: 6, top: 12, bottom: 4 } },
                         scales: { 
                             x: { 
-                                grid: { color: 'rgba(228, 228, 231, 0.1)' }, 
-                                ticks: { color: '#a1a1aa', font: {size: 10} } 
+                                grid: { color: 'rgba(255, 255, 255, 0.04)' }, 
+                                ticks: { font: {size: 10, weight: '600'} } 
                             },
                             y: {
-                                grid: { color: 'rgba(228, 228, 231, 0.1)' },
-                                ticks: { color: '#a1a1aa', font: {size: 10}, maxTicksLimit: 5 }
+                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                                ticks: { font: {size: 10, weight: '600'}, maxTicksLimit: 4 }
                             }
                         }
                     };
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.06)', fill: true }] },
                         options: commonOptions
                     });
 
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.06)', fill: true }] },
                         options: commonOptions
                     });
 
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.06)', fill: true }] },
                         options: commonOptions
                     });
 
                     const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
                     new Chart(document.getElementById('pvLoopChart').getContext('2d'), {
                         type: 'scatter',
-                        data: { datasets: [{ data: pvData, borderColor: '#e11d48', backgroundColor: 'transparent', showLine: true }] },
+                        data: { datasets: [{ data: pvData, borderColor: '#f43f5e', backgroundColor: 'transparent', showLine: true }] },
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+                            layout: { padding: { left: 4, right: 4, top: 10, bottom: 4 } },
                             scales: {
-                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
-                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
+                                x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } },
+                                y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } }
                             }
                         }
                     });
 
-                    // Spirometry Graph Vector Generation Mapping
                     const spiroTime = waveData.spiro_t;
                     const spiroVol = waveData.spiro_v;
                     const spiroMap = spiroTime.map((t, i) => ({x: t, y: spiroVol[i]}));
                     
                     new Chart(document.getElementById('fevChart').getContext('2d'), {
                         type: 'scatter',
-                        data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.05)', showLine: true, fill: true }] },
+                        data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.03)', showLine: true, fill: true }] },
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+                            layout: { padding: { left: 4, right: 4, top: 10, bottom: 4 } },
                             scales: {
-                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Expiratory Time (Seconds)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
-                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Exhaled Volume (Liters)', font: {size: 9}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
+                                x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Expiratory Window (s)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } },
+                                y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Exhaled Capacity (L)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } }
                             }
                         }
                     });
@@ -538,26 +562,26 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% endif %}
         
         {% if active_tab == 'settings' %}
-        <div class="glass-panel max-w-lg mx-auto rounded-lg p-8 mt-10 border border-zinc-800/80 shadow-2xl bg-black/80">
+        <div class="glass-panel max-w-xl mx-auto rounded-xl p-8 mt-12 border border-zinc-800 shadow-2xl bg-zinc-950/90 flex flex-col justify-center">
             <div class="text-center mb-8">
-                <h2 class="text-xl font-black text-white uppercase tracking-widest border-b border-zinc-800/50 pb-4">System Configuration</h2>
+                <h2 class="text-xl font-extrabold text-white uppercase tracking-widest border-b border-zinc-800 pb-4">Configuration Services Terminal</h2>
             </div>
-            <form method="POST" action="/update_credentials" class="space-y-5">
+            <form method="POST" action="/update_credentials" class="space-y-6">
                 <div>
-                    <label class="block text-zinc-400 text-xs font-mono uppercase mb-2 tracking-widest">Current Passkey</label>
-                    <input type="password" name="current_password" required class="w-full bg-black border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
+                    <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">Verify Access Passkey</label>
+                    <input type="password" name="current_password" required class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
                 </div>
-                <div class="border-t border-zinc-800/50 pt-5 space-y-5">
+                <div class="border-t border-zinc-800/80 pt-6 space-y-6">
                     <div>
-                        <label class="block text-zinc-400 text-xs font-mono uppercase mb-2 tracking-widest">New System ID</label>
-                        <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full bg-black border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
+                        <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">New Assigned System ID</label>
+                        <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
                     </div>
                     <div>
-                        <label class="block text-zinc-400 text-xs font-mono uppercase mb-2 tracking-widest">New Passkey</label>
-                        <input type="password" name="new_password" required class="w-full bg-black border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
+                        <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">Generate Passkey Matrix</label>
+                        <input type="password" name="new_password" required class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-zinc-200 hover:bg-white text-black font-black py-4 rounded text-xs uppercase tracking-widest transition mt-6">
+                <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition duration-200 mt-4 shadow-md">
                     Commit Changes
                 </button>
             </form>
@@ -565,8 +589,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% endif %}
     </main>
     
-    <footer class="mt-auto py-5 text-center border-t border-zinc-900/50 bg-black/20 backdrop-blur-sm relative z-10">
-        <p class="text-zinc-600 text-[10px] font-mono tracking-[0.2em] uppercase">© 2026 Created By Shreesh Santoshkumar Rolli</p>
+    <footer class="mt-auto py-5 text-center border-t border-zinc-900/60 bg-black/40 backdrop-blur-md relative z-10">
+        <p class="text-zinc-500 text-xs font-semibold tracking-wider uppercase">© 2026 Created By Shreesh Santoshkumar Rolli</p>
     </footer>
 </body>
 </html>
@@ -586,7 +610,7 @@ def login():
         session['user'] = u
         session['role'] = CLINICAL_DATABASE[u]['role']
         return redirect(url_for('dashboard'))
-    flash("Authentication Rejected: Invalid ID or Passkey.")
+    flash("Access Countermanded: Invalid system identification key matches.")
     return redirect(url_for('home'))
 
 @app.route('/logout')
@@ -651,15 +675,12 @@ def dashboard():
             vco2 = inputs['vco2']
             fio2_val = inputs['fio2']
 
-            # 1. Compliance
             driving_pressure = max(1.0, pplat - peep)
             compliance = vt / driving_pressure
             
-            # 2. Airway Resistance
             flow_lsec = max(5.0, flow_lmin) / 60.0
             resistance = (pip - pplat) / flow_lsec
             
-            # 3. Dead Space Fraction
             min_vent_est = (vt * rr) / 1000.0
             paco2_derived = round((0.863 * vco2) / (min_vent_est * 0.75), 1)
             if peco2 >= paco2_derived: 
@@ -667,14 +688,12 @@ def dashboard():
             vd_vt_ratio = (paco2_derived - peco2) / paco2_derived
             vd_vt_pct = round(vd_vt_ratio * 100, 1)
 
-            # 4. Shunt Fraction
             shunt_denominator = cco2 - cvo2
             if shunt_denominator <= 0: 
                 shunt_denominator = 5.0
             shunt_ratio = (cco2 - cao2) / shunt_denominator
             shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
 
-            # Circuit execution maps
             alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
             paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
             p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
@@ -682,27 +701,24 @@ def dashboard():
             aa_gradient = round(p_A_O2 - pao2, 1)
             mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
             
-            # --- SPIROMETRY MODELLING LOGIC ENGINE ---
-            # Set structural theoretical Forced Vital Capacity constants based on scenario data
-            if compliance <= 30: # Restrictive disease context
+            # --- EXTENDED EXPIRATORY SPIROMETRY MODELLING LOGIC ---
+            if compliance <= 30: 
                 fvc_vol = 2.4
-                decay_constant = 2.2 # Rapid opening, small ceiling volume
-                spirometry_eval = "Restrictive Curve Pattern: Preserved proportional FEV1/FVC ratio alongside marked baseline losses in total Forced Vital Capacity volumes."
-            elif resistance >= 25: # Obstructive disease context
+                decay_constant = 2.2 
+                spirometry_eval = "Restrictive Curve Pattern: Preserved proportional FEV1/FVC ratio alongside marked losses in total functional volume architecture."
+            elif resistance >= 25: 
                 fvc_vol = 4.5
-                decay_constant = 0.55 if resistance >= 30 else 0.72 # Long drawn out exhalation curves
-                spirometry_eval = "Obstructive Curve Pattern: Scooped expiratory tracing present. Marked deceleration of mid-expiratory flows, dropping total ratio clearly below normal clinical targets."
-            else: # Normal health context
+                decay_constant = 0.55 if resistance >= 30 else 0.72 
+                spirometry_eval = "Obstructive Curve Pattern: Classic scooped tracing present. Marked deceleration of mid-expiratory flows dropping ratios below targets."
+            else: 
                 fvc_vol = 5.0
                 decay_constant = 1.65
-                spirometry_eval = "Unremarkable Spirometry Curve: Forced Expiratory Volume metrics track cleanly above threshold values. Airway dimensions are pristine."
+                spirometry_eval = "Normal Spirometry Curve: Forced Expiratory Volume metrics track cleanly above targets with pristine airway dimensions."
 
-            # Calculate dynamic volumes at t=1.0s and t=6.0s (FVC total duration profile)
             fev1_vol = round(fvc_vol * (1.0 - math.exp(-decay_constant * 1.0)), 2)
             fvc_vol_realized = round(fvc_vol * (1.0 - math.exp(-decay_constant * 6.0)), 2)
             fev1_fvc_pct = round((fev1_vol / fvc_vol_realized) * 100, 1)
 
-            # Differential classifications
             ai_condition = "Physiologically Normal Lung Baseline"
             ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
             differentials = ["Healthy Control Context"]
@@ -720,7 +736,6 @@ def dashboard():
                 ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
                 differentials = ["Status Asthmaticus Attack", "Anaphylaxis Spasmodic Airway Closure"]
 
-            # Henderson Hasselbalch
             try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
             except Exception: ph = 7.40
             
@@ -742,7 +757,6 @@ def dashboard():
                     acid_base_status = "Metabolic Alkalosis"
                     acid_base_delta_text = "Elevated metabolic bicarbonate accumulation."
 
-            # Render wave loops
             t_cycle = 60.0 / rr
             t_i = t_cycle * (1 / (1 + ie))
             t_e = t_cycle - t_i
@@ -764,7 +778,6 @@ def dashboard():
                     v_pts.append(round(vt * math.exp(-t_exp / max(0.01, tau)), 1))
                     f_pts.append(round(-((vt / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))), 1) * 0.06)
             
-            # Formulate coordinates array specifically mapping the Spirogram curve loop
             spiro_t_pts, spiro_v_pts = [], []
             for step in range(61):
                 s_t = step * 0.1
@@ -789,7 +802,7 @@ def dashboard():
 
 @app.route('/update_credentials', methods=['POST'])
 def update_credentials():
-    flash("Demo Architecture Configuration Blocked.")
+    flash("Demo Operations Module Architecture Active. Changes restricted.")
     return redirect(url_for('dashboard', tab='settings'))
 
 if __name__ == '__main__':
