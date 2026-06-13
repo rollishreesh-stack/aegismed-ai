@@ -15,6 +15,15 @@ CLINICAL_DATABASE = {
     }
 }
 
+# --- HELPER TO PREVENT 500 ERRORS ---
+def safe_float(val, default):
+    try:
+        if val is None or str(val).strip() == '':
+            return float(default)
+        return float(val)
+    except ValueError:
+        return float(default)
+
 # --- PREMIUM UI CSS & REALISTIC LUNG SVG ---
 BASE_CSS = """
 <style>
@@ -23,7 +32,6 @@ BASE_CSS = """
     body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #e4e4e7; overflow-x: hidden; min-height: 100vh;}
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     
-    /* Smooth, Realistic Breathing Animation */
     @keyframes bioBreathe {
         0% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.15; filter: drop-shadow(0 0 30px rgba(225,29,72,0.1)); }
         40% { transform: translate(-50%, -50%) scale(1.06); opacity: 0.4; filter: drop-shadow(0 0 80px rgba(225,29,72,0.4)); }
@@ -37,7 +45,6 @@ BASE_CSS = """
         animation: bioBreathe 4.5s ease-in-out infinite;
     }
     
-    /* Dark Premium Glassmorphism */
     .glass-panel {
         background: rgba(24, 24, 27, 0.6);
         backdrop-filter: blur(16px);
@@ -55,7 +62,6 @@ BASE_CSS = """
         z-index: 50;
     }
     
-    /* Professional Input Styling */
     .clinical-input {
         background: #000;
         border: 1px solid #3f3f46;
@@ -74,7 +80,6 @@ BASE_CSS = """
         box-shadow: 0 0 10px rgba(225,29,72,0.2);
     }
     
-    /* Highly Visible Copyright Badge */
     .copyright-badge {
         position: fixed;
         bottom: 20px;
@@ -99,7 +104,6 @@ BASE_CSS = """
 </style>
 """
 
-# Hyper-Realistic Multi-Layered Lung SVG
 LUNG_SVG = """
 <svg class="living-lung" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -128,7 +132,6 @@ LUNG_SVG = """
             </feMerge>
         </filter>
     </defs>
-    
     <g filter="url(#organGlow)">
         <path d="M142 30 h16 v50 h-16 z" fill="url(#tracheaGrad)"/>
         <line x1="142" y1="35" x2="158" y2="35" stroke="#4c0519" stroke-width="2"/>
@@ -136,16 +139,12 @@ LUNG_SVG = """
         <line x1="142" y1="55" x2="158" y2="55" stroke="#4c0519" stroke-width="2"/>
         <line x1="142" y1="65" x2="158" y2="65" stroke="#4c0519" stroke-width="2"/>
         <line x1="142" y1="75" x2="158" y2="75" stroke="#4c0519" stroke-width="2"/>
-
         <path d="M150 80 L110 110 L115 118 L150 90 L185 118 L190 110 Z" fill="url(#tracheaGrad)"/>
-
         <path d="M130 90 C 70 70, 30 140, 40 220 C 50 250, 100 260, 130 230 C 145 200, 145 130, 130 90 Z" fill="url(#fleshGradientRight)" stroke="#ffe4e6" stroke-width="0.5"/>
         <path d="M135 150 C 100 160, 60 140, 40 160" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
         <path d="M100 155 C 80 180, 50 200, 43 210" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
-
         <path d="M170 90 C 230 70, 270 140, 260 220 C 250 250, 200 260, 170 230 C 160 210, 185 180, 170 140 C 165 125, 160 110, 170 90 Z" fill="url(#fleshGradientLeft)" stroke="#ffe4e6" stroke-width="0.5"/>
         <path d="M170 145 C 200 160, 240 180, 255 200" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
-
         <g stroke="#fecdd3" stroke-width="1" opacity="0.3" stroke-linecap="round">
             <path d="M110 110 L80 130 M85 126 L70 115 M85 126 L65 140 M115 135 L90 170 M95 160 L75 180 M100 180 L85 210 M120 170 L110 220"/>
             <path d="M190 110 L220 130 M215 126 L230 115 M215 126 L235 140 M185 135 L210 170 M205 160 L225 180 M200 180 L215 210 M180 170 L190 220"/>
@@ -164,7 +163,6 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
 </head>
 <body class="flex flex-col items-center justify-center h-screen antialiased relative">
     
-    <!-- HIGHLY VISIBLE COPYRIGHT BADGE -->
     <div class="copyright-badge">
         © 2026 Created By Shreesh Santoshkumar Rolli
     </div>
@@ -207,12 +205,10 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- HIGHLY VISIBLE COPYRIGHT BADGE -->
     <div class="copyright-badge">
         © 2026 Created By Shreesh Santoshkumar Rolli
     </div>
 
-    <!-- NAVIGATION -->
     <nav class="glass-header px-6 py-4 flex justify-between items-center sticky top-0">
         <div class="flex items-center space-x-4">
             <div class="relative flex items-center justify-center w-8 h-8 rounded bg-rose-950 border border-rose-800">
@@ -242,10 +238,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% endwith %}
 
         {% if active_tab == 'simulator' %}
-        <!-- PROFESSIONAL SIDE-BY-SIDE GRID LAYOUT -->
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
             
-            <!-- COLUMN 1: PROFESSIONAL PARAMETER CONFIGURATION (Span 3) -->
             <div class="xl:col-span-3">
                 <div class="glass-panel rounded flex flex-col border border-zinc-800 bg-zinc-900/80">
                     <div class="p-3 border-b border-zinc-800 bg-black/40">
@@ -257,7 +251,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     
                     <form method="POST" action="/dashboard?tab=simulator" class="p-4 space-y-5">
                         
-                        <!-- Mechanics -->
                         <div>
                             <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Patient Mechanics</h3>
                             <div class="space-y-2">
@@ -280,7 +273,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                             </div>
                         </div>
 
-                        <!-- Vent Drive -->
                         <div>
                             <h3 class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Ventilator Drive</h3>
                             <div class="space-y-2">
@@ -318,17 +310,14 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
             </div>
 
-            <!-- COLUMN 2 & 3 CONTAINER: If no data, show standby -->
             {% if not sim_data %}
             <div class="xl:col-span-9 glass-panel rounded flex flex-col items-center justify-center min-h-[600px] border border-zinc-800 border-dashed">
                 <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">Awaiting Parameter Application</p>
             </div>
             {% else %}
             
-            <!-- COLUMN 2: METRICS & AI INTELLIGENCE (Span 4) -->
             <div class="xl:col-span-4 flex flex-col gap-4">
                 
-                <!-- AI Diagnostic Box -->
                 <div class="glass-panel rounded p-4 border border-zinc-800 bg-gradient-to-br from-zinc-900 to-black">
                     <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-2 border-b border-zinc-800 pb-1">AI Pathological Analysis</h3>
                     <p class="text-lg font-black text-white leading-tight mb-2">{{ sim_data.ai_condition }}</p>
@@ -340,7 +329,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     </div>
                 </div>
 
-                <!-- High-Density Metrics Grid -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
                         <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Tidal Volume</p>
@@ -375,7 +363,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
             </div>
 
-            <!-- COLUMN 3: KINEMATIC WAVEFORMS (Span 5) -->
             <div class="xl:col-span-5 flex flex-col gap-3">
                 <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/40 h-[180px]">
                     <canvas id="pressureChart"></canvas>
@@ -443,7 +430,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         </div>
         {% endif %}
         
-        <!-- SYSTEM CONFIGURATION TAB (CREDENTIALS) -->
         {% if active_tab == 'settings' %}
         <div class="glass-panel max-w-lg mx-auto rounded p-8 mt-10 border border-zinc-800">
             <div class="text-center mb-6">
@@ -475,7 +461,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 </html>
 """
 
-# --- BACKEND PHYSICS ENGINE & CREDENTIAL LOGIC ---
 @app.route('/')
 def home():
     if 'user' in session: return redirect(url_for('dashboard'))
@@ -483,8 +468,8 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
-    u = request.form['username']
-    p = request.form['password']
+    u = request.form.get('username')
+    p = request.form.get('password')
     if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
         session['user'] = u
         session['role'] = CLINICAL_DATABASE[u]['role']
@@ -502,9 +487,9 @@ def update_credentials():
     if 'user' not in session: return redirect(url_for('home'))
     
     current_user = session['user']
-    old_pass = request.form['current_password']
-    new_id = request.form['new_username'].strip()
-    new_pass = request.form['new_password'].strip()
+    old_pass = request.form.get('current_password')
+    new_id = request.form.get('new_username', '').strip()
+    new_pass = request.form.get('new_password', '').strip()
     
     if CLINICAL_DATABASE[current_user]['password'] == old_pass:
         if new_id != current_user and new_id in CLINICAL_DATABASE:
@@ -529,95 +514,110 @@ def dashboard():
     inputs = None
     
     if request.method == 'POST' and active_tab == 'simulator':
-        vd_vt = float(request.form['vd_vt']) / 100.0
-        shunt = float(request.form['shunt']) / 100.0
-        vco2 = float(request.form['vco2'])
-        c = float(request.form['compliance'])
-        r = float(request.form['resistance'])
-        pip = float(request.form['pip'])
-        peep = float(request.form['peep'])
-        rr = float(request.form['rr'])
-        ie = float(request.form['ie_ratio'])
-        fio2 = float(request.form['fio2']) / 100.0
-        
-        inputs = {
-            'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
-            'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
-            'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100)
-        }
-        
-        # PATHOLOGY LOGIC
-        ai_condition = "Normal / Compensated Respiratory Mechanics"
-        ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
-        differentials = ["Healthy Lungs", "Post-operative monitoring"]
-        
-        if c <= 40 and shunt >= 0.15:
-            ai_condition = "Acute Restrictive Defect with Shunt"
-            ai_intervention = "Limit Vt to 4-6 mL/kg PBW. Optimize PEEP. Consider proning."
-            differentials = ["ARDS", "Cardiogenic Pulmonary Edema", "Severe Pneumonia"]
-        elif c <= 40 and r < 15 and shunt < 0.15:
-            ai_condition = "Chronic / Dry Restrictive Defect"
-            ai_intervention = "Target low tidal volumes. Avoid excessive PEEP."
-            differentials = ["Pulmonary Fibrosis", "Interstitial Lung Disease", "Kyphoscoliosis"]
-        elif r >= 20 and c >= 60:
-            ai_condition = "High-Compliance Obstructive Defect"
-            ai_intervention = "High risk for Auto-PEEP. Prolong Te, permissive hypercapnia."
-            differentials = ["COPD", "Emphysema"]
-        elif r >= 25 and c < 60:
-            ai_condition = "Acute Obstructive Defect (Bronchospasm)"
-            ai_intervention = "Maximize Expiratory Time (Te). Administer bronchodilators."
-            differentials = ["Status Asthmaticus", "Anaphylaxis"]
-
-        # KINEMATICS
-        dp = max(0.1, pip - peep)
-        peak_volume = dp * c 
-        min_vent = (peak_volume * rr) / 1000.0
-        alv_vent = ((peak_volume * (1 - vd_vt)) * rr) / 1000.0
-        
-        t_cycle = 60.0 / rr
-        t_i = t_cycle * (1 / (1 + ie))
-        t_e = t_cycle - t_i
-        
-        tau = (r / 1000.0) * c 
-        auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
-        
-        fev1_fvc_ratio = round((1 - math.exp(-1 / max(0.01, tau))) * 100, 1)
-        spirometry_class = "Restrictive/Normal" if fev1_fvc_ratio >= 70 else "Obstructive"
+        try:
+            # Bulletproof extraction utilizing fallback defaults
+            vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
+            shunt_val = safe_float(request.form.get('shunt'), 5)
+            vco2 = safe_float(request.form.get('vco2'), 200)
+            c = safe_float(request.form.get('compliance'), 60.0)
+            r = safe_float(request.form.get('resistance'), 10)
+            pip = safe_float(request.form.get('pip'), 15)
+            peep = safe_float(request.form.get('peep'), 5)
+            rr = safe_float(request.form.get('rr'), 16)
+            ie = safe_float(request.form.get('ie_ratio'), 2.0)
+            fio2_val = safe_float(request.form.get('fio2'), 40)
             
-        mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
-        paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
-        p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
-        pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
-        aa_gradient = round(p_A_O2 - pao2, 1)
-        
-        # WAVEFORMS
-        t_pts, p_pts, v_pts, f_pts = [], [], [], []
-        res = 100
-        for i in range(res + 1):
-            t = (i / res) * t_cycle
-            t_pts.append(round(t, 3))
-            if t <= t_i:
-                p_pts.append(round(pip, 1))
-                v_pts.append(round(peak_volume * (1 - math.exp(-t / max(0.01, tau))), 1))
-                f_pts.append(round(((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
-            else:
-                t_exp = t - t_i
-                p_pts.append(round(peep, 1))
-                v_pts.append(round(peak_volume * math.exp(-t_exp / max(0.01, tau)), 1))
-                f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
-                
-        waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+            # Enforce hard limits to prevent division by zero math errors
+            rr = max(1.0, rr)     # Cannot have 0 breaths per min
+            ie = max(0.1, ie)     # Cannot have 0 I:E ratio
+            c = max(1.0, c)       # Cannot have 0 compliance
+            r = max(1.0, r)       # Cannot have 0 resistance
+            
+            vd_vt = vd_vt_val / 100.0
+            shunt = shunt_val / 100.0
+            fio2 = fio2_val / 100.0
 
-        sim_data = {
-            'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
-            'differentials': differentials,
-            'peak_volume': round(peak_volume, 1), 'minute_vent': round(min_vent, 2),
-            'alveolar_vent': round(alv_vent, 2), 'paco2': paco2, 'pao2': pao2,
-            'aa_gradient': aa_gradient, 'mech_power': mech_power,
-            't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
-            'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
-            'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class
-        }
+            inputs = {
+                'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
+                'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
+                'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100)
+            }
+            
+            # PATHOLOGY LOGIC
+            ai_condition = "Normal / Compensated Respiratory Mechanics"
+            ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
+            differentials = ["Healthy Lungs", "Post-operative monitoring"]
+            
+            if c <= 40 and shunt >= 0.15:
+                ai_condition = "Acute Restrictive Defect with Shunt"
+                ai_intervention = "Limit Vt to 4-6 mL/kg PBW. Optimize PEEP. Consider proning."
+                differentials = ["ARDS", "Cardiogenic Pulmonary Edema", "Severe Pneumonia"]
+            elif c <= 40 and r < 15 and shunt < 0.15:
+                ai_condition = "Chronic / Dry Restrictive Defect"
+                ai_intervention = "Target low tidal volumes. Avoid excessive PEEP."
+                differentials = ["Pulmonary Fibrosis", "Interstitial Lung Disease", "Kyphoscoliosis"]
+            elif r >= 20 and c >= 60:
+                ai_condition = "High-Compliance Obstructive Defect"
+                ai_intervention = "High risk for Auto-PEEP. Prolong Te, permissive hypercapnia."
+                differentials = ["COPD", "Emphysema"]
+            elif r >= 25 and c < 60:
+                ai_condition = "Acute Obstructive Defect (Bronchospasm)"
+                ai_intervention = "Maximize Expiratory Time (Te). Administer bronchodilators."
+                differentials = ["Status Asthmaticus", "Anaphylaxis"]
+
+            # KINEMATICS
+            dp = max(0.1, pip - peep)
+            peak_volume = dp * c 
+            min_vent = (peak_volume * rr) / 1000.0
+            alv_vent = ((peak_volume * (1 - vd_vt)) * rr) / 1000.0
+            
+            t_cycle = 60.0 / rr
+            t_i = t_cycle * (1 / (1 + ie))
+            t_e = t_cycle - t_i
+            
+            tau = (r / 1000.0) * c 
+            auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
+            
+            fev1_fvc_ratio = round((1 - math.exp(-1 / max(0.01, tau))) * 100, 1)
+            spirometry_class = "Restrictive/Normal" if fev1_fvc_ratio >= 70 else "Obstructive"
+                
+            mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
+            paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
+            p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
+            pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
+            aa_gradient = round(p_A_O2 - pao2, 1)
+            
+            # WAVEFORMS
+            t_pts, p_pts, v_pts, f_pts = [], [], [], []
+            res = 100
+            for i in range(res + 1):
+                t = (i / res) * t_cycle
+                t_pts.append(round(t, 3))
+                if t <= t_i:
+                    p_pts.append(round(pip, 1))
+                    v_pts.append(round(peak_volume * (1 - math.exp(-t / max(0.01, tau))), 1))
+                    f_pts.append(round(((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
+                else:
+                    t_exp = t - t_i
+                    p_pts.append(round(peep, 1))
+                    v_pts.append(round(peak_volume * math.exp(-t_exp / max(0.01, tau)), 1))
+                    f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
+                    
+            waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+
+            sim_data = {
+                'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
+                'differentials': differentials,
+                'peak_volume': round(peak_volume, 1), 'minute_vent': round(min_vent, 2),
+                'alveolar_vent': round(alv_vent, 2), 'paco2': paco2, 'pao2': pao2,
+                'aa_gradient': aa_gradient, 'mech_power': mech_power,
+                't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
+                'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
+                'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class
+            }
+        except Exception as e:
+            flash("System Warning: Could not process parameters. Defaulting engine.")
+            print(f"Server Error Handled: {e}")
 
     return render_template_string(
         MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data,
