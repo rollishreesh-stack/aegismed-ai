@@ -196,7 +196,7 @@ def dashboard():
                 raise ValueError("System lacks an active GEMINI_API_KEY environmental token.")
                 
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+            model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"response_mime_type": "application/json"})
             
             prompt = f"""
             Analyze the following real-time neural interface tracking signals to decode intended actions and linguistic structures (SDG 3 clinical compliance).
