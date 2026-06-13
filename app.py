@@ -42,30 +42,55 @@ BASE_CSS = """
         background: rgba(24, 24, 27, 0.6);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(225, 29, 72, 0.15);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(63, 63, 70, 0.4);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
         position: relative;
         z-index: 10;
     }
     .glass-header {
-        background: rgba(9, 9, 11, 0.9);
+        background: rgba(9, 9, 11, 0.95);
         backdrop-filter: blur(24px);
-        border-bottom: 1px solid rgba(225, 29, 72, 0.2);
+        border-bottom: 1px solid rgba(63, 63, 70, 0.5);
         position: relative;
         z-index: 50;
     }
     
-    /* Systematic Sidebar Styling */
-    .input-group {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(63, 63, 70, 0.5);
-        border-radius: 0.5rem;
-        padding: 0.75rem;
+    /* Professional Input Styling */
+    .clinical-input {
+        background: #000;
+        border: 1px solid #3f3f46;
+        color: #fff;
+        text-align: right;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        width: 100%;
         transition: all 0.2s;
     }
-    .input-group:focus-within {
+    .clinical-input:focus {
         border-color: #e11d48;
-        background: rgba(225, 29, 72, 0.05);
+        outline: none;
+        box-shadow: 0 0 10px rgba(225,29,72,0.2);
+    }
+    
+    /* Highly Visible Copyright Badge */
+    .copyright-badge {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #e11d48;
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        z-index: 9999;
+        box-shadow: 0 10px 25px rgba(225, 29, 72, 0.4);
+        border: 2px solid #fda4af;
+        text-transform: uppercase;
     }
     
     ::-webkit-scrollbar { width: 6px; }
@@ -137,11 +162,16 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
     <script src="https://cdn.tailwindcss.com"></script>
     <title>AeroLung | Secure Initialization</title>
 </head>
-<body class="flex flex-col items-center justify-center h-screen antialiased">
-    <div class="glass-panel p-10 rounded-2xl w-full max-w-md border-t-4 border-t-rose-600 shadow-[0_0_50px_rgba(225,29,72,0.15)] relative z-10">
-        <div class="text-center mb-10">
+<body class="flex flex-col items-center justify-center h-screen antialiased relative">
+    
+    <!-- HIGHLY VISIBLE COPYRIGHT BADGE -->
+    <div class="copyright-badge">
+        © 2026 Created By Shreesh Santoshkumar Rolli
+    </div>
+
+    <div class="glass-panel p-10 rounded-2xl w-full max-w-md shadow-2xl relative z-10">
+        <div class="text-center mb-8">
             <h1 class="text-4xl font-black tracking-tight text-white">AERO<span class="text-rose-600">LUNG</span></h1>
-            <p class="text-rose-400 text-xs mt-2 font-mono uppercase tracking-[0.3em]">Premium Clinical Matrix</p>
         </div>
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -149,23 +179,18 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
           {% endif %}
         {% endwith %}
         <form method="POST" action="/login" class="space-y-6">
-            <div class="input-group">
-                <label class="block text-zinc-400 text-[10px] font-mono uppercase tracking-widest mb-1">System ID</label>
-                <input type="text" name="username" required class="w-full bg-transparent text-white focus:outline-none font-mono text-sm">
+            <div>
+                <label class="block text-zinc-400 text-xs font-mono uppercase tracking-widest mb-2">System ID</label>
+                <input type="text" name="username" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono">
             </div>
-            <div class="input-group">
-                <label class="block text-zinc-400 text-[10px] font-mono uppercase tracking-widest mb-1">Access Passkey</label>
-                <input type="password" name="password" required class="w-full bg-transparent text-white focus:outline-none font-mono text-sm">
+            <div>
+                <label class="block text-zinc-400 text-xs font-mono uppercase tracking-widest mb-2">Access Passkey</label>
+                <input type="password" name="password" required class="w-full bg-black/50 border border-zinc-700 text-white p-3 rounded focus:border-rose-500 focus:outline-none font-mono">
             </div>
-            <button type="submit" class="w-full bg-rose-700 hover:bg-rose-600 text-white font-bold py-4 rounded-lg text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(225,29,72,0.3)] transition mt-4">
-                Authenticate Session
+            <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-4 rounded text-sm uppercase tracking-widest transition mt-4">
+                Authenticate
             </button>
         </form>
-    </div>
-    
-    <div class="mt-8 text-center relative z-10">
-        <p class="text-[9px] text-zinc-600 font-mono tracking-[0.3em] uppercase">© 2026 Created By</p>
-        <p class="text-[10px] text-rose-500/70 font-mono font-bold tracking-[0.2em] mt-1 uppercase">Shreesh Santoshkumar Rolli</p>
     </div>
 </body>
 </html>
@@ -178,265 +203,194 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>AeroLung | Enterprise Telemetry</title>
+    <title>AeroLung | Enterprise Dashboard</title>
 </head>
 <body class="min-h-screen flex flex-col">
+
+    <!-- HIGHLY VISIBLE COPYRIGHT BADGE -->
+    <div class="copyright-badge">
+        © 2026 Created By Shreesh Santoshkumar Rolli
+    </div>
+
+    <!-- NAVIGATION -->
     <nav class="glass-header px-6 py-4 flex justify-between items-center sticky top-0">
         <div class="flex items-center space-x-4">
-            <div class="relative flex items-center justify-center w-8 h-8 rounded-md bg-rose-950 border border-rose-800">
+            <div class="relative flex items-center justify-center w-8 h-8 rounded bg-rose-950 border border-rose-800">
                 <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,1)]"></span>
             </div>
-            <span class="font-black text-2xl tracking-widest text-white">AERO<span class="text-rose-600">LUNG</span> <span class="text-zinc-500 font-mono text-xs ml-2 tracking-normal border border-zinc-700 px-2 py-0.5 rounded">ENTERPRISE</span></span>
+            <span class="font-black text-2xl tracking-widest text-white">AERO<span class="text-rose-600">LUNG</span></span>
         </div>
         
         <div class="flex items-center space-x-6">
-            <div class="hidden md:block text-right pr-4 border-r border-zinc-800">
-                <span class="text-rose-400 font-bold block text-sm">{{ user_role }}</span>
+            <div class="text-right pr-4 border-r border-zinc-800">
+                <span class="text-white font-bold block text-sm">{{ user_role }}</span>
                 <span class="text-[10px] text-zinc-500 uppercase font-mono tracking-widest">Authorized</span>
             </div>
-            
-            <div class="relative group z-50">
-                <button class="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-4 py-2.5 rounded-lg shadow-lg transition font-mono text-xs text-white uppercase tracking-wider">
-                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                    Menu
-                </button>
-                <div class="absolute right-0 mt-2 w-56 bg-zinc-950/95 backdrop-blur-xl border border-zinc-800 rounded-lg shadow-[0_20px_50px_rgba(0,0,0,0.9)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right scale-95 group-hover:scale-100 overflow-hidden">
-                    <div class="p-4 border-b border-zinc-800/50 bg-zinc-900/30">
-                        <span class="block text-[10px] text-zinc-500 uppercase font-mono mb-1">Active User</span>
-                        <span class="block text-white font-bold truncate">{{ session.get('user') }}</span>
-                    </div>
-                    <a href="?tab=simulator" class="flex items-center px-4 py-3 text-xs font-mono text-zinc-300 hover:text-white hover:bg-rose-950/40 border-l-2 border-transparent hover:border-rose-600 transition-all">
-                        <svg class="w-4 h-4 mr-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                        Telemetry Matrix
-                    </a>
-                    <a href="?tab=settings" class="flex items-center px-4 py-3 text-xs font-mono text-zinc-300 hover:text-white hover:bg-rose-950/40 border-l-2 border-transparent hover:border-rose-600 transition-all">
-                        <svg class="w-4 h-4 mr-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        System Config
-                    </a>
-                    <div class="border-t border-zinc-800"></div>
-                    <a href="/logout" class="flex items-center px-4 py-3 text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">
-                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        Secure Logout
-                    </a>
-                </div>
-            </div>
+            <a href="?tab=simulator" class="text-xs font-mono text-zinc-300 hover:text-white transition">Dashboard</a>
+            <a href="?tab=settings" class="text-xs font-mono text-zinc-300 hover:text-white transition">Config</a>
+            <a href="/logout" class="text-xs font-mono text-rose-500 hover:text-rose-400 transition ml-4 border border-rose-900 px-3 py-1 rounded">Logout</a>
         </div>
     </nav>
 
-    <main class="flex-1 p-6 relative w-full max-w-[1900px] mx-auto z-10">
+    <main class="flex-1 p-4 relative w-full max-w-[2000px] mx-auto z-10">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-            <div class="max-w-2xl mx-auto mb-6 p-4 rounded-lg text-sm font-mono text-center bg-rose-950/80 text-rose-200 border border-rose-800 backdrop-blur-sm">
+            <div class="w-full mb-4 p-3 rounded text-sm font-mono text-center bg-rose-950/80 text-rose-200 border border-rose-800">
                 {{ messages[0] }}
             </div>
             {% endif %}
         {% endwith %}
 
         {% if active_tab == 'simulator' %}
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- PROFESSIONAL SIDE-BY-SIDE GRID LAYOUT -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
             
+            <!-- COLUMN 1: PROFESSIONAL PARAMETER CONFIGURATION (Span 3) -->
             <div class="xl:col-span-3">
-                <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-t-rose-600 overflow-hidden min-h-[700px]">
-                    <div class="p-5 border-b border-zinc-800/80 bg-zinc-900/50 flex items-center">
-                        <svg class="w-5 h-5 text-rose-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                        <div>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-widest">Parameter Config</h2>
-                            <p class="text-[9px] text-zinc-500 font-mono mt-1">SYSTEMATIC INPUT MATRIX</p>
-                        </div>
+                <div class="glass-panel rounded flex flex-col border border-zinc-800 bg-zinc-900/80">
+                    <div class="p-3 border-b border-zinc-800 bg-black/40">
+                        <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center">
+                            <svg class="w-4 h-4 text-zinc-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            Control Parameters
+                        </h2>
                     </div>
                     
-                    <form method="POST" action="/dashboard?tab=simulator" class="p-5 space-y-6 flex-1 overflow-y-auto">
+                    <form method="POST" action="/dashboard?tab=simulator" class="p-4 space-y-5">
                         
+                        <!-- Mechanics -->
                         <div>
-                            <div class="flex items-center mb-3">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2"></span>
-                                <span class="text-[10px] text-zinc-300 font-bold uppercase tracking-[0.1em]">Patient Mechanics</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">Compliance</label>
-                                    <input type="number" step="0.1" name="compliance" value="{{ inputs.compliance if inputs else '60.0' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                            <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Patient Mechanics</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">Compliance (C)</label>
+                                    <input type="number" step="0.1" name="compliance" value="{{ inputs.compliance if inputs else '60.0' }}" class="clinical-input w-20">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">Resistance</label>
-                                    <input type="number" step="1" name="resistance" value="{{ inputs.resistance if inputs else '10' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">Resistance (R)</label>
+                                    <input type="number" step="1" name="resistance" value="{{ inputs.resistance if inputs else '10' }}" class="clinical-input w-20">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">Dead Space %</label>
-                                    <input type="number" step="1" name="vd_vt" value="{{ inputs.vd_vt if inputs else '30' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">Dead Space (%)</label>
+                                    <input type="number" step="1" name="vd_vt" value="{{ inputs.vd_vt if inputs else '30' }}" class="clinical-input w-20">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">Shunt %</label>
-                                    <input type="number" step="1" name="shunt" value="{{ inputs.shunt if inputs else '5' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">Shunt (%)</label>
+                                    <input type="number" step="1" name="shunt" value="{{ inputs.shunt if inputs else '5' }}" class="clinical-input w-20">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="pt-2 border-t border-zinc-800/50">
-                            <div class="flex items-center mb-3 mt-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 mr-2"></span>
-                                <span class="text-[10px] text-zinc-300 font-bold uppercase tracking-[0.1em]">Ventilator Drive</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">PIP (cmH2O)</label>
-                                    <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '15' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                        <!-- Vent Drive -->
+                        <div>
+                            <h3 class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">Ventilator Drive</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">PIP (cmH2O)</label>
+                                    <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '15' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">PEEP (cmH2O)</label>
-                                    <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">PEEP (cmH2O)</label>
+                                    <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">Rate (bpm)</label>
-                                    <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '16' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">Rate (bpm)</label>
+                                    <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '16' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
-                                <div class="input-group">
-                                    <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">FiO2 (%)</label>
-                                    <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '40' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">FiO2 (%)</label>
+                                    <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '40' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
-                                <div class="input-group col-span-2 flex items-center justify-between">
-                                    <div class="w-1/2 pr-2">
-                                        <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">I:E Ratio</label>
-                                        <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
-                                    </div>
-                                    <div class="w-1/2 pl-2 border-l border-zinc-700">
-                                        <label class="block text-zinc-500 text-[9px] font-mono mb-1 uppercase">VCO2</label>
-                                        <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="w-full bg-transparent text-white text-xs font-mono focus:outline-none">
-                                    </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">I:E Ratio</label>
+                                    <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="clinical-input w-20 border-blue-900/50">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-[11px] font-mono">VCO2 (mL/min)</label>
+                                    <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="clinical-input w-20 border-blue-900/50">
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full bg-gradient-to-r from-rose-800 to-rose-600 hover:from-rose-700 hover:to-rose-500 text-white font-black py-4 rounded-lg text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all mt-4 border border-rose-500/50">
-                            Execute Telemetry
+                        <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition mt-4">
+                            Apply Parameters
                         </button>
                     </form>
-                    
-                    <div class="p-4 border-t border-zinc-800/80 bg-zinc-950/80 text-center">
-                        <p class="text-[8px] text-zinc-600 font-mono tracking-[0.2em] uppercase">© 2026 Created by</p>
-                        <p class="text-[9px] text-rose-500/70 font-mono font-bold tracking-widest mt-1 uppercase">Shreesh Santoshkumar Rolli</p>
+                </div>
+            </div>
+
+            <!-- COLUMN 2 & 3 CONTAINER: If no data, show standby -->
+            {% if not sim_data %}
+            <div class="xl:col-span-9 glass-panel rounded flex flex-col items-center justify-center min-h-[600px] border border-zinc-800 border-dashed">
+                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">Awaiting Parameter Application</p>
+            </div>
+            {% else %}
+            
+            <!-- COLUMN 2: METRICS & AI INTELLIGENCE (Span 4) -->
+            <div class="xl:col-span-4 flex flex-col gap-4">
+                
+                <!-- AI Diagnostic Box -->
+                <div class="glass-panel rounded p-4 border border-zinc-800 bg-gradient-to-br from-zinc-900 to-black">
+                    <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-2 border-b border-zinc-800 pb-1">AI Pathological Analysis</h3>
+                    <p class="text-lg font-black text-white leading-tight mb-2">{{ sim_data.ai_condition }}</p>
+                    <div class="text-[11px] text-zinc-400 font-mono mb-3">
+                        <span class="text-zinc-300">Differentials:</span> {{ sim_data.differentials | join(', ') }}
+                    </div>
+                    <div class="bg-rose-950/30 border border-rose-900/50 p-2 rounded text-xs text-rose-200 font-mono">
+                        <strong>Protocol:</strong> {{ sim_data.ai_intervention }}
+                    </div>
+                </div>
+
+                <!-- High-Density Metrics Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Tidal Volume</p>
+                        <p class="text-2xl font-black text-white font-mono">{{ sim_data.peak_volume }}<span class="text-[10px] text-zinc-500 ml-1">mL</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">Min: {{ sim_data.minute_vent }} L/m</p>
+                    </div>
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Arterial CO2</p>
+                        <p class="text-2xl font-black {% if sim_data.paco2 > 45 or sim_data.paco2 < 35 %}text-amber-400{% else %}text-white{% endif %} font-mono">{{ sim_data.paco2 }}<span class="text-[10px] text-zinc-500 ml-1">mmHg</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">Alv: {{ sim_data.alveolar_vent }} L/m</p>
+                    </div>
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Arterial O2</p>
+                        <p class="text-2xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.pao2 }}<span class="text-[10px] text-zinc-500 ml-1">mmHg</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">A-a Grad: {{ sim_data.aa_gradient }}</p>
+                    </div>
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Mech Power</p>
+                        <p class="text-2xl font-black {% if sim_data.mech_power > 17 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.mech_power }}<span class="text-[10px] text-zinc-500 ml-1">J/m</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">Limit: &lt;17 J/m</p>
+                    </div>
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Est. FEV1/FVC</p>
+                        <p class="text-2xl font-black {% if sim_data.fev1_fvc < 70 %}text-red-400{% else %}text-emerald-400{% endif %} font-mono">{{ sim_data.fev1_fvc }}<span class="text-[10px] text-zinc-500 ml-1">%</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">{{ sim_data.spirometry_class }}</p>
+                    </div>
+                    <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/60 flex flex-col justify-center">
+                        <p class="text-[9px] font-mono uppercase text-zinc-500 mb-1">Auto-PEEP Risk</p>
+                        <p class="text-xl font-black {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-500{% endif %} font-mono tracking-widest">{{ sim_data.auto_peep_risk }}</p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-1">τ = {{ sim_data.time_const }}s</p>
                     </div>
                 </div>
             </div>
 
-            <div class="xl:col-span-9 flex flex-col gap-6">
-                {% if not sim_data %}
-                <div class="glass-panel flex-1 rounded-xl flex flex-col items-center justify-center min-h-[700px] border border-zinc-800 border-dashed relative">
-                    <svg class="w-24 h-24 text-rose-900/50 animate-pulse mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                    </svg>
-                    <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">Systematic Matrix Ready for Input</p>
+            <!-- COLUMN 3: KINEMATIC WAVEFORMS (Span 5) -->
+            <div class="xl:col-span-5 flex flex-col gap-3">
+                <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/40 h-[180px]">
+                    <canvas id="pressureChart"></canvas>
                 </div>
-                {% else %}
-                
-                <div class="glass-panel rounded-xl p-6 border-l-4 border-l-rose-500 bg-gradient-to-r from-rose-950/40 to-transparent">
-                    <div class="flex items-start space-x-4">
-                        <div class="p-3 bg-rose-950 rounded-lg border border-rose-800/50 text-rose-500 mt-1 shadow-[0_0_15px_rgba(225,29,72,0.2)]">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-1">Pathological Analysis</h3>
-                            <p class="text-xl font-black text-white">{{ sim_data.ai_condition }}</p>
-                            
-                            <div class="mt-3 flex flex-wrap gap-2 items-center">
-                                <span class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mr-1">Differentials:</span>
-                                {% for diff in sim_data.differentials %}
-                                    <span class="px-2 py-1 bg-zinc-900/80 border border-zinc-700 rounded text-[10px] text-zinc-300 font-mono">{{ diff }}</span>
-                                {% endfor %}
-                            </div>
-
-                            <div class="mt-4 text-sm text-zinc-300 border-t border-zinc-800 pt-3 font-mono">
-                                <span class="text-rose-400 font-bold">Protocol Suggestion:</span> {{ sim_data.ai_intervention }}
-                            </div>
-                        </div>
-                    </div>
+                <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/40 h-[180px]">
+                    <canvas id="flowChart"></canvas>
                 </div>
-
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div class="glass-panel rounded-xl p-5 border-t border-zinc-700/50 col-span-2 lg:col-span-1 border-t-rose-500">
-                        <p class="text-[10px] font-mono uppercase text-zinc-400 mb-2 tracking-wider text-rose-400">Est. FEV1/FVC</p>
-                        <p class="text-3xl font-black {% if sim_data.fev1_fvc < 70 %}text-red-400{% else %}text-rose-400{% endif %} font-mono">{{ sim_data.fev1_fvc }}<span class="text-sm text-zinc-500 ml-1">%</span></p>
-                        <div class="mt-3 flex justify-between text-[10px] font-mono border-t border-zinc-800/80 pt-2">
-                            <span class="text-zinc-500">Class:</span>
-                            <span class="text-white font-bold">{{ sim_data.spirometry_class }}</span>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel rounded-xl p-5 border-t border-zinc-800">
-                        <p class="text-[10px] font-mono uppercase text-zinc-400 mb-2 tracking-wider">Tidal Volume</p>
-                        <p class="text-3xl font-black text-white font-mono">{{ sim_data.peak_volume }}<span class="text-sm text-zinc-500 ml-1">mL</span></p>
-                        <div class="mt-3 flex justify-between text-[10px] font-mono border-t border-zinc-800/80 pt-2">
-                            <span class="text-zinc-500">Min Vent:</span>
-                            <span class="text-white font-bold">{{ sim_data.minute_vent }} L/m</span>
-                        </div>
-                    </div>
-                    <div class="glass-panel rounded-xl p-5 border-t border-zinc-800">
-                        <p class="text-[10px] font-mono uppercase text-zinc-400 mb-2 tracking-wider">Mech Power</p>
-                        <p class="text-3xl font-black {% if sim_data.mech_power > 17 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.mech_power }}<span class="text-sm text-zinc-500 ml-1">J/m</span></p>
-                        <div class="mt-3 flex justify-between text-[10px] font-mono border-t border-zinc-800/80 pt-2">
-                            <span class="text-zinc-500">VILI Limit:</span>
-                            <span class="text-white font-bold">&lt; 17 J/m</span>
-                        </div>
-                    </div>
-                    <div class="glass-panel rounded-xl p-5 border-t border-zinc-800">
-                        <p class="text-[10px] font-mono uppercase text-zinc-400 mb-2 tracking-wider">Arterial CO2</p>
-                        <p class="text-3xl font-black {% if sim_data.paco2 > 45 or sim_data.paco2 < 35 %}text-amber-400{% else %}text-white{% endif %} font-mono">{{ sim_data.paco2 }}<span class="text-sm text-zinc-500 ml-1">mmHg</span></p>
-                        <div class="mt-3 flex justify-between text-[10px] font-mono border-t border-zinc-800/80 pt-2">
-                            <span class="text-zinc-500">Alveolar:</span>
-                            <span class="text-white font-bold">{{ sim_data.alveolar_vent }} L/m</span>
-                        </div>
-                    </div>
-                    <div class="glass-panel rounded-xl p-5 border-t border-zinc-800">
-                        <p class="text-[10px] font-mono uppercase text-zinc-400 mb-2 tracking-wider">Arterial O2</p>
-                        <p class="text-3xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.pao2 }}<span class="text-sm text-zinc-500 ml-1">mmHg</span></p>
-                        <div class="mt-3 flex justify-between text-[10px] font-mono border-t border-zinc-800/80 pt-2">
-                            <span class="text-zinc-500">A-a Grad:</span>
-                            <span class="text-white font-bold">{{ sim_data.aa_gradient }}</span>
-                        </div>
-                    </div>
+                <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/40 h-[180px]">
+                    <canvas id="volumeChart"></canvas>
                 </div>
-
-                <div class="glass-panel rounded-xl p-6">
-                    <h3 class="text-[10px] font-mono uppercase text-rose-500 mb-5 pb-2 border-b border-zinc-800 tracking-[0.2em] flex items-center">
-                        Telemetry Waveforms
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50 h-[220px]">
-                            <canvas id="pressureChart"></canvas>
-                        </div>
-                        <div class="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50 h-[220px]">
-                            <canvas id="flowChart"></canvas>
-                        </div>
-                        <div class="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50 h-[220px]">
-                            <canvas id="volumeChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-panel rounded-xl p-6">
-                        <h3 class="text-[10px] font-mono uppercase text-zinc-400 mb-5 pb-2 border-b border-zinc-800 tracking-[0.2em]">P-V Loop Analysis</h3>
-                        <div class="bg-zinc-950/50 p-4 rounded-lg border border-zinc-800/50 h-[250px]">
-                            <canvas id="pvLoopChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-panel rounded-xl p-6 flex flex-col justify-center space-y-4">
-                        <div class="bg-zinc-900/40 border border-zinc-800/80 p-4 rounded-lg flex justify-between items-center">
-                            <div>
-                                <span class="text-[10px] uppercase text-zinc-300 font-bold block mb-1">Time Constant (τ)</span>
-                                <p class="text-[9px] text-zinc-500 font-mono">Fill/Empty dynamics.</p>
-                            </div>
-                            <span class="text-xl font-mono text-white font-bold">{{ sim_data.time_const }}s</span>
-                        </div>
-                        <div class="bg-zinc-900/40 border border-zinc-800/80 p-4 rounded-lg flex justify-between items-center">
-                            <div>
-                                <span class="text-[10px] uppercase text-zinc-300 font-bold block mb-1">Auto-PEEP Risk</span>
-                                <p class="text-[9px] text-zinc-500 font-mono">Based on exp. time ratio.</p>
-                            </div>
-                            <span class="text-xl font-mono {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-500{% endif %} font-black tracking-widest">{{ sim_data.auto_peep_risk }}</span>
-                        </div>
-                    </div>
+                <div class="glass-panel rounded p-3 border border-zinc-800 bg-black/40 h-[200px] flex items-center justify-center">
+                     <div class="w-full h-full relative">
+                         <span class="absolute top-0 left-0 text-[9px] font-mono text-zinc-500 uppercase">P-V Loop Diagnostic</span>
+                         <canvas id="pvLoopChart"></canvas>
+                     </div>
                 </div>
 
                 <script>
@@ -450,25 +404,25 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     const commonOptions = {
                         responsive: true, maintainAspectRatio: false, animation: false,
                         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        scales: { x: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, ticks: { display: false } } }
+                        scales: { x: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, ticks: { display: false } } }
                     };
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, title: { display: true, text: 'Paw (cmH2O)', font: {size: 10} } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Paw (cmH2O)', font: {size: 9} } } } }
                     });
 
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#fb7185', backgroundColor: 'rgba(251, 113, 133, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, title: { display: true, text: 'Flow (L/min)', font: {size: 10} } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Flow (L/min)', font: {size: 9} } } } }
                     });
 
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#fda4af', backgroundColor: 'rgba(253, 164, 175, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10} } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
+                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 9} } } } }
                     });
 
                     const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
@@ -477,41 +431,40 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         data: { datasets: [{ data: pvData, borderColor: '#e11d48', backgroundColor: 'transparent', showLine: true }] },
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+                            layout: { padding: { top: 20 } },
                             scales: {
-                                x: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10} } },
-                                y: { grid: { color: 'rgba(63, 63, 70, 0.2)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10} } }
+                                x: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Pressure', font: {size: 9} } },
+                                y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Volume', font: {size: 9} } }
                             }
                         }
                     });
                 </script>
-                {% endif %}
             </div>
         </div>
         {% endif %}
         
+        <!-- SYSTEM CONFIGURATION TAB (CREDENTIALS) -->
         {% if active_tab == 'settings' %}
-        <div class="glass-panel max-w-lg mx-auto rounded-xl p-8 mt-10 border-t-4 border-t-rose-600">
-            <div class="text-center mb-8">
-                <h2 class="text-xl font-black text-white uppercase tracking-widest">System Configuration</h2>
-                <p class="text-[10px] text-zinc-500 font-mono mt-1">UPDATE ACCESS CREDENTIALS</p>
+        <div class="glass-panel max-w-lg mx-auto rounded p-8 mt-10 border border-zinc-800">
+            <div class="text-center mb-6">
+                <h2 class="text-lg font-black text-white uppercase tracking-widest">System Configuration</h2>
             </div>
-            
-            <form method="POST" action="/update_credentials" class="space-y-6">
-                <div class="input-group">
-                    <label class="block text-zinc-400 text-[10px] font-mono uppercase mb-1 tracking-widest">Current Passkey <span class="text-rose-500">*</span></label>
-                    <input type="password" name="current_password" required class="w-full bg-transparent text-white font-mono text-sm focus:outline-none">
+            <form method="POST" action="/update_credentials" class="space-y-4">
+                <div>
+                    <label class="block text-zinc-400 text-xs font-mono uppercase mb-1 tracking-widest">Current Passkey</label>
+                    <input type="password" name="current_password" required class="w-full bg-black/50 border border-zinc-700 text-white p-2 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
                 </div>
-                <div class="border-t border-zinc-800/50 pt-4">
-                    <div class="input-group mb-4">
-                        <label class="block text-zinc-400 text-[10px] font-mono uppercase mb-1 tracking-widest">New System ID</label>
-                        <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full bg-transparent text-white font-mono text-sm focus:outline-none">
+                <div class="border-t border-zinc-800/50 pt-4 space-y-4">
+                    <div>
+                        <label class="block text-zinc-400 text-xs font-mono uppercase mb-1 tracking-widest">New System ID</label>
+                        <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full bg-black/50 border border-zinc-700 text-white p-2 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
                     </div>
-                    <div class="input-group">
-                        <label class="block text-zinc-400 text-[10px] font-mono uppercase mb-1 tracking-widest">New Passkey</label>
-                        <input type="password" name="new_password" required class="w-full bg-transparent text-white font-mono text-sm focus:outline-none">
+                    <div>
+                        <label class="block text-zinc-400 text-xs font-mono uppercase mb-1 tracking-widest">New Passkey</label>
+                        <input type="password" name="new_password" required class="w-full bg-black/50 border border-zinc-700 text-white p-2 rounded focus:border-rose-500 focus:outline-none font-mono text-sm">
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-rose-700 hover:bg-rose-600 text-white font-bold py-4 rounded-lg text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(225,29,72,0.3)] transition mt-2">
+                <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition mt-4">
                     Commit Changes
                 </button>
             </form>
@@ -557,15 +510,10 @@ def update_credentials():
         if new_id != current_user and new_id in CLINICAL_DATABASE:
             flash("System Error: New System ID is already taken.")
         else:
-            # Preserve role and clearance
             role = CLINICAL_DATABASE[current_user]['role']
             clearance = CLINICAL_DATABASE[current_user]['clearance']
-            
-            # Delete old entry and create new one
             del CLINICAL_DATABASE[current_user]
             CLINICAL_DATABASE[new_id] = {'password': new_pass, 'role': role, 'clearance': clearance}
-            
-            # Update active session
             session['user'] = new_id
             flash("Success: System Credentials Updated.")
     else:
