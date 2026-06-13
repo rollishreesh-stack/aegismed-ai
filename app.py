@@ -167,7 +167,6 @@ LOGIN_HTML = BASE_CSS + LUNG_SVG + """
             </button>
         </form>
     </div>
-    
     <footer class="absolute bottom-6 text-zinc-600 text-[10px] font-mono tracking-widest uppercase z-10">
         © 2026 Created By Shreesh Santoshkumar Rolli
     </footer>
@@ -243,6 +242,10 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                                     <label class="text-zinc-400 text-xs font-mono">Shunt %</label>
                                     <input type="number" step="1" name="shunt" value="{{ inputs.shunt if inputs else '5' }}" class="clinical-input w-24">
                                 </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Metabolic Serum HCO3</label>
+                                    <input type="number" step="1" name="hco3_input" value="{{ inputs.hco3_input if inputs else '24' }}" class="clinical-input w-24 text-teal-400">
+                                </div>
                             </div>
                         </div>
 
@@ -305,6 +308,33 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     </div>
                 </div>
 
+                <div class="glass-panel rounded-lg p-5 border border-purple-900/60 bg-zinc-950/90 shadow-xl">
+                    <h3 class="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Acid-Base Diagnostic Suite</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center mb-4">
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">Computed pH</span>
+                            <span class="text-lg font-mono font-black {% if sim_data.ph < 7.35 %}text-red-400{% elif sim_data.ph > 7.45 %}text-blue-400{% else %}text-emerald-400{% endif %}">{{ sim_data.ph }}</span>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">PaCO2</span>
+                            <span class="text-lg font-mono font-black text-amber-400">{{ sim_data.paco2 }}</span>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">Serum HCO3</span>
+                            <span class="text-lg font-mono font-black text-teal-400">{{ sim_data.hco3 }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded text-xs font-mono bg-purple-950/30 border border-purple-800 text-purple-200">
+                        <div class="flex justify-between items-center border-b border-purple-900/50 pb-1.5 mb-1.5">
+                            <span class="text-purple-400 text-[10px] uppercase font-bold tracking-wider">Primary State:</span>
+                            <span class="font-bold text-white uppercase">{{ sim_data.acid_base_status }}</span>
+                        </div>
+                        <div class="text-[11px] leading-relaxed text-zinc-300">
+                            {{ sim_data.acid_base_delta_text }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg hover:border-rose-900 transition-colors">
                         <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Tidal Volume</p>
@@ -341,15 +371,15 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 
             <div class="lg:col-span-5 flex flex-col gap-4">
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-500/50 uppercase tracking-widest z-20">Pressure (Paw)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-400 uppercase tracking-widest z-20">Pressure (Paw)</span>
                     <canvas id="pressureChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-500/50 uppercase tracking-widest z-20">Flow (L/m)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-400 uppercase tracking-widest z-20">Flow (L/m)</span>
                     <canvas id="flowChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-500/50 uppercase tracking-widest z-20">Volume (mL)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-400 uppercase tracking-widest z-20">Volume (mL)</span>
                     <canvas id="volumeChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/50 shadow-lg h-[220px] flex items-center justify-center relative">
@@ -361,37 +391,46 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 
                 <script>
                     const waveData = {{ sim_data.waveform_data | safe }};
-                    Chart.defaults.color = '#52525b';
+                    
+                    // --- RADICAL ACCESSIBILITY FIXED COLORS ---
+                    Chart.defaults.color = '#e4e4e7'; // Bright silver-white text font globally
                     Chart.defaults.font.family = "'JetBrains Mono', monospace";
                     Chart.defaults.elements.point.radius = 0;
-                    Chart.defaults.elements.line.borderWidth = 1.5;
+                    Chart.defaults.elements.line.borderWidth = 2.0;
                     Chart.defaults.elements.line.tension = 0.3;
                     
                     const commonOptions = {
                         responsive: true, maintainAspectRatio: false, animation: false,
                         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        layout: { padding: { left: -5, right: 0, top: 10, bottom: 0 } },
+                        layout: { padding: { left: 10, right: 10, top: 15, bottom: 5 } },
                         scales: { 
-                            x: { grid: { color: 'rgba(63, 63, 70, 0.1)', drawBorder: false }, ticks: { display: false } } 
+                            x: { 
+                                grid: { color: 'rgba(113, 113, 122, 0.25)', drawBorder: true }, 
+                                ticks: { color: '#a1a1aa', font: {size: 10} } 
+                            },
+                            y: {
+                                grid: { color: 'rgba(113, 113, 122, 0.25)', drawBorder: true },
+                                ticks: { color: '#a1a1aa', font: {size: 10}, maxTicksLimit: 5 }
+                            }
                         }
                     };
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, ticks: { font: {size: 9}, maxTicksLimit: 5 } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.12)', fill: true }] },
+                        options: commonOptions
                     });
 
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, ticks: { font: {size: 9}, maxTicksLimit: 5 } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.12)', fill: true }] },
+                        options: commonOptions
                     });
 
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
-                        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, ticks: { font: {size: 9}, maxTicksLimit: 5 } } } }
+                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.12)', fill: true }] },
+                        options: commonOptions
                     });
 
                     const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
@@ -401,8 +440,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
                             scales: {
-                                x: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Paw (cmH2O)', font: {size: 10}, color: '#71717a' }, ticks: { font: {size: 9} } },
-                                y: { grid: { color: 'rgba(63, 63, 70, 0.1)' }, title: { display: true, text: 'Vol (mL)', font: {size: 10}, color: '#71717a' }, ticks: { font: {size: 9} } }
+                                x: { grid: { color: 'rgba(113, 113, 122, 0.25)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10, weight: 'bold'}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
+                                y: { grid: { color: 'rgba(113, 113, 122, 0.25)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10, weight: 'bold'}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
                             }
                         }
                     });
@@ -529,6 +568,7 @@ def dashboard():
                 rr = safe_float(request.form.get('rr'), 16)
                 ie = safe_float(request.form.get('ie_ratio'), 2.0)
                 fio2_val = safe_float(request.form.get('fio2'), 40)
+                hco3_input = safe_float(request.form.get('hco3_input'), 24)
                 
                 rr = max(1.0, rr)
                 ie = max(0.1, ie)
@@ -542,7 +582,7 @@ def dashboard():
                 inputs = {
                     'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
                     'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
-                    'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100)
+                    'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100), 'hco3_input': hco3_input
                 }
                 
                 ai_condition = "Normal / Compensated Respiratory Mechanics"
@@ -586,6 +626,48 @@ def dashboard():
                 p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
                 pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
                 aa_gradient = round(p_A_O2 - pao2, 1)
+
+                # --- ADVANCED HENDERSON-HASSELBALCH ACID-BASE METRIC ENGINE ---
+                # pH = 6.1 + log10(HCO3 / (0.0301 * PaCO2))
+                try:
+                    ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
+                except Exception:
+                    ph = 7.40
+                
+                acid_base_status = "Normal Balance"
+                acid_base_delta_text = "System homeostatically stable. No clinical intervention requested."
+                
+                # Categorization logic mapping human physiology rules
+                if ph < 7.35:
+                    if paco2 > 45 and hco3_input >= 22:
+                        acid_base_status = "Respiratory Acidosis"
+                        expected_hco3 = 24 + ((paco2 - 40) / 10) * 1  # Acute rule
+                        if hco3_input > expected_hco3 + 2:
+                            acid_base_delta_text = "Acute retention of CO2 causing acidemia. Secondary metabolic compensation detected."
+                        else:
+                            acid_base_delta_text = "Acute respiratory failure / alveolar hypoventilation. Increase minute ventilation or respiratory rate."
+                    elif hco3_input < 22:
+                        acid_base_status = "Metabolic Acidosis"
+                        expected_paco2 = (1.5 * hco3_input) + 8  # Winters' Formula
+                        if paco2 > expected_paco2 + 2:
+                            acid_base_delta_text = "Primary metabolic acidosis combined with an alternate respiratory hypoventilation failure."
+                        else:
+                            acid_base_delta_text = "Serum bicarbonate depletion. Check anion gap status. Ventilator compensating via respiratory drive."
+                elif ph > 7.45:
+                    if paco2 < 35 and hco3_input <= 26:
+                        acid_base_status = "Respiratory Alkalosis"
+                        acid_base_delta_text = "Alveolar hyperventilation causing systemic alkalemia. Consider decreasing ventilator rate or tidal volumes."
+                    elif hco3_input > 26:
+                        acid_base_status = "Metabolic Alkalosis"
+                        acid_base_delta_text = "Elevated metabolic bicarbonate accumulation. Respiratory system compensating via mild hypercapnic conservation."
+                else:
+                    # Normal range transitions with mixed states
+                    if paco2 > 45 and hco3_input > 26:
+                        acid_base_status = "Fully Compensated Mixed Acidosis"
+                        acid_base_delta_text = "Chronic metabolic preservation counterbalancing respiratory limitation."
+                    elif paco2 < 35 and hco3_input < 22:
+                        acid_base_status = "Fully Compensated Mixed Alkalosis"
+                        acid_base_delta_text = "Renal wasting of bicarbonate to offset respiratory wash out."
                 
                 t_pts, p_pts, v_pts, f_pts = [], [], [], []
                 res = 100
@@ -611,7 +693,9 @@ def dashboard():
                     'paco2': paco2, 'pao2': pao2, 'aa_gradient': aa_gradient, 'mech_power': mech_power,
                     't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
                     'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
-                    'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class
+                    'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class,
+                    'ph': ph, 'hco3': hco3_input, 'acid_base_status': acid_base_status, 
+                    'acid_base_delta_text': acid_base_delta_text
                 }
             except Exception as math_err:
                 flash(f"PHYSICS ENGINE FAULT:\n{traceback.format_exc()}")
