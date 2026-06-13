@@ -459,7 +459,15 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
 
                 <script>
-                    const waveData = {{ sim_data.waveform_data | safe }};
+                    // SAFE EXTRACTION WITH BACKUP FALLBACK TO PREVENT DOM CRASHES ON RAW NAN VALUE INJECTIONS
+                    let waveData;
+                    try {
+                        waveData = {{ sim_data.waveform_data | safe }};
+                    } catch(e) {
+                        console.error("Waveform dataset malformed parsing fields:", e);
+                        waveData = {t:[], p:[], v:[], f:[], spiro_t:[], spiro_v:[]};
+                    }
+                    
                     Chart.defaults.color = '#a1a1aa';
                     Chart.defaults.font.family = "'Inter', sans-serif";
                     Chart.defaults.elements.point.radius = 0;
@@ -469,7 +477,10 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     const commonOptions = {
                         responsive: true, maintainAspectRatio: false, animation: false,
                         plugins: { legend: { display: false } },
-                        scales: { x: { grid: { color: 'rgba(255, 255, 255, 0.04)' } }, y: { grid: { color: 'rgba(255, 255, 255, 0.04)' } } }
+                        scales: { 
+                            x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { maxTicksLimit: 8 } }, 
+                            y: { grid: { color: 'rgba(255, 255, 255, 0.04)' } } 
+                        }
                     };
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
@@ -586,56 +597,53 @@ def dashboard():
         
     if active_tab == 'simulator':
         try:
-            vt = inputs['vt_input']
-            pip = inputs['pip']
-            pplat = inputs['pplat']
-            peep = inputs['peep']
-            flow_lmin = inputs['peak_flow']
-            peco2 = inputs['peco2']
+            vt = max(10.0, inputs['vt_input'])
+            pip = max(1.0, inputs['pip'])
+            pplat = max(1.0, inputs['pplat'])
+            peep = max(0.0, inputs['peep'])
+            flow_lmin = max(5.0, inputs['peak_flow'])
+            peco2 = max(0.1, inputs['peco2'])
             cao2 = inputs['cao2']
             cco2 = inputs['cco2']
             cvo2 = inputs['cvo2']
-            hco3_input = inputs['hco3_input']
+            hco3_input = max(0.1, inputs['hco3_input'])
             rr = max(1.0, inputs['rr'])
             ie = max(0.1, inputs['ie_ratio'])
-            vco2 = inputs['vco2']
+            vco2 = max(10.0, inputs['vco2'])
             fio2_val = inputs['fio2']
 
             driving_pressure = max(0.1, pplat - peep)
             compliance = vt / driving_pressure
             
-            flow_lsec = max(5.0, flow_lmin) / 60.0
-            resistance = (pip - pplat) / flow_lsec
+            flow_lsec = flow_lmin / 60.0
+            resistance = max(0.1, (pip - pplat) / flow_lsec)
             
             min_vent_est = (vt * rr) / 1000.0
-            paco2_derived = round((0.863 * vco2) / (min_vent_est * 0.75), 1)
+            paco2_derived = max(1.0, (0.863 * vco2) / max(0.1, min_vent_est * 0.75))
             if peco2 >= paco2_derived: 
-                peco2 = paco2_derived - 4.0
-            vd_vt_ratio = (paco2_derived - peco2) / paco2_derived
+                peco2 = max(0.1, paco2_derived - 4.0)
+            vd_vt_ratio = max(0.01, min(0.95, (paco2_derived - peco2) / paco2_derived))
             vd_vt_pct = round(vd_vt_ratio * 100, 1)
 
-            shunt_denominator = cco2 - cvo2
-            if shunt_denominator <= 0: shunt_denominator = 5.0
+            shunt_denominator = max(0.1, cco2 - cvo2)
             shunt_ratio = (cco2 - cao2) / shunt_denominator
             shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
 
-            alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
-            paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
+            alv_vent = max(0.1, ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0)
+            paco2 = round((0.863 * vco2) / alv_vent, 1)
             
-            # --- MANIPULATED ABG OVERRIDES FOR ANOMALOUS OVERPRESSURE SIMULATION ---
-            # If user injects extreme inputs via manual POST, derive mathematical acid-base shifts
-            try: ph = round(6.1 + math.log10(max(0.1, hco3_input) / (0.0301 * max(1.0, paco2))), 2)
+            try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * max(1.0, paco2))), 2)
             except Exception: ph = 7.40
 
-            # --- UNLIMITED SCORING ENGINE MATRIX (DYNAMIC CLASSIFIER) ---
-            # Evaluates the spectrum of variables independently—never drops to default normal if parameters are warped.
+            # --- DYNAMIC MATRIX FOR CONTINUOUS SPECTRUM SHIFTS ---
+            # Calculates severity markers continuously without relying on fixed threshold steps.
             r_severity = max(0.0, (45.0 - compliance) / 5.0) if compliance < 45 else 0.0
             if shunt_pct > 15: r_severity += (shunt_pct - 15) / 4.0
 
             o_severity = max(0.0, (resistance - 12.0) / 3.0) if resistance > 12 else 0.0
             if paco2 > 48: o_severity += (paco2 - 48) / 10.0
 
-            # Build diagnosis continuously directly from data weights
+            # --- AI EXPERT ANALYSIS MODEL DIAGNOSTIC CLASSIFIER ---
             if r_severity == 0 and o_severity == 0 and 7.35 <= ph <= 7.45:
                 ai_condition = "Physiologically Normal Lung Baseline"
                 ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
@@ -657,9 +665,6 @@ def dashboard():
                     differentials = ["Status Asthmaticus Attack Block", "Mechanical Endotracheal Resistance"]
 
             # --- SYSTEMIC ACID BASE EQUILIBRIUM LOGIC BLOCK ---
-            acid_base_status = "Normal Homeostasis"
-            acid_base_delta_text = "System parameters register within safe biological threshold lines."
-            
             if ph < 7.35:
                 if paco2 > 45:
                     acid_base_status = "Respiratory Acidosis"
@@ -674,8 +679,11 @@ def dashboard():
                 else:
                     acid_base_status = "Metabolic Alkalosis"
                     acid_base_delta_text = "Unchecked accumulation of plasma metabolic alkali molecules."
+            else:
+                acid_base_status = "Normal Homeostasis"
+                acid_base_delta_text = "System parameters register within safe biological threshold lines."
 
-            # Spirometry processing
+            # Spirometry dynamic scalars
             if compliance <= 40: 
                 fvc_vol = 2.4; decay_constant = 2.2
                 spirometry_eval = "Restrictive Tracing: Volume constraints limit capacity."
@@ -698,27 +706,27 @@ def dashboard():
             t_cycle = 60.0 / rr
             t_i = t_cycle * (1 / (1 + ie))
             t_e = t_cycle - t_i
-            tau = (resistance / 1000.0) * compliance
+            tau = max(0.001, (resistance / 1000.0) * compliance)
             auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
 
             t_pts, p_pts, v_pts, f_pts = [], [], [], []
-            res = 100
+            res = 60
             for i in range(res + 1):
                 t = (i / res) * t_cycle
                 t_pts.append(round(t, 3))
                 if t <= t_i:
                     p_pts.append(round(pip, 1))
-                    v_pts.append(round(vt * (1 - math.exp(-t / max(0.01, tau))), 1))
-                    f_pts.append(round(((vt / max(0.01, tau)) * math.exp(-t / max(0.01, tau))), 1) * 0.06)
+                    v_pts.append(round(vt * (1 - math.exp(-t / tau)), 1))
+                    f_pts.append(round(((vt / tau) * math.exp(-t / tau)), 1) * 0.06)
                 else:
                     t_exp = t - t_i
                     p_pts.append(round(peep, 1))
-                    v_pts.append(round(vt * math.exp(-t_exp / max(0.01, tau)), 1))
-                    f_pts.append(round(-((vt / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))), 1) * 0.06)
+                    v_pts.append(round(vt * math.exp(-t_exp / tau), 1))
+                    f_pts.append(round(-((vt / tau) * math.exp(-t_exp / tau)), 1) * 0.06)
             
             spiro_t_pts, spiro_v_pts = [], []
-            for step in range(61):
-                s_t = step * 0.1
+            for step in range(41):
+                s_t = step * 0.15
                 spiro_t_pts.append(round(s_t, 2))
                 spiro_v_pts.append(round(fvc_vol * (1.0 - math.exp(-decay_constant * s_t)), 2))
 
