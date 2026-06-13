@@ -218,6 +218,14 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             
             <div class="lg:col-span-3">
                 <div class="glass-panel rounded-lg flex flex-col border border-zinc-800 bg-zinc-950/90 shadow-2xl overflow-hidden">
+                    
+                    <div class="p-4 border-b border-zinc-800 bg-black/40 grid grid-cols-2 gap-2">
+                        <a href="?tab=simulator&preset=healthy" class="text-[10px] text-center font-mono font-bold bg-zinc-800 text-zinc-300 py-1.5 px-2 rounded hover:bg-zinc-700 transition">Case 1: Healthy Control</a>
+                        <a href="?tab=simulator&preset=ards" class="text-[10px] text-center font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-900/50 py-1.5 px-2 rounded hover:bg-rose-900/5 transition">Case 2: Severe ARDS</a>
+                        <a href="?tab=simulator&preset=copd" class="text-[10px] text-center font-mono font-bold bg-amber-950/60 text-amber-300 border border-amber-900/50 py-1.5 px-2 rounded hover:bg-amber-900/5 transition">Case 3: Floppy COPD</a>
+                        <a href="?tab=simulator&preset=asthma" class="text-[10px] text-center font-mono font-bold bg-blue-950/60 text-blue-300 border border-blue-900/50 py-1.5 px-2 rounded hover:bg-blue-900/5 transition">Case 4: Severe Asthma</a>
+                    </div>
+
                     <div class="p-4 border-b border-zinc-800/80 bg-zinc-900/50">
                         <h2 class="text-xs font-black text-white uppercase tracking-widest flex items-center">Control Matrix</h2>
                     </div>
@@ -289,7 +297,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             {% if not sim_data %}
             <div class="lg:col-span-9 glass-panel rounded-lg flex flex-col items-center justify-center min-h-[600px] border border-zinc-800/50 border-dashed bg-black/40">
                 <div class="w-12 h-12 border-2 border-rose-900 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">System Ready | Awaiting Parameters</p>
+                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">System Ready | Select A Patient Case Profile To Start</p>
             </div>
             {% else %}
             
@@ -392,8 +400,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 <script>
                     const waveData = {{ sim_data.waveform_data | safe }};
                     
-                    // --- RADICAL ACCESSIBILITY FIXED COLORS ---
-                    Chart.defaults.color = '#e4e4e7'; // Bright silver-white text font globally
+                    Chart.defaults.color = '#e4e4e7';
                     Chart.defaults.font.family = "'JetBrains Mono', monospace";
                     Chart.defaults.elements.point.radius = 0;
                     Chart.defaults.elements.line.borderWidth = 2.0;
@@ -553,22 +560,55 @@ def dashboard():
             return redirect(url_for('home'))
             
         active_tab = request.args.get('tab', 'simulator')
-        sim_data = None
-        inputs = None
+        preset = request.args.get('preset', '')
         
+        sim_data = None
+        
+        # --- DEFINITIVE CLINICAL PROFILES SYSTEM ---
+        PRESETS = {
+            "healthy":    {"compliance": 65.0, "resistance": 8,  "vd_vt": 30, "shunt": 4,  "pip": 15, "peep": 5,  "rr": 14, "ie_ratio": 2.0, "fio2": 21,  "vco2": 200, "hco3_input": 24},
+            "ards":       {"compliance": 22.0, "resistance": 12, "vd_vt": 55, "shunt": 32, "pip": 30, "peep": 14, "rr": 24, "ie_ratio": 1.5, "fio2": 70,  "vco2": 220, "hco3_input": 22},
+            "copd":       {"compliance": 95.0, "resistance": 26, "vd_vt": 52, "shunt": 8,  "pip": 20, "peep": 4,  "rr": 10, "ie_ratio": 4.0, "fio2": 32,  "vco2": 190, "hco3_input": 30},
+            "asthma":     {"compliance": 55.0, "resistance": 42, "vd_vt": 35, "shunt": 12, "pip": 34, "peep": 5,  "rr": 11, "ie_ratio": 5.0, "fio2": 40,  "vco2": 210, "hco3_input": 24}
+        }
+        
+        inputs = None
+        if preset in PRESETS:
+            inputs = PRESETS[preset]
+            request.method = 'POST' # Force simulation execution loop for chosen profile
+            
         if request.method == 'POST' and active_tab == 'simulator':
             try:
-                vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
-                shunt_val = safe_float(request.form.get('shunt'), 5)
-                vco2 = safe_float(request.form.get('vco2'), 200)
-                c = safe_float(request.form.get('compliance'), 60.0)
-                r = safe_float(request.form.get('resistance'), 10)
-                pip = safe_float(request.form.get('pip'), 15)
-                peep = safe_float(request.form.get('peep'), 5)
-                rr = safe_float(request.form.get('rr'), 16)
-                ie = safe_float(request.form.get('ie_ratio'), 2.0)
-                fio2_val = safe_float(request.form.get('fio2'), 40)
-                hco3_input = safe_float(request.form.get('hco3_input'), 24)
+                if not preset:
+                    vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
+                    shunt_val = safe_float(request.form.get('shunt'), 5)
+                    vco2 = safe_float(request.form.get('vco2'), 200)
+                    c = safe_float(request.form.get('compliance'), 60.0)
+                    r = safe_float(request.form.get('resistance'), 10)
+                    pip = safe_float(request.form.get('pip'), 15)
+                    peep = safe_float(request.form.get('peep'), 5)
+                    rr = safe_float(request.form.get('rr'), 16)
+                    ie = safe_float(request.form.get('ie_ratio'), 2.0)
+                    fio2_val = safe_float(request.form.get('fio2'), 40)
+                    hco3_input = safe_float(request.form.get('hco3_input'), 24)
+                    
+                    inputs = {
+                        'vd_vt': int(vd_vt_val), 'shunt': int(shunt_val), 'vco2': vco2,
+                        'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
+                        'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2_val), 'hco3_input': hco3_input
+                    }
+                else:
+                    vd_vt_val = inputs['vd_vt']
+                    shunt_val = inputs['shunt']
+                    vco2 = inputs['vco2']
+                    c = inputs['compliance']
+                    r = inputs['resistance']
+                    pip = inputs['pip']
+                    peep = inputs['peep']
+                    rr = inputs['rr']
+                    ie = inputs['ie_ratio']
+                    fio2_val = inputs['fio2']
+                    hco3_input = inputs['hco3_input']
                 
                 rr = max(1.0, rr)
                 ie = max(0.1, ie)
@@ -579,15 +619,9 @@ def dashboard():
                 shunt = shunt_val / 100.0
                 fio2 = fio2_val / 100.0
 
-                inputs = {
-                    'vd_vt': int(vd_vt*100), 'shunt': int(shunt*100), 'vco2': vco2,
-                    'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
-                    'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2*100), 'hco3_input': hco3_input
-                }
-                
                 ai_condition = "Normal / Compensated Respiratory Mechanics"
                 ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
-                differentials = ["Healthy Lungs", "Post-operative monitoring"]
+                differentials = ["Healthy Lungs", "Baseline Control Profile"]
                 
                 if c <= 40 and shunt >= 0.15:
                     ai_condition = "Acute Restrictive Defect with Shunt"
@@ -627,7 +661,6 @@ def dashboard():
                 pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
                 aa_gradient = round(p_A_O2 - pao2, 1)
 
-                # --- ADVANCED HENDERSON-HASSELBALCH ACID-BASE METRIC ENGINE ---
                 try:
                     ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
                 except Exception:
@@ -682,6 +715,24 @@ def dashboard():
                         f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
                         
                 waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+
+                if preset:
+                    if preset == 'ards':
+                        ai_condition = "Severe ARDS Profile (Low Compliance / High Shunt)"
+                        ai_intervention = "CRITICAL: Lung-protective ventilation active. Low tidal volume prevents barotrauma. PEEP is elevated to recruit collapsed alveoli."
+                        differentials = ["ARDS", "Severe Bilateral Pneumonia", "Sepsis induced Lung Injury"]
+                    elif preset == 'copd':
+                        ai_condition = "Exacerbated COPD Profile (High Resistance / High Compliance)"
+                        ai_intervention = "DANGER: High risk of gas trapping. Expiratory time (Te) is prolonged via high I:E setting to permit complete exhalation."
+                        differentials = ["COPD Exacerbation", "Emphysema Destruction"]
+                    elif preset == 'asthma':
+                        ai_condition = "Acute Status Asthmaticus Bronchospasm"
+                        ai_intervention = "Airways are severely reactive. Expiratory flow curve shows prolonged volume clearing. Maximize expiratory length and supply bronchodilators."
+                        differentials = ["Severe Asthma Attack", "Anaphylactic Airway Edema"]
+                    elif preset == 'healthy':
+                        ai_condition = "Physiologically Normal Lung Baseline"
+                        ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
+                        differentials = ["Healthy Control Context"]
 
                 sim_data = {
                     'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
