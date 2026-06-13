@@ -449,17 +449,16 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-[1.5] min-h-[260px]">
                     <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex flex-col relative justify-center">
-                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-zinc-300 uppercase tracking-wider">Dynamic P-V Loop</div>
+                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-zinc-300 uppercase tracking-wider">Dynamic P-V Loop Waveform</div>
                         <div class="w-full h-full pt-6"><canvas id="pvLoopChart"></canvas></div>
                     </div>
                     <div class="glass-panel rounded-xl p-4 border border-sky-950/60 bg-black/40 shadow-xl flex flex-col relative justify-center">
-                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-sky-400 uppercase tracking-wider">Spirometry Tracing Matrix</div>
+                        <div class="absolute top-3 left-4 text-[11px] font-extrabold text-sky-400 uppercase tracking-wider">Spirometry Tracing Curve</div>
                         <div class="w-full h-full pt-6"><canvas id="fevChart"></canvas></div>
                     </div>
                 </div>
 
                 <script>
-                    // Bulletproof Client-Side Array Sanitization Pipeline
                     function getCleanArray(rawInput, key) {
                         try {
                             if (!rawInput) return [];
@@ -477,7 +476,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         }
                     }
 
-                    // Safely Intercept Server JSON Strings
                     const serverPayload = {% if sim_data and sim_data.waveform_data %}{{ sim_data.waveform_data | safe }}{% else %}{}{% endif %};
                     
                     const waveData = {
@@ -505,6 +503,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     };
 
                     if (waveData.t.length > 0) {
+                        // Standard Timeline Waveforms
                         new Chart(document.getElementById('pressureChart').getContext('2d'), {
                             type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', fill: false }] }, options: commonOptions
                         });
@@ -515,17 +514,51 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                             type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', fill: false }] }, options: commonOptions
                         });
 
-                        const pvData = waveData.p.map((pVal, idx) => ({x: pVal, y: waveData.v[idx] || 0}));
+                        // Dynamic P-V Loop Waveform Conversion
+                        const pvPoints = waveData.p.map((pVal, idx) => ({ x: pVal, y: waveData.v[idx] || 0 }));
                         new Chart(document.getElementById('pvLoopChart').getContext('2d'), {
-                            type: 'scatter', data: { datasets: [{ data: pvData, borderColor: '#f43f5e', showLine: true }] }, options: commonOptions
+                            type: 'line', 
+                            data: { 
+                                datasets: [{ 
+                                    data: pvPoints, 
+                                    borderColor: '#f43f5e', 
+                                    fill: false,
+                                    pointRadius: 0,
+                                    borderWidth: 2.5
+                                }] 
+                            }, 
+                            options: {
+                                ...commonOptions,
+                                scales: {
+                                    x: { title: { display: true, text: 'Pressure (cmH2O)', color: '#71717a' }, grid: { color: 'rgba(255, 255, 255, 0.04)' } },
+                                    y: { title: { display: true, text: 'Volume (mL)', color: '#71717a' }, grid: { color: 'rgba(255, 255, 255, 0.04)' } }
+                                }
+                            }
                         });
 
-                        const spiroMap = waveData.spiro_t.map((tVal, idx) => ({x: tVal, y: waveData.spiro_v[idx] || 0}));
+                        // Spirometry Volume-Time Tracing Curve Conversion
                         new Chart(document.getElementById('fevChart').getContext('2d'), {
-                            type: 'scatter', data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', showLine: true }] }, options: commonOptions
+                            type: 'line', 
+                            data: { 
+                                labels: waveData.spiro_t, 
+                                datasets: [{ 
+                                    data: waveData.spiro_v, 
+                                    borderColor: '#38bdf8', 
+                                    fill: false,
+                                    pointRadius: 0,
+                                    borderWidth: 2.5
+                                }] 
+                            }, 
+                            options: {
+                                ...commonOptions,
+                                scales: {
+                                    x: { title: { display: true, text: 'Time (Seconds)', color: '#71717a' }, grid: { color: 'rgba(255, 255, 255, 0.04)' } },
+                                    y: { title: { display: true, text: 'Volume Expelled (L)', color: '#71717a' }, grid: { color: 'rgba(255, 255, 255, 0.04)' } }
+                                }
+                            }
                         });
                     } else {
-                        console.error("Clinical metrics stream contains empty arrays. Waveforms halted.");
+                        console.error("Clinical matrices stream contains empty arrays. Waveforms halted.");
                     }
                 </script>
             </div>
@@ -660,7 +693,6 @@ def dashboard():
             try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * max(1.0, paco2))), 2)
             except Exception: ph = 7.40
 
-            # --- DYNAMIC SPECTRUM MATRIX FOR CLASSIFICATION ---
             r_severity = max(0.0, (45.0 - compliance) / 5.0) if compliance < 45 else 0.0
             if shunt_pct > 15: r_severity += (shunt_pct - 15) / 4.0
 
@@ -687,7 +719,6 @@ def dashboard():
                     ai_intervention = f"Airway pathway resistance calculated at highly restricted level ({round(resistance,1)} cmH2O). Introduce rapid bronchodilation agents. Minimize I:E ratio constraints."
                     differentials = ["Status Asthmaticus Attack Block", "Mechanical Endotracheal Resistance"]
 
-            # --- SYSTEMIC ACID BASE EQUILIBRIUM LOGIC BLOCK ---
             if ph < 7.35:
                 if paco2 > 45:
                     acid_base_status = "Respiratory Acidosis"
@@ -706,7 +737,6 @@ def dashboard():
                 acid_base_status = "Normal Homeostasis"
                 acid_base_delta_text = "System parameters register within safe biological threshold lines."
 
-            # Spirometry Scalars
             if compliance <= 40: 
                 fvc_vol = 2.4; decay_constant = 2.2
                 spirometry_eval = "Restrictive Tracing: Volume constraints limit capacity."
