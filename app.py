@@ -128,17 +128,9 @@ LUNG_SVG = """
     </defs>
     <g filter="url(#organGlow)">
         <path d="M142 30 h16 v50 h-16 z" fill="url(#tracheaGrad)"/>
-        <line x1="142" y1="35" x2="158" y2="35" stroke="#4c0519" stroke-width="2"/>
-        <line x1="142" y1="45" x2="158" y2="45" stroke="#4c0519" stroke-width="2"/>
-        <line x1="142" y1="55" x2="158" y2="55" stroke="#4c0519" stroke-width="2"/>
-        <line x1="142" y1="65" x2="158" y2="65" stroke="#4c0519" stroke-width="2"/>
-        <line x1="142" y1="75" x2="158" y2="75" stroke="#4c0519" stroke-width="2"/>
         <path d="M150 80 L110 110 L115 118 L150 90 L185 118 L190 110 Z" fill="url(#tracheaGrad)"/>
         <path d="M130 90 C 70 70, 30 140, 40 220 C 50 250, 100 260, 130 230 C 145 200, 145 130, 130 90 Z" fill="url(#fleshGradientRight)" stroke="#ffe4e6" stroke-width="0.5"/>
-        <path d="M135 150 C 100 160, 60 140, 40 160" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
-        <path d="M100 155 C 80 180, 50 200, 43 210" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
         <path d="M170 90 C 230 70, 270 140, 260 220 C 250 250, 200 260, 170 230 C 160 210, 185 180, 170 140 C 165 125, 160 110, 170 90 Z" fill="url(#fleshGradientLeft)" stroke="#ffe4e6" stroke-width="0.5"/>
-        <path d="M170 145 C 200 160, 240 180, 255 200" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
     </g>
 </svg>
 """
@@ -326,8 +318,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             </div>
 
             {% if not sim_data %}
-            <div class="lg:col-span-9 glass-panel rounded-xl flex flex-col items-center justify-center border-2 border-zinc-800/60 border-dashed bg-black/30">
-                <div class="w-12 h-12 border-4 border-rose-950 border-t-rose-500 rounded-full animate-spin mb-4"></div>
+            <div class="w-full lg:col-span-9 glass-panel rounded-xl flex flex-col items-center justify-center border-2 border-zinc-800/60 border-dashed bg-black/30">
                 <p class="text-sm text-zinc-400 tracking-widest uppercase font-semibold">Awaiting Matrix Mapping | Select or load clinical variables</p>
             </div>
             {% else %}
@@ -435,16 +426,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         <p class="text-3xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono tracking-tight my-1">{{ sim_data.pao2 }}<span class="text-xs text-zinc-500 font-medium ml-1">mmHg</span></p>
                         <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">A-a Gradient: {{ sim_data.aa_gradient }}</p>
                     </div>
-                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
-                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Mechanical Power</p>
-                        <p class="text-3xl font-black {% if sim_data.mech_power > 17 %}text-rose-400{% else %}text-white{% endif %} font-mono tracking-tight my-1">{{ sim_data.mech_power }}<span class="text-xs text-zinc-500 font-medium ml-1">J/m</span></p>
-                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">Safety Cap: &lt;17 J/m</p>
-                    </div>
-                    <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/50 shadow-md flex flex-col justify-between">
-                        <p class="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider">Auto-PEEP Trapping</p>
-                        <p class="text-2xl font-black {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-400{% endif %} tracking-widest my-1 font-mono">{{ sim_data.auto_peep_risk }}</p>
-                        <p class="text-[11px] text-zinc-400 font-medium border-t border-zinc-800/80 pt-1.5 mt-1">RC Time Constant: {{ sim_data.time_const }}s</p>
-                    </div>
                 </div>
 
             </div>
@@ -467,92 +448,48 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-[1.5] min-h-[260px]">
-                    
                     <div class="glass-panel rounded-xl p-4 border border-zinc-800 bg-black/40 shadow-xl flex flex-col relative justify-center">
                         <div class="absolute top-3 left-4 text-[11px] font-extrabold text-zinc-300 uppercase tracking-wider">Dynamic P-V Loop</div>
                         <div class="w-full h-full pt-6"><canvas id="pvLoopChart"></canvas></div>
                     </div>
-                    
                     <div class="glass-panel rounded-xl p-4 border border-sky-950/60 bg-black/40 shadow-xl flex flex-col relative justify-center">
                         <div class="absolute top-3 left-4 text-[11px] font-extrabold text-sky-400 uppercase tracking-wider">Spirometry Tracing Matrix</div>
                         <div class="w-full h-full pt-6"><canvas id="fevChart"></canvas></div>
                     </div>
-                    
                 </div>
 
                 <script>
                     const waveData = {{ sim_data.waveform_data | safe }};
-                    
                     Chart.defaults.color = '#a1a1aa';
                     Chart.defaults.font.family = "'Inter', sans-serif";
-                    Chart.defaults.font.weight = 500;
                     Chart.defaults.elements.point.radius = 0;
                     Chart.defaults.elements.line.borderWidth = 2.5;
                     Chart.defaults.elements.line.tension = 0.25;
                     
                     const commonOptions = {
                         responsive: true, maintainAspectRatio: false, animation: false,
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        layout: { padding: { left: 6, right: 6, top: 12, bottom: 4 } },
-                        scales: { 
-                            x: { 
-                                grid: { color: 'rgba(255, 255, 255, 0.04)' }, 
-                                ticks: { font: {size: 10, weight: '600'} } 
-                            },
-                            y: {
-                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
-                                ticks: { font: {size: 10, weight: '600'}, maxTicksLimit: 4 }
-                            }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { color: 'rgba(255, 255, 255, 0.04)' } }, y: { grid: { color: 'rgba(255, 255, 255, 0.04)' } } }
                     };
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
-                        type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.06)', fill: true }] },
-                        options: commonOptions
+                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', fill: false }] }, options: commonOptions
                     });
-
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
-                        type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.06)', fill: true }] },
-                        options: commonOptions
+                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', fill: false }] }, options: commonOptions
                     });
-
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
-                        type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.06)', fill: true }] },
-                        options: commonOptions
+                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', fill: false }] }, options: commonOptions
                     });
 
                     const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
                     new Chart(document.getElementById('pvLoopChart').getContext('2d'), {
-                        type: 'scatter',
-                        data: { datasets: [{ data: pvData, borderColor: '#f43f5e', backgroundColor: 'transparent', showLine: true }] },
-                        options: {
-                            responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
-                            layout: { padding: { left: 4, right: 4, top: 10, bottom: 4 } },
-                            scales: {
-                                x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } },
-                                y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } }
-                            }
-                        }
+                        type: 'scatter', data: { datasets: [{ data: pvData, borderColor: '#f43f5e', showLine: true }] }, options: commonOptions
                     });
 
-                    const spiroTime = waveData.spiro_t;
-                    const spiroVol = waveData.spiro_v;
-                    const spiroMap = spiroTime.map((t, i) => ({x: t, y: spiroVol[i]}));
-                    
+                    const spiroMap = waveData.spiro_t.map((t, i) => ({x: t, y: waveData.spiro_v[i]}));
                     new Chart(document.getElementById('fevChart').getContext('2d'), {
-                        type: 'scatter',
-                        data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.03)', showLine: true, fill: true }] },
-                        options: {
-                            responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
-                            layout: { padding: { left: 4, right: 4, top: 10, bottom: 4 } },
-                            scales: {
-                                x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Expiratory Window (s)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } },
-                                y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, title: { display: true, text: 'Exhaled Capacity (L)', font: {size: 10, weight: '700'}, color: '#e4e4e7' }, ticks: { font: {size: 9} } }
-                            }
-                        }
+                        type: 'scatter', data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', showLine: true }] }, options: commonOptions
                     });
                 </script>
             </div>
@@ -563,24 +500,14 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% if active_tab == 'settings' %}
         <div class="glass-panel max-w-xl mx-auto rounded-xl p-8 mt-12 border border-zinc-800 shadow-2xl bg-zinc-950/90 flex flex-col justify-center">
             <div class="text-center mb-8">
-                <h2 class="text-xl font-extrabold text-white uppercase tracking-widest border-b border-zinc-800 pb-4">Configuration Services Terminal</h2>
+                <h2 class="text-xl font-extrabold text-white uppercase tracking-widest border-b border-zinc-800 pb-4">Configuration Terminal</h2>
             </div>
             <form method="POST" action="/update_credentials" class="space-y-6">
                 <div>
-                    <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">Verify Access Passkey</label>
-                    <input type="password" name="current_password" required class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
+                    <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">Passkey</label>
+                    <input type="password" name="current_password" class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:outline-none">
                 </div>
-                <div class="border-t border-zinc-800/80 pt-6 space-y-6">
-                    <div>
-                        <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">New Assigned System ID</label>
-                        <input type="text" name="new_username" required value="{{ session.get('user') }}" class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-zinc-400 text-xs font-bold uppercase mb-2 tracking-wider">Generate Passkey Matrix</label>
-                        <input type="password" name="new_password" required class="w-full bg-black border border-zinc-700 text-white p-3.5 rounded-lg focus:border-rose-500 focus:outline-none font-medium text-sm">
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition duration-200 mt-4 shadow-md">
+                <button type="submit" class="w-full bg-zinc-100 hover:bg-white text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition duration-200 shadow-md">
                     Commit Changes
                 </button>
             </form>
@@ -588,7 +515,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% endif %}
     </main>
     
-    <footer class="mt-auto py-5 text-center border-t border-zinc-900/60 bg-black/40 backdrop-blur-md relative z-10">
+    <footer class="mt-auto py-5 text-center border-t border-zinc-900/60 bg-black/40">
         <p class="text-zinc-500 text-xs font-semibold tracking-wider uppercase">© 2026 Created By Shreesh Santoshkumar Rolli</p>
     </footer>
 </body>
@@ -609,7 +536,7 @@ def login():
         session['user'] = u
         session['role'] = CLINICAL_DATABASE[u]['role']
         return redirect(url_for('dashboard'))
-    flash("Access Countermanded: Invalid system identification key matches.")
+    flash("Access Countermanded.")
     return redirect(url_for('home'))
 
 @app.route('/logout')
@@ -674,7 +601,7 @@ def dashboard():
             vco2 = inputs['vco2']
             fio2_val = inputs['fio2']
 
-            driving_pressure = max(1.0, pplat - peep)
+            driving_pressure = max(0.1, pplat - peep)
             compliance = vt / driving_pressure
             
             flow_lsec = max(5.0, flow_lmin) / 60.0
@@ -688,85 +615,85 @@ def dashboard():
             vd_vt_pct = round(vd_vt_ratio * 100, 1)
 
             shunt_denominator = cco2 - cvo2
-            if shunt_denominator <= 0: 
-                shunt_denominator = 5.0
+            if shunt_denominator <= 0: shunt_denominator = 5.0
             shunt_ratio = (cco2 - cao2) / shunt_denominator
             shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
 
             alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
             paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
-            p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
-            pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
-            aa_gradient = round(p_A_O2 - pao2, 1)
-            mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
             
-            # --- EXPIRATORY SPIROMETRY PATTERN CHECKING ---
+            # --- MANIPULATED ABG OVERRIDES FOR ANOMALOUS OVERPRESSURE SIMULATION ---
+            # If user injects extreme inputs via manual POST, derive mathematical acid-base shifts
+            try: ph = round(6.1 + math.log10(max(0.1, hco3_input) / (0.0301 * max(1.0, paco2))), 2)
+            except Exception: ph = 7.40
+
+            # --- UNLIMITED SCORING ENGINE MATRIX (DYNAMIC CLASSIFIER) ---
+            # Evaluates the spectrum of variables independently—never drops to default normal if parameters are warped.
+            r_severity = max(0.0, (45.0 - compliance) / 5.0) if compliance < 45 else 0.0
+            if shunt_pct > 15: r_severity += (shunt_pct - 15) / 4.0
+
+            o_severity = max(0.0, (resistance - 12.0) / 3.0) if resistance > 12 else 0.0
+            if paco2 > 48: o_severity += (paco2 - 48) / 10.0
+
+            # Build diagnosis continuously directly from data weights
+            if r_severity == 0 and o_severity == 0 and 7.35 <= ph <= 7.45:
+                ai_condition = "Physiologically Normal Lung Baseline"
+                ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
+                differentials = ["Healthy Control Context"]
+            elif r_severity >= o_severity:
+                prefix = "Critical " if r_severity > 4 else "Moderate "
+                ai_condition = f"{prefix}Restrictive Defect Profile [Structural Compliance Loss]"
+                ai_intervention = f"CRITICAL TARGET MAP: Restrict Volume exposure to protect membrane. Programmed compliance drop measured at {round(compliance,1)}. Escalate PEEP matrix immediately to open collapse nodes."
+                differentials = ["Acute Lung Injury Syndrome", "Interstitial Consolidation Array", "Shunt Expansion Loop"]
+            else:
+                prefix = "Severe " if o_severity > 4 else "Acute "
+                if compliance >= 50:
+                    ai_condition = f"{prefix}Obstructive Emphysematous Disease Profile"
+                    ai_intervention = "DANGER: Airway auto-peep vector active. Drastically reduce respiratory rate entries and broaden expiratory timing margins to relieve circuit pressure."
+                    differentials = ["COPD Hyper-inflation State", "Elastic Tissue Dissolution Matrix"]
+                else:
+                    ai_condition = f"{prefix}Reactive Bronchospasm Vector"
+                    ai_intervention = f"Airway pathway resistance calculated at highly restricted level ({round(resistance,1)} cmH2O). Introduce rapid bronchodilation agents. Minimize I:E ratio constraints."
+                    differentials = ["Status Asthmaticus Attack Block", "Mechanical Endotracheal Resistance"]
+
+            # --- SYSTEMIC ACID BASE EQUILIBRIUM LOGIC BLOCK ---
+            acid_base_status = "Normal Homeostasis"
+            acid_base_delta_text = "System parameters register within safe biological threshold lines."
+            
+            if ph < 7.35:
+                if paco2 > 45:
+                    acid_base_status = "Respiratory Acidosis"
+                    acid_base_delta_text = f"Severe retention of gaseous carbon dioxide (PaCO2: {paco2} mmHg) causing critical acidemia. Boost global volume processing or frequency index."
+                else:
+                    acid_base_status = "Metabolic Acidosis"
+                    acid_base_delta_text = "Primary consumption of systemic bicarbonate reserves. Audit serum anion-gap profiles."
+            elif ph > 7.45:
+                if paco2 < 35:
+                    acid_base_status = "Respiratory Alkalosis"
+                    acid_base_delta_text = "Alveolar hyperventilation blowing off crucial carbon dioxide volume."
+                else:
+                    acid_base_status = "Metabolic Alkalosis"
+                    acid_base_delta_text = "Unchecked accumulation of plasma metabolic alkali molecules."
+
+            # Spirometry processing
             if compliance <= 40: 
-                fvc_vol = 2.4
-                decay_constant = 2.2 
-                spirometry_eval = "Restrictive Curve Pattern: Preserved proportional FEV1/FVC ratio alongside marked losses in total functional volume architecture."
+                fvc_vol = 2.4; decay_constant = 2.2
+                spirometry_eval = "Restrictive Tracing: Volume constraints limit capacity."
             elif resistance >= 15: 
-                fvc_vol = 4.5
-                decay_constant = 0.55 if resistance >= 25 else 0.72 
-                spirometry_eval = "Obstructive Curve Pattern: Classic scooped tracing present. Marked deceleration of mid-expiratory flows dropping ratios below targets."
+                fvc_vol = 4.5; decay_constant = 0.55
+                spirometry_eval = "Obstructive Tracing: Airway block delays curve output."
             else: 
-                fvc_vol = 5.0
-                decay_constant = 1.65
-                spirometry_eval = "Normal Spirometry Curve: Forced Expiratory Volume metrics track cleanly above targets with pristine airway dimensions."
+                fvc_vol = 5.0; decay_constant = 1.65
+                spirometry_eval = "Normal standard spirometry curve mapped safely."
 
             fev1_vol = round(fvc_vol * (1.0 - math.exp(-decay_constant * 1.0)), 2)
             fvc_vol_realized = round(fvc_vol * (1.0 - math.exp(-decay_constant * 6.0)), 2)
             fev1_fvc_pct = round((fev1_vol / fvc_vol_realized) * 100, 1)
 
-            # --- DYNAMIC MATRIX ENGINE CLASSIFICATIONS (NEVER OVERLOOKS CUSTOM MANIPULATION) ---
-            restrictive_score = 0
-            obstructive_score = 0
-
-            if compliance <= 40: restrictive_score += 3
-            if compliance <= 30: restrictive_score += 3
-            if shunt_pct >= 18: restrictive_score += 2
-
-            if resistance >= 15: obstructive_score += 2
-            if resistance >= 25: obstructive_score += 4
-
-            if restrictive_score >= 3 and restrictive_score >= obstructive_score:
-                ai_condition = "Severe Restrictive Defect with Intrapulmonary Shunting"
-                ai_intervention = "CRITICAL: Lung-protective ventilation active. Vt limited to 4-6 mL/kg PBW. Elevate PEEP profile to recover shunt alveoli collapse structural regions."
-                differentials = ["Severe ARDS Model Framework", "Bilateral Parenchymal Infiltrates", "Alveolar Inundation Collapse"]
-            elif obstructive_score >= 3:
-                if compliance >= 45:
-                    ai_condition = "High-Compliance Obstructive Disease Profile"
-                    ai_intervention = "DANGER: Airway auto-peep trapping vector active. Drop respiratory frequency inputs and lengthen exhalation window constraints safely."
-                    differentials = ["COPD Dynamic Exacerbation", "Emphysema Destruction Air-Trapping Matrix"]
-                else:
-                    ai_condition = "Acute Severe Reactive Airway Bronchospasm"
-                    ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
-                    differentials = ["Status Asthmaticus Attack Cycle", "Anaphylaxis Spasmodic Airway Closure"]
-            else:
-                ai_condition = "Physiologically Normal Lung Baseline"
-                ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
-                differentials = ["Healthy Control Context"]
-
-            try: ph = round(6.1 + math.log10(max(1.0, hco3_input) / (0.0301 * max(1.0, paco2))), 2)
-            except Exception: ph = 7.40
-            
-            acid_base_status = "Normal Balance"
-            acid_base_delta_text = "System homeostatically stable. No clinical intervention requested."
-            
-            if ph < 7.35:
-                if paco2 > 45:
-                    acid_base_status = "Respiratory Acidosis"
-                    acid_base_delta_text = "Acute retention of CO2 causing acidemia. Increase minute ventilation or respiratory rate."
-                else:
-                    acid_base_status = "Metabolic Acidosis"
-                    acid_base_delta_text = "Serum bicarbonate depletion. Check anion gap status."
-            elif ph > 7.45:
-                if paco2 < 35:
-                    acid_base_status = "Respiratory Alkalosis"
-                    acid_base_delta_text = "Alveolar hyperventilation causing systemic alkalemia."
-                else:
-                    acid_base_status = "Metabolic Alkalosis"
-                    acid_base_delta_text = "Elevated metabolic bicarbonate accumulation."
+            p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
+            pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
+            aa_gradient = round(p_A_O2 - pao2, 1)
+            mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
 
             t_cycle = 60.0 / rr
             t_i = t_cycle * (1 / (1 + ie))
@@ -813,7 +740,7 @@ def dashboard():
 
 @app.route('/update_credentials', methods=['POST'])
 def update_credentials():
-    flash("Demo Operations Module Architecture Active. Changes restricted.")
+    flash("Changes restricted on active profile configuration.")
     return redirect(url_for('dashboard', tab='settings'))
 
 if __name__ == '__main__':
