@@ -459,15 +459,36 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
 
                 <script>
-                    // SAFE EXTRACTION WITH BACKUP FALLBACK TO PREVENT DOM CRASHES ON RAW NAN VALUE INJECTIONS
-                    let waveData;
-                    try {
-                        waveData = {{ sim_data.waveform_data | safe }};
-                    } catch(e) {
-                        console.error("Waveform dataset malformed parsing fields:", e);
-                        waveData = {t:[], p:[], v:[], f:[], spiro_t:[], spiro_v:[]};
+                    // Bulletproof Client-Side Array Sanitization Pipeline
+                    function getCleanArray(rawInput, key) {
+                        try {
+                            if (!rawInput) return [];
+                            const parsed = typeof rawInput === 'string' ? JSON.parse(rawInput) : rawInput;
+                            const targetArray = parsed[key];
+                            if (!Array.isArray(targetArray)) return [];
+                            
+                            return targetArray.map(val => {
+                                let num = Number(val);
+                                return isNaN(num) || !isFinite(num) ? 0 : num;
+                            });
+                        } catch (e) {
+                            console.warn(`Fallback triggered for field key [${key}]:`, e);
+                            return [];
+                        }
                     }
+
+                    // Safely Intercept Server JSON Strings
+                    const serverPayload = {% if sim_data and sim_data.waveform_data %}{{ sim_data.waveform_data | safe }}{% else %}{}{% endif %};
                     
+                    const waveData = {
+                        t: getCleanArray(serverPayload, 't'),
+                        p: getCleanArray(serverPayload, 'p'),
+                        v: getCleanArray(serverPayload, 'v'),
+                        f: getCleanArray(serverPayload, 'f'),
+                        spiro_t: getCleanArray(serverPayload, 'spiro_t'),
+                        spiro_v: getCleanArray(serverPayload, 'spiro_v')
+                    };
+
                     Chart.defaults.color = '#a1a1aa';
                     Chart.defaults.font.family = "'Inter', sans-serif";
                     Chart.defaults.elements.point.radius = 0;
@@ -483,25 +504,29 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         }
                     };
 
-                    new Chart(document.getElementById('pressureChart').getContext('2d'), {
-                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', fill: false }] }, options: commonOptions
-                    });
-                    new Chart(document.getElementById('flowChart').getContext('2d'), {
-                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', fill: false }] }, options: commonOptions
-                    });
-                    new Chart(document.getElementById('volumeChart').getContext('2d'), {
-                        type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', fill: false }] }, options: commonOptions
-                    });
+                    if (waveData.t.length > 0) {
+                        new Chart(document.getElementById('pressureChart').getContext('2d'), {
+                            type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', fill: false }] }, options: commonOptions
+                        });
+                        new Chart(document.getElementById('flowChart').getContext('2d'), {
+                            type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', fill: false }] }, options: commonOptions
+                        });
+                        new Chart(document.getElementById('volumeChart').getContext('2d'), {
+                            type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', fill: false }] }, options: commonOptions
+                        });
 
-                    const pvData = waveData.p.map((p, i) => ({x: p, y: waveData.v[i]}));
-                    new Chart(document.getElementById('pvLoopChart').getContext('2d'), {
-                        type: 'scatter', data: { datasets: [{ data: pvData, borderColor: '#f43f5e', showLine: true }] }, options: commonOptions
-                    });
+                        const pvData = waveData.p.map((pVal, idx) => ({x: pVal, y: waveData.v[idx] || 0}));
+                        new Chart(document.getElementById('pvLoopChart').getContext('2d'), {
+                            type: 'scatter', data: { datasets: [{ data: pvData, borderColor: '#f43f5e', showLine: true }] }, options: commonOptions
+                        });
 
-                    const spiroMap = waveData.spiro_t.map((t, i) => ({x: t, y: waveData.spiro_v[i]}));
-                    new Chart(document.getElementById('fevChart').getContext('2d'), {
-                        type: 'scatter', data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', showLine: true }] }, options: commonOptions
-                    });
+                        const spiroMap = waveData.spiro_t.map((tVal, idx) => ({x: tVal, y: waveData.spiro_v[idx] || 0}));
+                        new Chart(document.getElementById('fevChart').getContext('2d'), {
+                            type: 'scatter', data: { datasets: [{ data: spiroMap, borderColor: '#38bdf8', showLine: true }] }, options: commonOptions
+                        });
+                    } else {
+                        console.error("Clinical metrics stream contains empty arrays. Waveforms halted.");
+                    }
                 </script>
             </div>
             {% endif %}
@@ -635,15 +660,13 @@ def dashboard():
             try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * max(1.0, paco2))), 2)
             except Exception: ph = 7.40
 
-            # --- DYNAMIC MATRIX FOR CONTINUOUS SPECTRUM SHIFTS ---
-            # Calculates severity markers continuously without relying on fixed threshold steps.
+            # --- DYNAMIC SPECTRUM MATRIX FOR CLASSIFICATION ---
             r_severity = max(0.0, (45.0 - compliance) / 5.0) if compliance < 45 else 0.0
             if shunt_pct > 15: r_severity += (shunt_pct - 15) / 4.0
 
             o_severity = max(0.0, (resistance - 12.0) / 3.0) if resistance > 12 else 0.0
             if paco2 > 48: o_severity += (paco2 - 48) / 10.0
 
-            # --- AI EXPERT ANALYSIS MODEL DIAGNOSTIC CLASSIFIER ---
             if r_severity == 0 and o_severity == 0 and 7.35 <= ph <= 7.45:
                 ai_condition = "Physiologically Normal Lung Baseline"
                 ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
@@ -683,7 +706,7 @@ def dashboard():
                 acid_base_status = "Normal Homeostasis"
                 acid_base_delta_text = "System parameters register within safe biological threshold lines."
 
-            # Spirometry dynamic scalars
+            # Spirometry Scalars
             if compliance <= 40: 
                 fvc_vol = 2.4; decay_constant = 2.2
                 spirometry_eval = "Restrictive Tracing: Volume constraints limit capacity."
