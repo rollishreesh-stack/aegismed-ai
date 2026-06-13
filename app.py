@@ -419,6 +419,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             </div>
         </div>
         {% endif %}
+        {% endif %}
         
         {% if active_tab == 'settings' %}
         <div class="glass-panel max-w-lg mx-auto rounded p-8 mt-10 border border-zinc-800">
