@@ -127,10 +127,6 @@ LUNG_SVG = """
         <path d="M100 155 C 80 180, 50 200, 43 210" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
         <path d="M170 90 C 230 70, 270 140, 260 220 C 250 250, 200 260, 170 230 C 160 210, 185 180, 170 140 C 165 125, 160 110, 170 90 Z" fill="url(#fleshGradientLeft)" stroke="#ffe4e6" stroke-width="0.5"/>
         <path d="M170 145 C 200 160, 240 180, 255 200" fill="none" stroke="#4c0519" stroke-width="1.5" opacity="0.6"/>
-        <g stroke="#fecdd3" stroke-width="1" opacity="0.3" stroke-linecap="round">
-            <path d="M110 110 L80 130 M85 126 L70 115 M85 126 L65 140 M115 135 L90 170 M95 160 L75 180 M100 180 L85 210 M120 170 L110 220"/>
-            <path d="M190 110 L220 130 M215 126 L230 115 M215 126 L235 140 M185 135 L210 170 M205 160 L225 180 M200 180 L215 210 M180 170 L190 220"/>
-        </g>
     </g>
 </svg>
 """
@@ -221,34 +217,60 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     
                     <div class="p-4 border-b border-zinc-800 bg-black/40 grid grid-cols-2 gap-2">
                         <a href="?tab=simulator&preset=healthy" class="text-[10px] text-center font-mono font-bold bg-zinc-800 text-zinc-300 py-1.5 px-2 rounded hover:bg-zinc-700 transition">Case 1: Healthy Control</a>
-                        <a href="?tab=simulator&preset=ards" class="text-[10px] text-center font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-900/50 py-1.5 px-2 rounded hover:bg-rose-900/5 transition">Case 2: Severe ARDS</a>
-                        <a href="?tab=simulator&preset=copd" class="text-[10px] text-center font-mono font-bold bg-amber-950/60 text-amber-300 border border-amber-900/50 py-1.5 px-2 rounded hover:bg-amber-900/5 transition">Case 3: Floppy COPD</a>
-                        <a href="?tab=simulator&preset=asthma" class="text-[10px] text-center font-mono font-bold bg-blue-950/60 text-blue-300 border border-blue-900/50 py-1.5 px-2 rounded hover:bg-blue-900/5 transition">Case 4: Severe Asthma</a>
+                        <a href="?tab=simulator&preset=ards" class="text-[10px] text-center font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-900/50 py-1.5 px-2 rounded hover:bg-rose-900/50 transition">Case 2: Severe ARDS</a>
+                        <a href="?tab=simulator&preset=copd" class="text-[10px] text-center font-mono font-bold bg-amber-950/60 text-amber-300 border border-amber-900/50 py-1.5 px-2 rounded hover:bg-amber-900/50 transition">Case 3: Floppy COPD</a>
+                        <a href="?tab=simulator&preset=asthma" class="text-[10px] text-center font-mono font-bold bg-blue-950/60 text-blue-300 border border-blue-900/50 py-1.5 px-2 rounded hover:bg-blue-900/50 transition">Case 4: Severe Asthma</a>
                     </div>
 
                     <div class="p-4 border-b border-zinc-800/80 bg-zinc-900/50">
-                        <h2 class="text-xs font-black text-white uppercase tracking-widest flex items-center">Control Matrix</h2>
+                        <h2 class="text-xs font-black text-white uppercase tracking-widest flex items-center">Clinical Metrics Intake</h2>
                     </div>
                     
                     <form method="POST" action="/dashboard?tab=simulator" class="p-5 space-y-6">
                         <div>
-                            <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Patient Mechanics</h3>
+                            <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Physiological Telemetry</h3>
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Compliance</label>
-                                    <input type="number" step="0.1" name="compliance" value="{{ inputs.compliance if inputs else '60.0' }}" class="clinical-input w-24">
+                                    <label class="text-zinc-400 text-xs font-mono">Tidal Volume (Vt) [mL]</label>
+                                    <input type="number" step="10" name="vt_input" value="{{ inputs.vt_input if inputs else '500' }}" class="clinical-input w-24">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Resistance</label>
-                                    <input type="number" step="1" name="resistance" value="{{ inputs.resistance if inputs else '10' }}" class="clinical-input w-24">
+                                    <label class="text-zinc-400 text-xs font-mono">Peak Insp Pressure (PIP)</label>
+                                    <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '22' }}" class="clinical-input w-24">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Dead Space %</label>
-                                    <input type="number" step="1" name="vd_vt" value="{{ inputs.vd_vt if inputs else '30' }}" class="clinical-input w-24">
+                                    <label class="text-zinc-400 text-xs font-mono">Plateau Pressure (Pplat)</label>
+                                    <input type="number" step="1" name="pplat" value="{{ inputs.pplat if inputs else '13' }}" class="clinical-input w-24">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Shunt %</label>
-                                    <input type="number" step="1" name="shunt" value="{{ inputs.shunt if inputs else '5' }}" class="clinical-input w-24">
+                                    <label class="text-zinc-400 text-xs font-mono">Total PEEP</label>
+                                    <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-24">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Peak Flow Rate [L/min]</label>
+                                    <input type="number" step="5" name="peak_flow" value="{{ inputs.peak_flow if inputs else '60' }}" class="clinical-input w-24">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Mixed Expired CO2 (PECO2)</label>
+                                    <input type="number" step="1" name="peco2" value="{{ inputs.peco2 if inputs else '28' }}" class="clinical-input w-24 text-amber-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-[10px] text-teal-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Lab Values / ABG Matrix</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Arterial O2 Content (CaO2)</label>
+                                    <input type="number" step="0.1" name="cao2" value="{{ inputs.cao2 if inputs else '19.8' }}" class="clinical-input w-24 text-teal-400">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Capillary O2 Content (CcO2)</label>
+                                    <input type="number" step="0.1" name="cco2" value="{{ inputs.cco2 if inputs else '20.4' }}" class="clinical-input w-24 text-teal-400">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-zinc-400 text-xs font-mono">Mixed Venous Content (CvO2)</label>
+                                    <input type="number" step="0.1" name="cvo2" value="{{ inputs.cvo2 if inputs else '14.8' }}" class="clinical-input w-24 text-teal-400">
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <label class="text-zinc-400 text-xs font-mono">Metabolic Serum HCO3</label>
@@ -258,37 +280,29 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         </div>
 
                         <div>
-                            <h3 class="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Ventilator Drive</h3>
+                            <h3 class="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Ventilator Settings</h3>
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">PIP</label>
-                                    <input type="number" step="1" name="pip" value="{{ inputs.pip if inputs else '15' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">PEEP</label>
-                                    <input type="number" step="1" name="peep" value="{{ inputs.peep if inputs else '5' }}" class="clinical-input w-24 border-blue-900/50">
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">Rate</label>
-                                    <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '16' }}" class="clinical-input w-24 border-blue-900/50">
+                                    <label class="text-zinc-400 text-xs font-mono">Respiratory Rate (RR)</label>
+                                    <input type="number" step="1" name="rr" value="{{ inputs.rr if inputs else '14' }}" class="clinical-input w-24 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <label class="text-zinc-400 text-xs font-mono">FiO2 %</label>
-                                    <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '40' }}" class="clinical-input w-24 border-blue-900/50">
+                                    <input type="number" step="1" name="fio2" value="{{ inputs.fio2 if inputs else '30' }}" class="clinical-input w-24 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <label class="text-zinc-400 text-xs font-mono">I:E Ratio</label>
                                     <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else '2.0' }}" class="clinical-input w-24 border-blue-900/50">
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <label class="text-zinc-400 text-xs font-mono">VCO2</label>
+                                    <label class="text-zinc-400 text-xs font-mono">Metabolic VCO2 Output</label>
                                     <input type="number" step="10" name="vco2" value="{{ inputs.vco2 if inputs else '200' }}" class="clinical-input w-24 border-blue-900/50">
                                 </div>
                             </div>
                         </div>
 
                         <button type="submit" class="w-full bg-zinc-200 hover:bg-white text-black font-black py-4 rounded text-xs uppercase tracking-widest transition mt-4">
-                            Execute Simulation
+                            Process Calculations
                         </button>
                     </form>
                 </div>
@@ -297,12 +311,38 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             {% if not sim_data %}
             <div class="lg:col-span-9 glass-panel rounded-lg flex flex-col items-center justify-center min-h-[600px] border border-zinc-800/50 border-dashed bg-black/40">
                 <div class="w-12 h-12 border-2 border-rose-900 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">System Ready | Select A Patient Case Profile To Start</p>
+                <p class="text-sm text-zinc-500 font-mono tracking-[0.3em] uppercase">System Ready | Map a patient medical report to begin</p>
             </div>
             {% else %}
             
             <div class="lg:col-span-4 flex flex-col gap-4">
                 
+                <div class="glass-panel rounded-lg p-5 border border-amber-500/30 bg-zinc-950/90 shadow-xl">
+                    <h3 class="text-[10px] text-amber-400 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">Report Formula Realizations</h3>
+                    <div class="grid grid-cols-2 gap-3 text-left">
+                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">1. Derived Compliance</span>
+                            <span class="text-2xl font-mono font-black text-white">{{ sim_data.derived_compliance }}</span>
+                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">mL/cmH2O</span>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">2. Airway Resistance</span>
+                            <span class="text-2xl font-mono font-black text-white">{{ sim_data.derived_resistance }}</span>
+                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">cmH2O/L/s</span>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">3. Dead Space % (Vd/Vt)</span>
+                            <span class="text-2xl font-mono font-black text-amber-400">{{ sim_data.derived_vd_vt }}%</span>
+                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">Enghoff Realized</span>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-zinc-800">
+                            <span class="text-[9px] text-zinc-500 font-mono block uppercase">4. Shunt Fraction %</span>
+                            <span class="text-2xl font-mono font-black text-teal-400">{{ sim_data.derived_shunt }}%</span>
+                            <span class="text-[9px] text-zinc-600 font-mono block mt-1">Content Calculated</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-panel rounded-lg p-5 border border-zinc-800/80 bg-gradient-to-br from-zinc-950 to-black shadow-xl">
                     <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">AI Diagnostics Engine</h3>
                     <p class="text-xl font-black text-white leading-tight mb-3">{{ sim_data.ai_condition }}</p>
@@ -344,54 +384,44 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg hover:border-rose-900 transition-colors">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Tidal Volume</p>
-                        <p class="text-3xl font-black text-white font-mono">{{ sim_data.peak_volume }}<span class="text-xs text-zinc-600 ml-1">mL</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Min V: {{ sim_data.minute_vent }} L/m</p>
+                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
+                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Minute Ventilation</p>
+                        <p class="text-3xl font-black text-white font-mono">{{ sim_data.minute_vent }}<span class="text-xs text-zinc-600 ml-1">L/m</span></p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Alv Vent: {{ sim_data.alveolar_vent }} L/m</p>
                     </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg hover:border-amber-900 transition-colors">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Arterial CO2</p>
-                        <p class="text-3xl font-black {% if sim_data.paco2 > 45 or sim_data.paco2 < 35 %}text-amber-400{% else %}text-white{% endif %} font-mono">{{ sim_data.paco2 }}<span class="text-xs text-zinc-600 ml-1">mmHg</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Alv V: {{ sim_data.alveolar_vent }} L/m</p>
-                    </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg hover:border-blue-900 transition-colors">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Arterial O2</p>
+                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
+                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Arterial Tension</p>
                         <p class="text-3xl font-black {% if sim_data.pao2 < 60 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.pao2 }}<span class="text-xs text-zinc-600 ml-1">mmHg</span></p>
                         <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">A-a Grad: {{ sim_data.aa_gradient }}</p>
                     </div>
                     <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
                         <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Mech Power</p>
                         <p class="text-3xl font-black {% if sim_data.mech_power > 17 %}text-rose-500{% else %}text-white{% endif %} font-mono">{{ sim_data.mech_power }}<span class="text-xs text-zinc-600 ml-1">J/m</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Limit: &lt;17 J/m</p>
-                    </div>
-                    <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg">
-                        <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">FEV1/FVC Est</p>
-                        <p class="text-3xl font-black {% if sim_data.fev1_fvc < 70 %}text-red-400{% else %}text-emerald-400{% endif %} font-mono">{{ sim_data.fev1_fvc }}<span class="text-xs text-zinc-600 ml-1">%</span></p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">{{ sim_data.spirometry_class }}</p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">Threshold: &lt;17 J/m</p>
                     </div>
                     <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg flex flex-col justify-center">
                         <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Auto-PEEP Risk</p>
                         <p class="text-2xl font-black {% if sim_data.auto_peep_risk == 'HIGH' %}text-rose-500{% else %}text-emerald-500{% endif %} font-mono tracking-widest mt-1">{{ sim_data.auto_peep_risk }}</p>
-                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">τ = {{ sim_data.time_const }}s</p>
+                        <p class="text-[10px] font-mono text-zinc-400 mt-2 border-t border-zinc-800/50 pt-1">RC τ = {{ sim_data.time_const }}s</p>
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-5 flex flex-col gap-4">
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-400 uppercase tracking-widest z-20">Pressure (Paw)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-400 uppercase tracking-widest z-20">Pressure Waveform (Paw)</span>
                     <canvas id="pressureChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-400 uppercase tracking-widest z-20">Flow (L/m)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-emerald-400 uppercase tracking-widest z-20">Airflow Dynamics (L/m)</span>
                     <canvas id="flowChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
-                    <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-400 uppercase tracking-widest z-20">Volume (mL)</span>
+                    <span class="absolute top-2 right-3 text-[9px] font-mono text-rose-400 uppercase tracking-widest z-20">Volume Accumulation (mL)</span>
                     <canvas id="volumeChart"></canvas>
                 </div>
                 <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/50 shadow-lg h-[220px] flex items-center justify-center relative">
-                    <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">P-V Loop Diagnostic</div>
+                    <div class="absolute top-3 left-4 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Dynamic P-V Loop Trajectory</div>
                     <div class="w-full h-full pt-6">
                         <canvas id="pvLoopChart"></canvas>
                     </div>
@@ -412,11 +442,11 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         layout: { padding: { left: 10, right: 10, top: 15, bottom: 5 } },
                         scales: { 
                             x: { 
-                                grid: { color: 'rgba(228, 228, 231, 0.25)', drawBorder: true }, 
+                                grid: { color: 'rgba(228, 228, 231, 0.1)' }, 
                                 ticks: { color: '#a1a1aa', font: {size: 10} } 
                             },
                             y: {
-                                grid: { color: 'rgba(228, 228, 231, 0.25)', drawBorder: true },
+                                grid: { color: 'rgba(228, 228, 231, 0.1)' },
                                 ticks: { color: '#a1a1aa', font: {size: 10}, maxTicksLimit: 5 }
                             }
                         }
@@ -424,19 +454,19 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 
                     new Chart(document.getElementById('pressureChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.12)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
                         options: commonOptions
                     });
 
                     new Chart(document.getElementById('flowChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.12)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
                         options: commonOptions
                     });
 
                     new Chart(document.getElementById('volumeChart').getContext('2d'), {
                         type: 'line',
-                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.12)', fill: true }] },
+                        data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true }] },
                         options: commonOptions
                     });
 
@@ -447,8 +477,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                         options: {
                             responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
                             scales: {
-                                x: { grid: { color: 'rgba(228, 228, 231, 0.25)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10, weight: 'bold'}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
-                                y: { grid: { color: 'rgba(228, 228, 231, 0.25)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10, weight: 'bold'}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
+                                x: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Pressure (cmH2O)', font: {size: 10}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } },
+                                y: { grid: { color: 'rgba(228, 228, 231, 0.1)' }, title: { display: true, text: 'Volume (mL)', font: {size: 10}, color: '#e4e4e7' }, ticks: { color: '#a1a1aa', font: {size: 9} } }
                             }
                         }
                     });
@@ -495,269 +525,198 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
 
 @app.route('/')
 def home():
-    try:
-        if 'user' in session and session.get('user') in CLINICAL_DATABASE:
-            return redirect(url_for('dashboard'))
-        return render_template_string(LOGIN_HTML)
-    except Exception as e:
-        return f"CRITICAL BOOT ERROR: {str(e)} <br><pre>{traceback.format_exc()}</pre>"
+    if 'user' in session and session.get('user') in CLINICAL_DATABASE:
+        return redirect(url_for('dashboard'))
+    return render_template_string(LOGIN_HTML)
 
 @app.route('/login', methods=['POST'])
 def login():
-    try:
-        u = request.form.get('username', '')
-        p = request.form.get('password', '')
-        if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
-            session['user'] = u
-            session['role'] = CLINICAL_DATABASE[u]['role']
-            return redirect(url_for('dashboard'))
-        flash("Authentication Rejected: Invalid ID or Passkey.")
-        return redirect(url_for('home'))
-    except Exception as e:
-        flash(f"LOGIN FAULT:\n{traceback.format_exc()}")
-        return redirect(url_for('home'))
+    u = request.form.get('username', '')
+    p = request.form.get('password', '')
+    if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
+        session['user'] = u
+        session['role'] = CLINICAL_DATABASE[u]['role']
+        return redirect(url_for('dashboard'))
+    flash("Authentication Rejected: Invalid ID or Passkey.")
+    return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/update_credentials', methods=['POST'])
-def update_credentials():
-    try:
-        if 'user' not in session or session.get('user') not in CLINICAL_DATABASE:
-            session.clear()
-            return redirect(url_for('home'))
-        
-        current_user = session['user']
-        old_pass = request.form.get('current_password', '')
-        new_id = request.form.get('new_username', '').strip()
-        new_pass = request.form.get('new_password', '').strip()
-        
-        if CLINICAL_DATABASE[current_user]['password'] == old_pass:
-            if new_id != current_user and new_id in CLINICAL_DATABASE:
-                flash("System Error: New System ID is already taken.")
-            else:
-                role = CLINICAL_DATABASE[current_user]['role']
-                clearance = CLINICAL_DATABASE[current_user]['clearance']
-                del CLINICAL_DATABASE[current_user]
-                CLINICAL_DATABASE[new_id] = {'password': new_pass, 'role': role, 'clearance': clearance}
-                session['user'] = new_id
-                flash("Success: System Credentials Updated.")
-        else:
-            flash("Authorization Error: Incorrect current passkey.")
-            
-        return redirect(url_for('dashboard', tab='settings'))
-    except Exception as e:
-        flash(f"CONFIG FAULT:\n{traceback.format_exc()}")
-        return redirect(url_for('dashboard', tab='settings'))
-
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    try:
-        if 'user' not in session or session.get('user') not in CLINICAL_DATABASE:
-            session.clear()
-            return redirect(url_for('home'))
-            
-        active_tab = request.args.get('tab', 'simulator')
-        preset = request.args.get('preset', '')
+    if 'user' not in session or session.get('user') not in CLINICAL_DATABASE:
+        session.clear()
+        return redirect(url_for('home'))
         
-        sim_data = None
+    active_tab = request.args.get('tab', 'simulator')
+    preset = request.args.get('preset', '')
+    sim_data = None
+    
+    # --- MED-REPORT DIRECT ENTRANCE DICTIONARIES ---
+    PRESETS = {
+        "healthy": {"vt_input": 500, "pip": 20, "pplat": 13, "peep": 5, "peak_flow": 60, "peco2": 28, "cao2": 19.8, "cco2": 20.4, "cvo2": 14.8, "hco3_input": 24, "rr": 14, "fio2": 30, "ie_ratio": 2.0, "vco2": 200},
+        "ards":    {"vt_input": 350, "pip": 35, "pplat": 29, "peep": 14, "peak_flow": 50, "peco2": 18, "cao2": 16.2, "cco2": 20.1, "cvo2": 11.2, "hco3_input": 21, "rr": 25, "fio2": 70, "ie_ratio": 1.5, "vco2": 220},
+        "copd":    {"vt_input": 520, "pip": 32, "pplat": 16, "peep": 5, "peak_flow": 45, "peco2": 24, "cao2": 18.5, "cco2": 20.2, "cvo2": 14.2, "hco3_input": 31, "rr": 10, "fio2": 35, "ie_ratio": 4.0, "vco2": 190},
+        "asthma":  {"vt_input": 480, "pip": 42, "pplat": 17, "peep": 5, "peak_flow": 40, "peco2": 25, "cao2": 19.2, "cco2": 20.3, "cvo2": 14.1, "hco3_input": 24, "rr": 12, "fio2": 40, "ie_ratio": 5.0, "vco2": 210}
+    }
+    
+    inputs = None
+    if preset in PRESETS:
+        inputs = PRESETS[preset]
+        request.method = 'POST' 
         
-        # --- DEFINITIVE CLINICAL PROFILES SYSTEM ---
-        PRESETS = {
-            "healthy":    {"compliance": 65.0, "resistance": 8,  "vd_vt": 30, "shunt": 4,  "pip": 15, "peep": 5,  "rr": 14, "ie_ratio": 2.0, "fio2": 21,  "vco2": 200, "hco3_input": 24},
-            "ards":       {"compliance": 22.0, "resistance": 12, "vd_vt": 55, "shunt": 32, "pip": 30, "peep": 14, "rr": 24, "ie_ratio": 1.5, "fio2": 70,  "vco2": 220, "hco3_input": 22},
-            "copd":       {"compliance": 95.0, "resistance": 26, "vd_vt": 52, "shunt": 8,  "pip": 20, "peep": 4,  "rr": 10, "ie_ratio": 4.0, "fio2": 32,  "vco2": 190, "hco3_input": 30},
-            "asthma":     {"compliance": 55.0, "resistance": 42, "vd_vt": 35, "shunt": 12, "pip": 34, "peep": 5,  "rr": 11, "ie_ratio": 5.0, "fio2": 40,  "vco2": 210, "hco3_input": 24}
-        }
-        
-        inputs = None
-        if preset in PRESETS:
-            inputs = PRESETS[preset]
-            request.method = 'POST' # Force simulation execution loop for chosen profile
-            
-        if request.method == 'POST' and active_tab == 'simulator':
-            try:
-                if not preset:
-                    vd_vt_val = safe_float(request.form.get('vd_vt'), 30)
-                    shunt_val = safe_float(request.form.get('shunt'), 5)
-                    vco2 = safe_float(request.form.get('vco2'), 200)
-                    c = safe_float(request.form.get('compliance'), 60.0)
-                    r = safe_float(request.form.get('resistance'), 10)
-                    pip = safe_float(request.form.get('pip'), 15)
-                    peep = safe_float(request.form.get('peep'), 5)
-                    rr = safe_float(request.form.get('rr'), 16)
-                    ie = safe_float(request.form.get('ie_ratio'), 2.0)
-                    fio2_val = safe_float(request.form.get('fio2'), 40)
-                    hco3_input = safe_float(request.form.get('hco3_input'), 24)
-                    
-                    inputs = {
-                        'vd_vt': int(vd_vt_val), 'shunt': int(shunt_val), 'vco2': vco2,
-                        'compliance': c, 'resistance': r, 'pip': pip, 'peep': peep,
-                        'rr': rr, 'ie_ratio': ie, 'fio2': int(fio2_val), 'hco3_input': hco3_input
-                    }
-                else:
-                    vd_vt_val = inputs['vd_vt']
-                    shunt_val = inputs['shunt']
-                    vco2 = inputs['vco2']
-                    c = inputs['compliance']
-                    r = inputs['resistance']
-                    pip = inputs['pip']
-                    peep = inputs['peep']
-                    rr = inputs['rr']
-                    ie = inputs['ie_ratio']
-                    fio2_val = inputs['fio2']
-                    hco3_input = inputs['hco3_input']
-                
-                rr = max(1.0, rr)
-                ie = max(0.1, ie)
-                c = max(1.0, c)
-                r = max(1.0, r)
-                
-                vd_vt = vd_vt_val / 100.0
-                shunt = shunt_val / 100.0
-                fio2 = fio2_val / 100.0
-
-                ai_condition = "Normal / Compensated Respiratory Mechanics"
-                ai_intervention = "Maintain lung-protective strategy. Monitor driving pressure."
-                differentials = ["Healthy Lungs", "Baseline Control Profile"]
-                
-                if c <= 40 and shunt >= 0.15:
-                    ai_condition = "Acute Restrictive Defect with Shunt"
-                    ai_intervention = "Limit Vt to 4-6 mL/kg PBW. Optimize PEEP."
-                    differentials = ["ARDS", "Cardiogenic Pulmonary Edema"]
-                elif c <= 40 and r < 15 and shunt < 0.15:
-                    ai_condition = "Chronic / Dry Restrictive Defect"
-                    ai_intervention = "Target low tidal volumes. Avoid excessive PEEP."
-                    differentials = ["Pulmonary Fibrosis", "Interstitial Lung Disease"]
-                elif r >= 20 and c >= 60:
-                    ai_condition = "High-Compliance Obstructive Defect"
-                    ai_intervention = "High risk for Auto-PEEP. Prolong Te."
-                    differentials = ["COPD", "Emphysema"]
-                elif r >= 25 and c < 60:
-                    ai_condition = "Acute Obstructive Defect (Bronchospasm)"
-                    ai_intervention = "Maximize Expiratory Time (Te). Administer bronchodilators."
-                    differentials = ["Status Asthmaticus", "Anaphylaxis"]
-
-                dp = max(0.1, pip - peep)
-                peak_volume = dp * c 
-                min_vent = (peak_volume * rr) / 1000.0
-                alv_vent = ((peak_volume * (1 - vd_vt)) * rr) / 1000.0
-                
-                t_cycle = 60.0 / rr
-                t_i = t_cycle * (1 / (1 + ie))
-                t_e = t_cycle - t_i
-                
-                tau = (r / 1000.0) * c 
-                auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
-                
-                fev1_fvc_ratio = round((1 - math.exp(-1 / max(0.01, tau))) * 100, 1)
-                spirometry_class = "Restrictive/Normal" if fev1_fvc_ratio >= 70 else "Obstructive"
-                    
-                mech_power = round(0.098 * rr * (peak_volume/1000.0) * (pip - (dp/2)), 1)
-                paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
-                p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
-                pao2 = round(max(30, p_A_O2 - ((shunt * 100) * 12)), 1)
-                aa_gradient = round(p_A_O2 - pao2, 1)
-
-                try:
-                    ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
-                except Exception:
-                    ph = 7.40
-                
-                acid_base_status = "Normal Balance"
-                acid_base_delta_text = "System homeostatically stable. No clinical intervention requested."
-                
-                if ph < 7.35:
-                    if paco2 > 45 and hco3_input >= 22:
-                        acid_base_status = "Respiratory Acidosis"
-                        expected_hco3 = 24 + ((paco2 - 40) / 10) * 1
-                        if hco3_input > expected_hco3 + 2:
-                            acid_base_delta_text = "Acute retention of CO2 causing acidemia. Secondary metabolic compensation detected."
-                        else:
-                            acid_base_delta_text = "Acute respiratory failure / alveolar hypoventilation. Increase minute ventilation or respiratory rate."
-                    elif hco3_input < 22:
-                        acid_base_status = "Metabolic Acidosis"
-                        expected_paco2 = (1.5 * hco3_input) + 8
-                        if paco2 > expected_paco2 + 2:
-                            acid_base_delta_text = "Primary metabolic acidosis combined with an alternate respiratory hypoventilation failure."
-                        else:
-                            acid_base_delta_text = "Serum bicarbonate depletion. Check anion gap status. Ventilator compensating via respiratory drive."
-                elif ph > 7.45:
-                    if paco2 < 35 and hco3_input <= 26:
-                        acid_base_status = "Respiratory Alkalosis"
-                        acid_base_delta_text = "Alveolar hyperventilation causing systemic alkalemia. Consider decreasing ventilator rate or tidal volumes."
-                    elif hco3_input > 26:
-                        acid_base_status = "Metabolic Alkalosis"
-                        acid_base_delta_text = "Elevated metabolic bicarbonate accumulation. Respiratory system compensating via mild hypercapnic conservation."
-                else:
-                    if paco2 > 45 and hco3_input > 26:
-                        acid_base_status = "Fully Compensated Mixed Acidosis"
-                        acid_base_delta_text = "Chronic metabolic preservation counterbalancing respiratory limitation."
-                    elif paco2 < 35 and hco3_input < 22:
-                        acid_base_status = "Fully Compensated Mixed Alkalosis"
-                        acid_base_delta_text = "Renal wasting of bicarbonate to offset respiratory wash out."
-                
-                t_pts, p_pts, v_pts, f_pts = [], [], [], []
-                res = 100
-                for i in range(res + 1):
-                    t = (i / res) * t_cycle
-                    t_pts.append(round(t, 3))
-                    if t <= t_i:
-                        p_pts.append(round(pip, 1))
-                        v_pts.append(round(peak_volume * (1 - math.exp(-t / max(0.01, tau))), 1))
-                        f_pts.append(round(((peak_volume / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
-                    else:
-                        t_exp = t - t_i
-                        p_pts.append(round(peep, 1))
-                        v_pts.append(round(peak_volume * math.exp(-t_exp / max(0.01, tau)), 1))
-                        f_pts.append(round(-((peak_volume / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
-                        
-                waveform_data = json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
-
-                if preset:
-                    if preset == 'ards':
-                        ai_condition = "Severe ARDS Profile (Low Compliance / High Shunt)"
-                        ai_intervention = "CRITICAL: Lung-protective ventilation active. Low tidal volume prevents barotrauma. PEEP is elevated to recruit collapsed alveoli."
-                        differentials = ["ARDS", "Severe Bilateral Pneumonia", "Sepsis induced Lung Injury"]
-                    elif preset == 'copd':
-                        ai_condition = "Exacerbated COPD Profile (High Resistance / High Compliance)"
-                        ai_intervention = "DANGER: High risk of gas trapping. Expiratory time (Te) is prolonged via high I:E setting to permit complete exhalation."
-                        differentials = ["COPD Exacerbation", "Emphysema Destruction"]
-                    elif preset == 'asthma':
-                        ai_condition = "Acute Status Asthmaticus Bronchospasm"
-                        ai_intervention = "Airways are severely reactive. Expiratory flow curve shows prolonged volume clearing. Maximize expiratory length and supply bronchodilators."
-                        differentials = ["Severe Asthma Attack", "Anaphylactic Airway Edema"]
-                    elif preset == 'healthy':
-                        ai_condition = "Physiologically Normal Lung Baseline"
-                        ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
-                        differentials = ["Healthy Control Context"]
-
-                sim_data = {
-                    'ai_condition': ai_condition, 'ai_intervention': ai_intervention,
-                    'differentials': differentials, 'peak_volume': round(peak_volume, 1), 
-                    'minute_vent': round(min_vent, 2), 'alveolar_vent': round(alv_vent, 2), 
-                    'paco2': paco2, 'pao2': pao2, 'aa_gradient': aa_gradient, 'mech_power': mech_power,
-                    't_i': round(t_i, 2), 't_e': round(t_e, 2), 'time_const': round(tau, 3),
-                    'auto_peep_risk': auto_peep_risk, 'waveform_data': waveform_data,
-                    'fev1_fvc': fev1_fvc_ratio, 'spirometry_class': spirometry_class,
-                    'ph': ph, 'hco3': hco3_input, 'acid_base_status': acid_base_status, 
-                    'acid_base_delta_text': acid_base_delta_text
-                }
-            except Exception as math_err:
-                flash(f"PHYSICS ENGINE FAULT:\n{traceback.format_exc()}")
-
+    if request.method == 'POST' and active_tab == 'simulator':
         try:
-            return render_template_string(
-                MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data,
-                inputs=inputs, user_role=session.get('role')
-            )
-        except Exception as render_err:
-            return f"<div style='color:red; background:black; padding:20px; font-family:monospace;'><h3>UI RENDERING CRASH:</h3><pre>{traceback.format_exc()}</pre></div>"
+            if not preset:
+                inputs = {
+                    'vt_input': safe_float(request.form.get('vt_input'), 500),
+                    'pip': safe_float(request.form.get('pip'), 22),
+                    'pplat': safe_float(request.form.get('pplat'), 13),
+                    'peep': safe_float(request.form.get('peep'), 5),
+                    'peak_flow': safe_float(request.form.get('peak_flow'), 60),
+                    'peco2': safe_float(request.form.get('peco2'), 28),
+                    'cao2': safe_float(request.form.get('cao2'), 19.8),
+                    'cco2': safe_float(request.form.get('cco2'), 20.4),
+                    'cvo2': safe_float(request.form.get('cvo2'), 14.8),
+                    'hco3_input': safe_float(request.form.get('hco3_input'), 24),
+                    'rr': safe_float(request.form.get('rr'), 14),
+                    'fio2': safe_float(request.form.get('fio2'), 30),
+                    'ie_ratio': safe_float(request.form.get('ie_ratio'), 2.0),
+                    'vco2': safe_float(request.form.get('vco2'), 200)
+                }
 
-    except Exception as general_err:
-        return f"<div style='color:red; background:black; padding:20px; font-family:monospace;'><h3>CRITICAL SYSTEM FAULT:</h3><pre>{traceback.format_exc()}</pre></div>"
+            # Extrapolate baseline entities from dictionary structures
+            vt = inputs['vt_input']
+            pip = inputs['pip']
+            pplat = inputs['pplat']
+            peep = inputs['peep']
+            flow_lmin = inputs['peak_flow']
+            peco2 = inputs['peco2']
+            cao2 = inputs['cao2']
+            cco2 = inputs['cco2']
+            cvo2 = inputs['cvo2']
+            hco3_input = inputs['hco3_input']
+            rr = max(1.0, inputs['rr'])
+            ie = max(0.1, inputs['ie_ratio'])
+            vco2 = inputs['vco2']
+            fio2_val = inputs['fio2']
+
+            # 1. Compliance (C = Vt / (Pplat - PEEP))
+            driving_pressure = max(1.0, pplat - peep)
+            compliance = vt / driving_pressure
+            
+            # 2. Airway Resistance (R = (PIP - Pplat) / Flow_L_sec)
+            flow_lsec = max(5.0, flow_lmin) / 60.0
+            resistance = (pip - pplat) / flow_lsec
+            
+            # 3. Dead Space Fraction (Vd/Vt via Enghoff Realization Equation)
+            min_vent_est = (vt * rr) / 1000.0
+            paco2_derived = round((0.863 * vco2) / (min_vent_est * 0.75), 1)
+            if peco2 >= paco2_derived: 
+                peco2 = paco2_derived - 4.0
+            vd_vt_ratio = (paco2_derived - peco2) / paco2_derived
+            vd_vt_pct = round(vd_vt_ratio * 100, 1)
+
+            # 4. Classical Shunt Equation Execution (Qs/Qt = (CcO2 - CaO2) / (CcO2 - CvO2))
+            shunt_denominator = cco2 - cvo2
+            if shunt_denominator <= 0: 
+                shunt_denominator = 5.0
+            shunt_ratio = (cco2 - cao2) / shunt_denominator
+            shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
+
+            # Mathematical feedback to respiratory circuit variables
+            alv_vent = ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0
+            paco2 = round((0.863 * vco2) / max(0.1, alv_vent), 1)
+            p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
+            pao2 = round(max(30, p_A_O2 - (shunt_pct * 12)), 1)
+            aa_gradient = round(p_A_O2 - pao2, 1)
+            
+            # Mechanical Power equations 
+            mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
+            
+            # Base clinical conditions matrices
+            ai_condition = "Physiologically Normal Lung Baseline"
+            ai_intervention = "Normal values across all quadrants. Standard settings map normal blood gasses."
+            differentials = ["Healthy Control Context"]
+
+            if compliance <= 30 and shunt_pct >= 20:
+                ai_condition = "Severe Restrictive Defect with Intrapulmonary Shunting"
+                ai_intervention = "CRITICAL: Lung-protective ventilation active. Vt limited to 4-6 mL/kg PBW. Elevate PEEP profile to recover shunt alveoli collapse structural regions."
+                differentials = ["Severe ARDS", "Bilateral Infiltrates", "Sepsis Shock Inundation"]
+            elif resistance >= 25 and compliance >= 75:
+                ai_condition = "High-Compliance Obstructive Disease Profile"
+                ai_intervention = "DANGER: Airway auto-peep trapping vector active. Drop respiratory frequency inputs and lengthen exhalation window constraints safely."
+                differentials = ["COPD Exacerbation", "Emphysema Air-Trapping Matrix"]
+            elif resistance >= 30 and compliance < 75:
+                ai_condition = "Acute Severe Reactive Airway Bronchospasm"
+                ai_intervention = "Airway path resistance is heavily restrictive. Deliver direct bronchodilation therapeutics. Alter ventilation setting variables to expand expiratory cycle space."
+                differentials = ["Status Asthmaticus Attack", "Anaphylaxis Spasmodic Airway Closure"]
+
+            # Calculate Henderson-Hasselbalch equation mapping logs
+            try:
+                ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
+            except Exception:
+                ph = 7.40
+            
+            acid_base_status = "Normal Balance"
+            acid_base_delta_text = "System homeostatically stable. No clinical intervention requested."
+            
+            if ph < 7.35:
+                if paco2 > 45:
+                    acid_base_status = "Respiratory Acidosis"
+                    acid_base_delta_text = "Acute retention of CO2 causing acidemia. Increase minute ventilation or respiratory rate."
+                else:
+                    acid_base_status = "Metabolic Acidosis"
+                    acid_base_delta_text = "Serum bicarbonate depletion. Check anion gap status."
+            elif ph > 7.45:
+                if paco2 < 35:
+                    acid_base_status = "Respiratory Alkalosis"
+                    acid_base_delta_text = "Alveolar hyperventilation causing systemic alkalemia."
+                else:
+                    acid_base_status = "Metabolic Alkalosis"
+                    acid_base_delta_text = "Elevated metabolic bicarbonate accumulation."
+
+            # Render wave loops inside browser environment cleanly
+            t_cycle = 60.0 / rr
+            t_i = t_cycle * (1 / (1 + ie))
+            t_e = t_cycle - t_i
+            tau = (resistance / 1000.0) * compliance
+            auto_peep_risk = "HIGH" if t_e < (3.0 * tau) else "LOW"
+
+            t_pts, p_pts, v_pts, f_pts = [], [], [], []
+            res = 100
+            for i in range(res + 1):
+                t = (i / res) * t_cycle
+                t_pts.append(round(t, 3))
+                if t <= t_i:
+                    p_pts.append(round(pip, 1))
+                    v_pts.append(round(vt * (1 - math.exp(-t / max(0.01, tau))), 1))
+                    f_pts.append(round(((vt / max(0.01, tau)) * math.exp(-t / max(0.01, tau))) * 0.06, 1))
+                else:
+                    t_exp = t - t_i
+                    p_pts.append(round(peep, 1))
+                    v_pts.append(round(vt * math.exp(-t_exp / max(0.01, tau)), 1))
+                    f_pts.append(round(-((vt / max(0.01, tau)) * math.exp(-t_exp / max(0.01, tau))) * 0.06, 1))
+            
+            sim_data = {
+                'derived_compliance': round(compliance, 1),
+                'derived_resistance': round(resistance, 1),
+                'derived_vd_vt': vd_vt_pct,
+                'derived_shunt': shunt_pct,
+                'ai_condition': ai_condition, 'ai_intervention': ai_intervention, 'differentials': differentials,
+                'paco2': paco2, 'pao2': pao2, 'aa_gradient': aa_gradient, 'mech_power': mech_power,
+                'ph': ph, 'hco3': hco3_input, 'acid_base_status': acid_base_status, 'acid_base_delta_text': acid_base_delta_text,
+                'peak_volume': vt, 'minute_vent': round(min_vent_est, 2), 'alveolar_vent': round(alv_vent, 2),
+                'auto_peep_risk': auto_peep_risk, 'time_const': round(tau, 3),
+                'waveform_data': json.dumps({'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts})
+            }
+        except Exception:
+            flash(f"CALCULATION ENGINE RUNTIME CRASH:\n{traceback.format_exc()}")
+
+    return render_template_string(MASTER_DASHBOARD_HTML, active_tab=active_tab, sim_data=sim_data, inputs=inputs, user_role=session.get('role', 'Chief Architect'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
