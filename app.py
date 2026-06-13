@@ -27,7 +27,7 @@ def safe_float(val, default):
 # --- PREMIUM UI CSS & REALISTIC LUNG SVG ---
 BASE_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;600;800;900&family=JetBrains+Mono:wght=400;700&display=swap');
     
     body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #e4e4e7; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;}
     .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -215,10 +215,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
         {% endwith %}
 
         {% if active_tab == 'simulator' %}
-        <!-- FORCED SIDE-BY-SIDE GRID (lg triggers on laptops/desktops) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- PILLAR 1: INPUT PARAMETERS (Left) -->
             <div class="lg:col-span-3">
                 <div class="glass-panel rounded-lg flex flex-col border border-zinc-800 bg-zinc-950/90 shadow-2xl overflow-hidden">
                     <div class="p-4 border-b border-zinc-800/80 bg-zinc-900/50">
@@ -292,10 +290,8 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
             </div>
             {% else %}
             
-            <!-- PILLAR 2: AI & METRICS (Middle) -->
             <div class="lg:col-span-4 flex flex-col gap-4">
                 
-                <!-- AI Diagnostics Card -->
                 <div class="glass-panel rounded-lg p-5 border border-zinc-800/80 bg-gradient-to-br from-zinc-950 to-black shadow-xl">
                     <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-2">AI Diagnostics Engine</h3>
                     <p class="text-xl font-black text-white leading-tight mb-3">{{ sim_data.ai_condition }}</p>
@@ -309,7 +305,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     </div>
                 </div>
 
-                <!-- 2x3 Metrics Grid -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-black/60 shadow-lg hover:border-rose-900 transition-colors">
                         <p class="text-[10px] font-mono font-bold uppercase text-zinc-500 mb-1 tracking-wider">Tidal Volume</p>
@@ -344,7 +339,6 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                 </div>
             </div>
 
-            <!-- PILLAR 3: GRAPHS (Right) -->
             <div class="lg:col-span-5 flex flex-col gap-4">
                 <div class="glass-panel rounded-lg p-3 border border-zinc-800/80 bg-black/50 shadow-lg h-[150px] relative">
                     <span class="absolute top-2 right-3 text-[9px] font-mono text-blue-500/50 uppercase tracking-widest z-20">Pressure (Paw)</span>
@@ -414,6 +408,7 @@ MASTER_DASHBOARD_HTML = BASE_CSS + LUNG_SVG + """
                     });
                 </script>
             </div>
+            {% endif %}
         </div>
         {% endif %}
         
