@@ -7,7 +7,7 @@ from flask import Flask, request, redirect, url_for, session, flash, render_temp
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_lyra_ai_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_omni_sync_pro_2026")
 DB_NAME = "aerolung_database.db"
 
 # ==========================================
@@ -299,6 +299,23 @@ GLOBAL_CSS = """
     .glass-input { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; transition: all 0.3s ease; }
     .glass-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); background: rgba(0, 0, 0, 0.9); }
 
+    /* Siri-like Lyra Orb Animation */
+    @keyframes siriWave {
+        0% { box-shadow: 0 0 10px #c084fc, 0 0 20px #e879f9, inset 0 0 15px #c084fc; transform: scale(0.95); }
+        100% { box-shadow: 0 0 20px #c084fc, 0 0 40px #e879f9, inset 0 0 25px #e879f9; transform: scale(1.05); }
+    }
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .siri-active {
+        background: linear-gradient(135deg, #c084fc, #e879f9, #60a5fa);
+        background-size: 200% 200%;
+        animation: siriWave 1s ease-in-out infinite alternate, gradientShift 3s ease infinite;
+    }
+    .siri-inactive { background: #334155; }
+
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -306,8 +323,8 @@ GLOBAL_CSS = """
 <script>
     function updateClock() {
         const now = new Date();
-        const dateString = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateString = now.toLocaleDateString(document.getElementById('ui-lang')?.value || 'en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        const timeString = now.toLocaleTimeString(document.getElementById('ui-lang')?.value || 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const clockEl = document.getElementById('live-clock');
         if(clockEl) {
             clockEl.innerHTML = `<div class="text-cyan-400 font-bold text-[13px] tracking-wider text-right leading-none">${timeString}</div><div class="text-slate-400 text-[9px] uppercase tracking-widest text-right mt-1">${dateString}</div>`;
@@ -321,7 +338,7 @@ GLOBAL_CSS = """
 COPYRIGHT_FOOTER = """
 <footer class="mt-auto py-5 text-center relative z-20 border-t border-slate-800 bg-slate-950/90">
     <div class="text-[11px] text-slate-500 font-medium tracking-wide">
-        &copy; 2026 Shreesh Santoshkumar Rolli &nbsp;|&nbsp; AeroLung Clinical Architecture
+        &copy; 2026 Shreesh Santoshkumar Rolli &nbsp;|&nbsp; <span data-i18n="footer_text">AeroLung Clinical Architecture</span>
     </div>
 </footer>
 """
@@ -361,7 +378,7 @@ SETTINGS_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
     <nav class="glass-panel w-full border-b-0 border-white/5 rounded-none bg-slate-950/90 py-4 px-6 flex justify-between absolute top-0 z-50">
         <h1 class="text-2xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
         <div class="flex items-center gap-4">
-            <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right"></div>
+            <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right min-w-[120px]"></div>
             <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-slate-600">Return to Dashboard</a>
         </div>
     </nav>
@@ -403,16 +420,27 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
     
     <nav class="glass-panel sticky top-0 z-50 border-b border-slate-800 rounded-none bg-slate-950/90 shadow-2xl">
         <div class="max-w-[1800px] mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-3xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
+            <div class="flex items-center gap-6">
+                <h1 class="text-3xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
+                
+                <select id="ui-lang" onchange="changeLanguage(this.value)" class="bg-black/50 border border-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:border-cyan-500">
+                    <option value="en" selected>English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="zh">中文 (Chinese)</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                </select>
+            </div>
             
             <div class="flex items-center gap-6">
-                <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right min-w-[150px]"></div>
+                <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right min-w-[130px]"></div>
 
                 <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest border-l border-r border-slate-700 px-5 hidden md:block">
-                    Practitioner: <span class="text-cyan-400 font-bold block">{{ session.user }}</span>
+                    <span data-i18n="nav_user">Practitioner:</span> <span class="text-cyan-400 font-bold block">{{ session.user }}</span>
                 </div>
-                <a href="/settings" class="px-4 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Settings</a>
-                <a href="/logout" class="px-4 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-800/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Logout</a>
+                <a href="/settings" data-i18n="nav_settings" class="px-4 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Settings</a>
+                <a href="/logout" data-i18n="nav_logout" class="px-4 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-800/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Logout</a>
             </div>
         </div>
     </nav>
@@ -421,43 +449,22 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         
         <div class="w-full lg:w-[480px] xl:w-[500px] flex flex-col gap-6 shrink-0 h-full">
             
-            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-purple-500 shadow-xl relative overflow-hidden">
-                <div class="absolute -right-10 -top-10 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-[11px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                        Lyra AI Voice Assistant
-                    </h3>
-                    <span id="lyra-status-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-600 transition-colors duration-300"></span>
+            <div class="glass-panel rounded-2xl p-4 border-l-4 border-l-purple-500 shadow-xl flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4 flex-1">
+                    <div id="lyra-orb" class="w-10 h-10 rounded-full siri-inactive flex-shrink-0 transition-all duration-300"></div>
+                    <div class="flex-1 overflow-hidden">
+                        <h3 class="text-[11px] font-bold text-purple-400 uppercase tracking-widest m-0" data-i18n="lyra_title">Lyra Voice AI</h3>
+                        <div id="lyra-transcript" class="text-[10px] text-slate-400 font-mono italic truncate w-full" data-i18n="lyra_resting">Resting... Click activate.</div>
+                    </div>
                 </div>
-                
-                <p class="text-[10px] text-slate-400 mb-3 leading-relaxed">Turn Lyra ON and say <span class="text-purple-300 font-mono">"Hey Lyra, load [Pathology Name]"</span> to automatically command the clinical matrix.</p>
-                
-                <div class="flex gap-3 mb-4">
-                    <select id="lyra-lang" class="flex-1 glass-input px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 cursor-pointer shadow-inner focus:border-purple-500">
-                        <option value="en-US" selected>English (US)</option>
-                        <option value="en-GB">English (UK)</option>
-                        <option value="es-ES">Español (Spanish)</option>
-                        <option value="fr-FR">Français (French)</option>
-                        <option value="de-DE">Deutsch (German)</option>
-                        <option value="zh-CN">中文 (Chinese)</option>
-                        <option value="ja-JP">日本語 (Japanese)</option>
-                        <option value="hi-IN">हिन्दी (Hindi)</option>
-                        <option value="ar-SA">العربية (Arabic)</option>
-                        <option value="ru-RU">Русский (Russian)</option>
-                    </select>
-                    <button id="lyra-toggle-btn" onclick="toggleLyra()" class="bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24">
-                        Turn ON
-                    </button>
-                </div>
-                <div class="bg-black/50 border border-white/5 rounded-lg p-2.5 flex items-center justify-center h-8">
-                    <div id="lyra-transcript" class="text-[10px] text-purple-300 font-mono italic truncate w-full text-center">Lyra is currently resting...</div>
-                </div>
+                <button id="lyra-toggle-btn" onclick="toggleLyra()" class="bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24">
+                    Activate
+                </button>
             </div>
 
             <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-cyan-500">
-                <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2">Clinical Pathology Matrix</h2>
-                <p class="text-[10px] text-slate-400 mb-5">Select a validated condition from the master database to synchronize clinical hemodynamics.</p>
+                <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2" data-i18n="db_title">Clinical Pathology Matrix</h2>
+                <p class="text-[10px] text-slate-400 mb-5" data-i18n="db_desc">Select a validated condition from the master database to synchronize clinical hemodynamics.</p>
                 
                 <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-200 cursor-pointer shadow-inner">
                     <option value="" disabled {% if not current_preset %}selected{% endif %}>-- Select a Clinical Pathology --</option>
@@ -493,26 +500,12 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500 shadow-xl flex-1">
-                <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Physiological Reference Targets</h3>
-                <ul class="space-y-4 text-xs font-mono text-slate-300">
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Static Compliance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">60 - 80 mL/cmH2O</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Airway Resistance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5 - 10 cmH2O/L/s</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Dead Space (Vd/Vt)</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 30 %</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Shunt Fraction</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 5 %</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Arterial pH</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">7.35 - 7.45</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">PaO2 / FiO2 Ratio</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">> 300 mmHg</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Minute Ventilation</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5 - 8 L/min</span></li>
-                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Tidal Vol. (PBW)</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">6 - 8 mL/kg</span></li>
-                </ul>
-            </div>
-
-            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl">
-                <form id="calc-form" method="POST" action="/dashboard" class="p-6">
+            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl flex-1">
+                <form id="calc-form" method="POST" action="/dashboard" class="p-6 flex-1 flex flex-col justify-between">
                     <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
-                    <h3 class="text-[11px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Manual Telemetry Override</h3>
+                    <h3 class="text-[11px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4" data-i18n="manual_override">Manual Telemetry Override</h3>
                     
-                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold">Ventilation Mechanics</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold" data-i18n="vent_mechanics">Ventilation Mechanics</div>
                     <div class="grid grid-cols-4 gap-2 mb-5 bg-black/40 p-4 rounded-xl border border-white/5">
                         <div title="Tidal Volume in mL"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Vt (mL)</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
                         <div title="Respiratory Rate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
@@ -524,7 +517,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         <div title="Inspiratory:Expiratory Ratio"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">I:E</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
                     </div>
                     
-                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold">Systemic Blood Labs</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold" data-i18n="blood_labs">Systemic Blood Labs</div>
                     <div class="grid grid-cols-3 gap-3 mb-6 bg-black/40 p-4 rounded-xl border border-white/5">
                         <div title="Arterial Oxygen Content"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
                         <div title="Venous Oxygen Content"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
@@ -534,7 +527,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         <div title="Systemic Bicarbonate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300" oninput="resetPreset()"></div>
                     </div>
 
-                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all">
+                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all mt-auto" data-i18n="synthesize_btn">
                         Synthesize Clinical Telemetry
                     </button>
                 </form>
@@ -545,22 +538,22 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             {% if not sim_data %}
             <div class="glass-panel rounded-3xl flex-1 flex flex-col items-center justify-center min-h-[600px] border-dashed border-slate-600/50">
                 <div class="w-24 h-24 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mb-6 shadow-[0_0_30px_rgba(34,211,238,0.4)]"></div>
-                <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest">Diagnostic Standby</h3>
-                <p class="text-sm text-slate-400 font-mono text-center max-w-sm">Select a pathology profile from the matrix, or activate Lyra AI to command parameters via voice.</p>
+                <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest" data-i18n="standby_title">Diagnostic Standby</h3>
+                <p class="text-sm text-slate-400 font-mono text-center max-w-sm" data-i18n="standby_desc">Select a pathology profile from the matrix, or activate Lyra AI to command parameters via voice.</p>
             </div>
             {% else %}
             
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-400 bg-gradient-to-br from-slate-900/95 to-black">
-                    <h3 class="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mb-2">Expert Diagnostic System</h3>
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-400 bg-gradient-to-br from-slate-900/95 to-black flex-1">
+                    <h3 class="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mb-2" data-i18n="expert_sys">Expert Diagnostic System</h3>
                     <div class="text-2xl font-black text-white leading-tight tracking-tight mb-4 uppercase drop-shadow-md">{{ sim_data.ai_condition }}</div>
                     
-                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/10 pb-1">Pathophysiological Breakdown</div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/10 pb-1" data-i18n="physio_breakdown">Pathophysiological Breakdown</div>
                     <div class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 leading-relaxed mb-4 shadow-inner">
                         {{ sim_data.ai_description }}
                     </div>
 
-                    <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 border-b border-white/10 pb-1">Required Clinical Action Plan</div>
+                    <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 border-b border-white/10 pb-1" data-i18n="action_plan">Required Clinical Action Plan</div>
                     <ul class="space-y-2">
                         {% for solution in sim_data.ai_solutions %}
                         <li class="flex items-start gap-2 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30 text-xs text-slate-200">
@@ -571,8 +564,8 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </div>
 
                 <div class="flex flex-col gap-6">
-                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-purple-500 flex-1 flex flex-col justify-center">
-                        <h3 class="text-[11px] text-purple-400 font-black uppercase tracking-[0.2em] mb-4 text-center">Arterial Blood Gas Analysis</h3>
+                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-purple-500 flex flex-col justify-center">
+                        <h3 class="text-[11px] text-purple-400 font-black uppercase tracking-[0.2em] mb-4 text-center" data-i18n="abg_analysis">Arterial Blood Gas Analysis</h3>
                         <div class="grid grid-cols-3 gap-2 mb-4 bg-black/40 p-5 rounded-2xl border border-white/5 text-center shadow-inner">
                             <div>
                                 <span class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Blood pH</span>
@@ -589,17 +582,27 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         </div>
                         <div class="text-sm font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
                     </div>
+                    
+                    <div class="glass-panel rounded-2xl p-5 border-t-2 border-t-emerald-500 shadow-xl flex-1">
+                        <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-3" data-i18n="ref_targets">Reference Targets</h3>
+                        <ul class="space-y-3 text-xs font-mono text-slate-300">
+                            <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Compliance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">60-80</span></li>
+                            <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Resistance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5-10</span></li>
+                            <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Vd/Vt Ratio</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 30 %</span></li>
+                            <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Shunt %</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 5 %</span></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <div class="glass-panel p-5 rounded-2xl">
-                <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 border-b border-white/10 pb-2">Diagnostic Mechanics Engine</h3>
+                <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 border-b border-white/10 pb-2" data-i18n="mech_engine">Diagnostic Mechanics Engine</h3>
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
                         <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-widest block mb-2">Lung Compliance</span>
                         <div class="text-3xl font-black text-white font-mono mb-1">{{ sim_data.compliance }}</div>
                         <div class="text-[9px] text-slate-500 uppercase font-bold mb-3">mL/cmH2O</div>
-                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Measures Lung Elasticity. Normal is ~60-80. Lower numbers indicate stiffer lungs (e.g. ARDS).</div>
+                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Measures Lung Elasticity. Normal is ~60-80. Lower numbers indicate stiffer lungs.</div>
                     </div>
                     <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
                         <span class="text-[10px] text-rose-400 font-bold uppercase tracking-widest block mb-2">Airway Resistance</span>
@@ -624,7 +627,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
             <div class="glass-panel p-6 rounded-2xl flex flex-col relative flex-1 min-h-[350px] w-full">
                 <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                    <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">Ventilator Waveform Analytics</h3>
+                    <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]" data-i18n="wave_analytics">Ventilator Waveform Analytics</h3>
                     <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">
                         <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#22d3ee]"></span><span class="font-bold">Paw:</span> Pressure</div>
                         <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#10b981]"></span><span class="font-bold">Vol:</span> Volume</div>
@@ -664,6 +667,91 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
     </main>
 
     <script>
+        // ----------------------------------------------------
+        // 1. I18N GLOBAL LANGUAGE DICTIONARY
+        // ----------------------------------------------------
+        const I18N = {
+            "en": {
+                "nav_user": "Practitioner:", "nav_settings": "Settings", "nav_logout": "Logout",
+                "lyra_title": "Lyra Voice AI", "lyra_resting": "Resting... Click activate.", "lyra_btn_on": "Activate", "lyra_btn_off": "Rest",
+                "db_title": "Clinical Pathology Matrix", "db_desc": "Select a condition to synchronize hemodynamics.",
+                "manual_override": "Manual Telemetry Override", "vent_mechanics": "Ventilation Mechanics", "blood_labs": "Systemic Blood Labs",
+                "synthesize_btn": "Synthesize Clinical Telemetry", "standby_title": "Diagnostic Standby", "standby_desc": "Select a pathology profile or activate Lyra.",
+                "expert_sys": "Expert Diagnostic System", "physio_breakdown": "Pathophysiological Breakdown", "action_plan": "Clinical Action Plan",
+                "abg_analysis": "Arterial Blood Gas Analysis", "ref_targets": "Reference Targets", "mech_engine": "Diagnostic Mechanics Engine",
+                "wave_analytics": "Ventilator Waveform Analytics", "footer_text": "AeroLung Clinical Architecture"
+            },
+            "es": {
+                "nav_user": "Médico:", "nav_settings": "Ajustes", "nav_logout": "Salir",
+                "lyra_title": "Lyra IA de Voz", "lyra_resting": "Descansando... Haz clic para activar.", "lyra_btn_on": "Activar", "lyra_btn_off": "Descansar",
+                "db_title": "Matriz de Patología Clínica", "db_desc": "Seleccione una condición para sincronizar la hemodinámica.",
+                "manual_override": "Anulación de Telemetría", "vent_mechanics": "Mecánica de Ventilación", "blood_labs": "Laboratorios de Sangre",
+                "synthesize_btn": "Sintetizar Telemetría", "standby_title": "Espera de Diagnóstico", "standby_desc": "Seleccione un perfil o active Lyra.",
+                "expert_sys": "Sistema de Diagnóstico Experto", "physio_breakdown": "Desglose Fisiopatológico", "action_plan": "Plan de Acción Clínico",
+                "abg_analysis": "Análisis de Gases en Sangre", "ref_targets": "Objetivos de Referencia", "mech_engine": "Motor de Mecánica Diagnóstica",
+                "wave_analytics": "Análisis de Forma de Onda", "footer_text": "Arquitectura Clínica AeroLung"
+            },
+            "fr": {
+                "nav_user": "Praticien:", "nav_settings": "Paramètres", "nav_logout": "Quitter",
+                "lyra_title": "Lyra IA Vocale", "lyra_resting": "En repos... Cliquez pour activer.", "lyra_btn_on": "Activer", "lyra_btn_off": "Repos",
+                "db_title": "Matrice de Pathologie", "db_desc": "Sélectionnez une condition pour synchroniser.",
+                "manual_override": "Remplacement de Télémétrie", "vent_mechanics": "Mécanique de Ventilation", "blood_labs": "Analyses Sanguines",
+                "synthesize_btn": "Synthétiser la Télémétrie", "standby_title": "Attente de Diagnostic", "standby_desc": "Sélectionnez un profil ou activez Lyra.",
+                "expert_sys": "Système de Diagnostic", "physio_breakdown": "Analyse Physiopathologique", "action_plan": "Plan d'action",
+                "abg_analysis": "Gazométrie Sanguine", "ref_targets": "Cibles de Référence", "mech_engine": "Moteur Mécanique",
+                "wave_analytics": "Analyse des Ondes", "footer_text": "Architecture Clinique AeroLung"
+            },
+            "de": {
+                "nav_user": "Arzt:", "nav_settings": "Einstellungen", "nav_logout": "Abmelden",
+                "lyra_title": "Lyra Sprach-KI", "lyra_resting": "Ruht... Klicken zum Aktivieren.", "lyra_btn_on": "Aktivieren", "lyra_btn_off": "Ruhe",
+                "db_title": "Pathologie-Matrix", "db_desc": "Wählen Sie eine Bedingung zur Synchronisierung.",
+                "manual_override": "Manuelle Telemetrie", "vent_mechanics": "Beatmungsmechanik", "blood_labs": "Blutlabore",
+                "synthesize_btn": "Telemetrie Synthetisieren", "standby_title": "Diagnose-Standby", "standby_desc": "Wählen Sie ein Profil oder aktivieren Sie Lyra.",
+                "expert_sys": "Experten-Diagnosesystem", "physio_breakdown": "Pathophysiologische Analyse", "action_plan": "Klinischer Aktionsplan",
+                "abg_analysis": "Blutgasanalyse", "ref_targets": "Referenzziele", "mech_engine": "Diagnostischer Mechanik-Motor",
+                "wave_analytics": "Wellenform-Analyse", "footer_text": "AeroLung Klinische Architektur"
+            },
+            "zh": {
+                "nav_user": "医生:", "nav_settings": "设置", "nav_logout": "退出",
+                "lyra_title": "Lyra 语音 AI", "lyra_resting": "休息中... 点击激活。", "lyra_btn_on": "激活", "lyra_btn_off": "休息",
+                "db_title": "临床病理矩阵", "db_desc": "选择一个条件以同步血流动力学。",
+                "manual_override": "手动遥测覆盖", "vent_mechanics": "通气力学", "blood_labs": "全身血液化验",
+                "synthesize_btn": "合成临床遥测", "standby_title": "诊断待机", "standby_desc": "选择病理配置文件或激活 Lyra。",
+                "expert_sys": "专家诊断系统", "physio_breakdown": "病理生理分析", "action_plan": "临床行动计划",
+                "abg_analysis": "动脉血气分析", "ref_targets": "参考目标", "mech_engine": "诊断力学引擎",
+                "wave_analytics": "呼吸机波形分析", "footer_text": "AeroLung 临床架构"
+            },
+            "hi": {
+                "nav_user": "चिकित्सक:", "nav_settings": "सेटिंग्स", "nav_logout": "लॉग आउट",
+                "lyra_title": "Lyra वॉयस AI", "lyra_resting": "विश्राम... सक्रिय करने के लिए क्लिक करें।", "lyra_btn_on": "सक्रिय करें", "lyra_btn_off": "विश्राम",
+                "db_title": "क्लीनिकल पैथोलॉजी मैट्रिक्स", "db_desc": "हेमोडायनामिक्स सिंक्रनाइज़ करने के लिए एक शर्त चुनें।",
+                "manual_override": "मैनुअल टेलीमेट्री", "vent_mechanics": "वेंटिलेशन मैकेनिक्स", "blood_labs": "रक्त परीक्षण",
+                "synthesize_btn": "टेलीमेट्री सिंथेसाइज़ करें", "standby_title": "डायग्नोस्टिक स्टैंडबाय", "standby_desc": "प्रोफ़ाइल चुनें या Lyra को सक्रिय करें।",
+                "expert_sys": "विशेषज्ञ निदान प्रणाली", "physio_breakdown": "पैथोफिजियोलॉजिकल ब्रेकडाउन", "action_plan": "क्लीनिकल एक्शन प्लान",
+                "abg_analysis": "आर्टेरियल ब्लड गैस", "ref_targets": "संदर्भ लक्ष्य", "mech_engine": "मैकेनिक्स इंजन",
+                "wave_analytics": "वेवफॉर्म एनालिटिक्स", "footer_text": "AeroLung क्लीनिकल आर्किटेक्चर"
+            }
+        };
+
+        const LYRA_LANG_MAP = { "en": "en-US", "es": "es-ES", "fr": "fr-FR", "de": "de-DE", "zh": "zh-CN", "hi": "hi-IN" };
+
+        function changeLanguage(langCode) {
+            const dict = I18N[langCode];
+            if (!dict) return;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) el.innerText = dict[key];
+            });
+            if (recognition) {
+                recognition.lang = LYRA_LANG_MAP[langCode];
+                if (lyraActive) { recognition.stop(); } // Auto-restarts via onend with new language
+            }
+            updateClock();
+        }
+
+        // ----------------------------------------------------
+        // 2. 20 PRESETS DATABASE
+        // ----------------------------------------------------
         const PRESETS = {
             healthy:      {vt: 500, rr: 14, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 30, ie: 2.0, cao2: 19.8, cvo2: 14.8, cco2: 20.4, peco2: 28, vco2: 200, hco3: 24},
             ards:         {vt: 350, rr: 28, pip: 38, pplat: 32, peep: 14, flow: 50, fio2: 80, ie: 1.5, cao2: 15.2, cvo2: 11.2, cco2: 20.1, peco2: 18, vco2: 240, hco3: 20},
@@ -689,11 +777,9 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
         function loadPreset(type) {
             if (!type || type === "custom") return;
-            
             const data = PRESETS[type];
             document.getElementById('preset_id').value = type;
             document.getElementById('preset-dropdown').value = type;
-            
             document.getElementById('vt_input').value = data.vt;
             document.getElementById('rr').value = data.rr;
             document.getElementById('pip').value = data.pip;
@@ -702,25 +788,22 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             document.getElementById('peak_flow').value = data.flow;
             document.getElementById('fio2').value = data.fio2;
             document.getElementById('ie_ratio').value = data.ie;
-            
             document.getElementById('cao2').value = data.cao2;
             document.getElementById('cvo2').value = data.cvo2;
             document.getElementById('cco2').value = data.cco2;
             document.getElementById('peco2').value = data.peco2;
             document.getElementById('vco2').value = data.vco2;
             document.getElementById('hco3_input').value = data.hco3;
-            
             document.getElementById('calc-form').submit();
         }
-        
         function resetPreset() {
             document.getElementById('preset-dropdown').value = "custom";
             document.getElementById('preset_id').value = "custom";
         }
 
-        // ==========================================
-        // LYRA AI VOICE RECOGNITION ENGINE
-        // ==========================================
+        // ----------------------------------------------------
+        // 3. LYRA AI SIRI-LIKE VOICE ENGINE
+        // ----------------------------------------------------
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let lyraActive = false;
@@ -750,17 +833,17 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
         function initLyra() {
             if (!SpeechRecognition) {
-                document.getElementById('lyra-transcript').innerText = "Browser not supported. Use Chrome/Edge.";
+                document.getElementById('lyra-transcript').innerText = "Voice API not supported in this browser. Use Chrome/Edge.";
                 return;
             }
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = false;
-            recognition.lang = document.getElementById('lyra-lang').value;
+            recognition.lang = LYRA_LANG_MAP[document.getElementById('ui-lang').value] || "en-US";
 
             recognition.onresult = function(event) {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-                document.getElementById('lyra-transcript').innerText = "Heard: " + transcript;
+                document.getElementById('lyra-transcript').innerText = "Lyra heard: " + transcript;
                 
                 if (transcript.includes("lyra")) {
                     let matched = false;
@@ -768,13 +851,13 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         if (transcript.includes(key)) {
                             const presetKey = LYRA_VOICE_MAP[key];
                             speakLyra(`Confirmed. Loading clinical matrix for ${key}.`);
-                            loadPreset(presetKey);
+                            setTimeout(() => loadPreset(presetKey), 2500); // delay allows Lyra to finish speaking
                             matched = true;
                             break;
                         }
                     }
                     if (!matched) {
-                        speakLyra("I am listening. Please state a valid pathology name to load the matrix.");
+                        speakLyra("I am listening. Please state a valid pathology name to synchronize.");
                     }
                 }
             };
@@ -787,46 +870,40 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         function speakLyra(text) {
             const synth = window.speechSynthesis;
             const utterThis = new SpeechSynthesisUtterance(text);
-            utterThis.lang = document.getElementById('lyra-lang').value;
+            utterThis.lang = LYRA_LANG_MAP[document.getElementById('ui-lang').value] || "en-US";
             synth.speak(utterThis);
         }
 
         function toggleLyra() {
             if (!SpeechRecognition) {
-                alert("Your browser does not support the Web Speech API. Please try Google Chrome.");
+                alert("Your browser does not support the Web Speech API. Please try Google Chrome, Edge, or Safari.");
                 return;
             }
             
             const btn = document.getElementById('lyra-toggle-btn');
-            const indicator = document.getElementById('lyra-status-indicator');
+            const orb = document.getElementById('lyra-orb');
             const transcript = document.getElementById('lyra-transcript');
+            const langCode = document.getElementById('ui-lang').value;
 
             if (!lyraActive) {
                 if(!recognition) initLyra();
-                recognition.lang = document.getElementById('lyra-lang').value;
+                recognition.lang = LYRA_LANG_MAP[langCode];
                 recognition.start();
                 lyraActive = true;
-                btn.innerText = "Turn OFF";
-                btn.className = "bg-rose-600/80 hover:bg-rose-500 border border-rose-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(225,29,72,0.4)] w-24";
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,1)]";
-                transcript.innerText = "Lyra is listening... Say 'Hey Lyra'";
-                speakLyra("Lyra AI activated. Awaiting your command.");
+                btn.innerText = I18N[langCode]?.lyra_btn_off || "Rest";
+                btn.className = "bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white font-bold px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider transition-all w-24";
+                orb.className = "w-10 h-10 rounded-full siri-active flex-shrink-0 transition-all duration-300";
+                transcript.innerText = "Lyra is actively listening... Say 'Hey Lyra'";
+                speakLyra("Lyra AI activated. Awaiting your clinical command.");
             } else {
                 lyraActive = false;
                 recognition.stop();
-                btn.innerText = "Turn ON";
-                btn.className = "bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24";
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-slate-600 transition-colors duration-300";
-                transcript.innerText = "Lyra is currently resting...";
+                btn.innerText = I18N[langCode]?.lyra_btn_on || "Activate";
+                btn.className = "bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24";
+                orb.className = "w-10 h-10 rounded-full siri-inactive flex-shrink-0 transition-all duration-300";
+                transcript.innerText = I18N[langCode]?.lyra_resting || "Resting... Click activate.";
             }
         }
-
-        document.getElementById('lyra-lang').addEventListener('change', function() {
-            if(recognition && lyraActive) {
-                recognition.stop(); 
-                // onend will automatically restart it with the new language pulled from the select box
-            }
-        });
     </script>
 </body>
 """
