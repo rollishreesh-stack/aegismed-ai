@@ -34,7 +34,6 @@ init_db()
 # 2. PATHOLOGY DATABASE & MATH ENGINE
 # ==========================================
 
-# Explicit mapping ensures 100% perfect synchronization between dropdown and AI output
 DISEASE_PROFILES = {
     "healthy": {
         "condition": "Stable Pulmonary Homeostasis",
@@ -185,7 +184,6 @@ class RespiratoryEngine:
         try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
         except Exception: ph = 7.40
 
-        # PERFECT SYNCHRONIZATION LOGIC
         if preset_id in DISEASE_PROFILES:
             ai_result = DISEASE_PROFILES[preset_id]
         else:
@@ -219,19 +217,12 @@ class RespiratoryEngine:
 
     @staticmethod
     def _fallback_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph, vd_vt_ratio):
-        # Used only if the user types in custom, unrecognized numbers manually
-        if compliance < 30 and shunt_pct > 25:
-            return DISEASE_PROFILES['ards']
-        elif resistance > 20:
-            return DISEASE_PROFILES['asthma']
-        elif vd_vt_ratio > 0.50:
-            return DISEASE_PROFILES['pe']
-        elif compliance > 50 and resistance > 12:
-            return DISEASE_PROFILES['copd']
-        elif compliance < 35 and shunt_pct < 15:
-            return DISEASE_PROFILES['fibrosis']
-        else:
-            return DISEASE_PROFILES['healthy']
+        if compliance < 30 and shunt_pct > 25: return DISEASE_PROFILES['ards']
+        elif resistance > 20: return DISEASE_PROFILES['asthma']
+        elif vd_vt_ratio > 0.50: return DISEASE_PROFILES['pe']
+        elif compliance > 50 and resistance > 12: return DISEASE_PROFILES['copd']
+        elif compliance < 35 and shunt_pct < 15: return DISEASE_PROFILES['fibrosis']
+        else: return DISEASE_PROFILES['healthy']
 
     @staticmethod
     def _analyze_acid_base(ph, paco2):
@@ -315,10 +306,12 @@ GLOBAL_CSS = """
 <script>
     function updateClock() {
         const now = new Date();
-        const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const dateString = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
         const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const clockEl = document.getElementById('live-clock');
-        if(clockEl) clockEl.innerHTML = `<span class="text-cyan-400 font-bold text-sm tracking-wider">${timeString}</span> <span class="text-slate-400 text-[11px] uppercase ml-3 tracking-widest border-l border-slate-700 pl-3">${dateString}</span>`;
+        if(clockEl) {
+            clockEl.innerHTML = `<div class="text-cyan-400 font-bold text-[13px] tracking-wider text-right leading-none">${timeString}</div><div class="text-slate-400 text-[9px] uppercase tracking-widest text-right mt-1">${dateString}</div>`;
+        }
     }
     setInterval(updateClock, 1000);
     window.onload = updateClock;
@@ -367,7 +360,10 @@ SETTINGS_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 <body class="flex items-center justify-center relative flex-col min-h-screen">
     <nav class="glass-panel w-full border-b-0 border-white/5 rounded-none bg-slate-950/90 py-4 px-6 flex justify-between absolute top-0 z-50">
         <h1 class="text-2xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
-        <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-slate-600">Return to Dashboard</a>
+        <div class="flex items-center gap-4">
+            <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right"></div>
+            <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-slate-600">Return to Dashboard</a>
+        </div>
     </nav>
 
     <div class="glass-panel rounded-3xl p-10 w-full max-w-lg text-center mt-20 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
@@ -409,11 +405,11 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         <div class="max-w-[1800px] mx-auto px-6 py-4 flex justify-between items-center">
             <h1 class="text-3xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
             
-            <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-5 py-2.5 rounded-xl shadow-inner"></div>
+            <div class="flex items-center gap-6">
+                <div id="live-clock" class="hidden lg:block bg-black/50 border border-slate-800 px-4 py-2 rounded-xl shadow-inner text-right min-w-[150px]"></div>
 
-            <div class="flex items-center gap-4">
-                <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest border-r border-slate-700 pr-4 hidden md:block">
-                    Practitioner: <span class="text-cyan-400 font-bold">{{ session.user }}</span>
+                <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest border-l border-r border-slate-700 px-5 hidden md:block">
+                    Practitioner: <span class="text-cyan-400 font-bold block">{{ session.user }}</span>
                 </div>
                 <a href="/settings" class="px-4 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Settings</a>
                 <a href="/logout" class="px-4 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-800/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Logout</a>
@@ -421,9 +417,9 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         </div>
     </nav>
 
-    <main class="w-full max-w-[1800px] mx-auto p-6 flex flex-col lg:flex-row gap-8 items-start relative z-10">
+    <main class="w-full max-w-[1800px] mx-auto p-6 flex flex-col lg:flex-row gap-8 items-start relative z-10 flex-1">
         
-        <div class="w-full lg:w-[450px] xl:w-[480px] flex flex-col gap-6 shrink-0">
+        <div class="w-full lg:w-[480px] xl:w-[500px] flex flex-col gap-6 shrink-0 h-full">
             
             <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-cyan-500">
                 <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2">Clinical Pathology Matrix</h2>
@@ -463,19 +459,22 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500">
+            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500 shadow-xl">
                 <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Physiological Reference Targets</h3>
-                <ul class="space-y-3 text-xs font-mono text-slate-300">
+                <ul class="space-y-4 text-xs font-mono text-slate-300">
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Static Compliance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">60 - 80 mL/cmH2O</span></li>
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Airway Resistance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5 - 10 cmH2O/L/s</span></li>
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Dead Space (Vd/Vt)</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 30 %</span></li>
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Shunt Fraction</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 5 %</span></li>
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Arterial pH</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">7.35 - 7.45</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">PaO2 / FiO2 Ratio</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">> 300 mmHg</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Minute Ventilation</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5 - 8 L/min</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Tidal Vol. (PBW)</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">6 - 8 mL/kg</span></li>
                 </ul>
             </div>
 
-            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl">
-                <form id="calc-form" method="POST" action="/dashboard" class="p-6">
+            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl flex-1">
+                <form id="calc-form" method="POST" action="/dashboard" class="p-6 flex-1 flex flex-col justify-between">
                     <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
                     <h3 class="text-[11px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Manual Telemetry Override</h3>
                     
@@ -501,16 +500,16 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         <div title="Systemic Bicarbonate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300" oninput="resetPreset()"></div>
                     </div>
 
-                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all">
+                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all mt-auto">
                         Synthesize Clinical Telemetry
                     </button>
                 </form>
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col gap-6 w-full min-w-0">
+        <div class="flex-1 flex flex-col gap-6 w-full min-w-0 h-full">
             {% if not sim_data %}
-            <div class="glass-panel rounded-3xl flex-1 flex flex-col items-center justify-center min-h-[400px] border-dashed border-slate-600/50">
+            <div class="glass-panel rounded-3xl flex-1 flex flex-col items-center justify-center min-h-[600px] border-dashed border-slate-600/50">
                 <div class="w-24 h-24 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mb-6 shadow-[0_0_30px_rgba(34,211,238,0.4)]"></div>
                 <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest">Diagnostic Standby</h3>
                 <p class="text-sm text-slate-400 font-mono">Select a pathology profile from the matrix to render expert analytics.</p>
@@ -589,7 +588,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </div>
             </div>
 
-            <div class="glass-panel p-6 rounded-2xl flex flex-col relative h-72 w-full mb-6">
+            <div class="glass-panel p-6 rounded-2xl flex flex-col relative flex-1 min-h-[350px] w-full">
                 <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                     <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">Ventilator Waveform Analytics</h3>
                     <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">
