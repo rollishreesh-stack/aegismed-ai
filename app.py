@@ -604,10 +604,15 @@ GLOBAL_CSS_JS = """
         });
     }
 
-// NLP CLINICAL RECORD ANALYZER (COMPREHENSIVE PULMONARY MAPPING MATRIX)
+// ==========================================
+// NLP CLINICAL RECORD ANALYZER (FINAL EXHAUSTIVE EDITION)
+// ==========================================
 function processClinicalNotes() {
-    const text = document.getElementById('patient_record_input').value.toLowerCase();
-    if(!text.trim()) return;
+    const origText = document.getElementById('patient_record_input').value;
+    if(!origText.trim()) return;
+    
+    // Normalize text for parsing
+    const text = origText.toLowerCase();
     
     document.getElementById('notes-modal').classList.add('hidden');
     
@@ -617,24 +622,51 @@ function processClinicalNotes() {
     let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
     let presetMap = 'custom';
 
-    // Extract Vitals
+    // ==========================================
+    // LAYER 1: NEGATION DETECTION ENGINE
+    // ==========================================
+    function isNegated(keyword, fullText) {
+        const negationTriggers = ['no ', 'denies', 'negative for', 'without', 'ruled out', 'r/o', 'absence of', 'free of', 'not experiencing', 'never'];
+        const sentenceBounds = fullText.split(/[.,;\n]/); // Break into clauses
+        
+        for (let clause of sentenceBounds) {
+            if (clause.includes(keyword)) {
+                for (let trigger of negationTriggers) {
+                    if (clause.includes(trigger) && clause.indexOf(trigger) < clause.indexOf(keyword)) {
+                        return true; 
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // ==========================================
+    // LAYER 2: VITAL EXTRACTION PATTERNS
+    // ==========================================
     let vitals = [];
     const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\d{2,3})/);
     if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
-    const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\d{2,3})/);
+    const rrMatch = text.match(/(?:rr|respiratory rate|breaths|tachypnea).*?(\d{2,3})/);
     if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
-    const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\d{2,3})/);
+    const spo2Match = text.match(/(?:spo2|saturation|sat|oximetry).*?(\d{2,3})/);
     if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
     let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
 
-    // The Exhaustive Pulmonary Profile Registry
+    // ==========================================
+    // LAYER 3: EXHAUSTIVE PULMONARY MATRIX REGISTRY
+    // ==========================================
     const pathologyProfiles = [
-        // ==========================================
-        // SECTION 1: CORE CLINICAL PRESETS
-        // ==========================================
+        // --- CORE CLINICAL PRESETS ---
         {
             name: 'End-Stage COPD / Emphysema',
-            keywords: ['smok', 'barrel', 'productive cough', 'hyperinflation', 'expiratory phase', 'coalesced bullae', 'gold guidelines', 'fev1'],
+            keywords: [
+                { word: 'smok', weight: 2.0 }, { word: 'barrel', weight: 5.0 }, { word: 'productive cough', weight: 2.0 },
+                { word: 'hyperinflation', weight: 2.0 }, { word: 'expiratory phase', weight: 2.0 }, { word: 'coalesced bullae', weight: 5.0 },
+                { word: 'gold guidelines', weight: 5.0 }, { word: 'fev1', weight: 5.0 },
+                { word: 'heavy smoker', weight: 2.0 }, { word: 'packs a day', weight: 5.0 }, { word: 'smoked for', weight: 2.0 },
+                { word: 'phlegm cough', weight: 1.0 }, { word: 'always bringing up spit', weight: 2.0 }
+            ],
             evidence: "Chronic productive cough and heavy smoking history strongly suggest COPD with underlying emphysematous changes, chronic air trapping, and hyperinflation.",
             missing: "Formal Spirometry showing FEV1/FVC < 0.70 to confirm severe obstruction, and a current baseline ABG to check for chronic hypercapnia.",
             treatments: ["Administer continuous nebulized bronchodilators (Albuterol/Ipratropium).", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92% to prevent blunting of hypoxic drive.", "Utilize NiPPV/BiPAP to reduce work of breathing."],
@@ -642,7 +674,12 @@ function processClinicalNotes() {
         },
         {
             name: 'Status Asthmaticus',
-            keywords: ['wheez', 'asthma', 'albuterol', 'bronchospasm', 'fluticasone', 'montelukast', 'atopic', 'eosinophilic'],
+            keywords: [
+                { word: 'wheez', weight: 2.0 }, { word: 'asthma', weight: 2.0 }, { word: 'albuterol', weight: 2.0 },
+                { word: 'bronchospasm', weight: 5.0 }, { word: 'fluticasone', weight: 5.0 }, { word: 'montelukast', weight: 5.0 },
+                { word: 'atopic', weight: 2.0 }, { word: 'eosinophilic', weight: 2.0 },
+                { word: 'inhaler didn\'t help', weight: 5.0 }, { word: 'chest tightness', weight: 0.5 }, { word: 'breathing attack', weight: 1.0 }
+            ],
             evidence: "Auscultation of loud, bilateral expiratory wheezing along with episodic shortness of breath suggests severe reactive airway disease and critical bronchospasm.",
             missing: "Peak expiratory flow rate (PEFR) and response to continuous nebulization.",
             treatments: ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids (e.g., Solu-Medrol).", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."],
@@ -650,7 +687,14 @@ function processClinicalNotes() {
         },
         {
             name: 'Cardiogenic Pulmonary Edema',
-            keywords: ['orthopnea', 'frothy', 'jvd', 'jugular vein', 'bnp', 'furosemide', 'chf', 'cardiomegaly', 'pcwp'],
+            keywords: [
+                { word: 'orthopnea', weight: 5.0 }, { word: 'frothy', weight: 5.0 }, { word: 'jvd', weight: 5.0 },
+                { word: 'jugular vein', weight: 2.0 }, { word: 'bnp', weight: 5.0 }, { word: 'furosemide', weight: 2.0 },
+                { word: 'chf', weight: 5.0 }, { word: 'cardiomegaly', weight: 5.0 }, { word: 'pcwp', weight: 5.0 },
+                { word: 'cannot lie flat', weight: 5.0 }, { word: 'sleeping on 3 pillows', weight: 5.0 }, { word: 'sleeping in a chair', weight: 5.0 },
+                { word: 'pink sputum', weight: 5.0 }, { word: 'bubbly spit', weight: 5.0 }, { word: 'swollen legs', weight: 2.0 },
+                { word: 'fluid in lungs', weight: 2.0 }, { word: 'lasix', weight: 5.0 }, { word: 'heart failure', weight: 2.0 }
+            ],
             evidence: "Findings of bibasilar crackles, orthopnea, and hypoxemia strongly point to left ventricular failure causing massive fluid transudation into the alveoli.",
             missing: "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.",
             treatments: ["Administer IV loop diuretics (e.g., Furosemide) immediately.", "Apply CPAP or BiPAP to decrease work of breathing and displace alveolar fluid.", "Administer vasodilators (e.g., Nitroglycerin) to reduce cardiac preload."],
@@ -658,383 +702,434 @@ function processClinicalNotes() {
         },
         {
             name: 'Massive Pleural Effusion',
-            keywords: ['effusion', 'dullness', 'fluid collection', 'thoracentesis', 'pleural fluid', 'stony dullness', 'loculated'],
+            keywords: [
+                { word: 'effusion', weight: 2.0 }, { word: 'dullness', weight: 5.0 }, { word: 'fluid collection', weight: 2.0 },
+                { word: 'thoracentesis', weight: 5.0 }, { word: 'pleural fluid', weight: 2.0 }, { word: 'stony dullness', weight: 5.0 },
+                { word: 'loculated', weight: 5.0 }, { word: 'fluid in chest wall', weight: 2.0 }
+            ],
             evidence: "Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space, compressing underlying lung tissue.",
             missing: "Diagnostic thoracentesis for pleural fluid analysis (Light's criteria), Cytology, and CT Chest with contrast.",
             treatments: ["Perform therapeutic and diagnostic thoracentesis.", "Consider pigtail catheter or chest tube placement if fluid reaccumulates rapidly.", "Send pleural fluid for cell count, Gram stain, protein, LDH, and cytology."]
         },
         {
             name: 'Acute Anaphylactic Shock / Airway Edema',
-            keywords: ['anaphylaxis', 'hives', 'allergen', 'stridor', 'epinephrine', 'urticaria', 'laryngeal edema', 'angioedema'],
+            keywords: [
+                { word: 'anaphylaxis', weight: 5.0 }, { word: 'hives', weight: 2.0 }, { word: 'allergen', weight: 2.0 },
+                { word: 'stridor', weight: 5.0 }, { word: 'epinephrine', weight: 5.0 }, { word: 'urticaria', weight: 2.0 },
+                { word: 'laryngeal edema', weight: 5.0 }, { word: 'angioedema', weight: 5.0 }, { word: 'throat closing', weight: 5.0 },
+                { word: 'stung by', weight: 2.0 }, { word: 'allergic reaction', weight: 2.0 }
+            ],
             evidence: "The rapid onset of respiratory distress combined with potential allergic triggers strongly suggests anaphylaxis. Upper airway compromise threatens complete occlusion.",
             missing: "Serum tryptase levels and a detailed allergen exposure history.",
             treatments: ["IMMEDIATE Intramuscular Epinephrine (1:1000) 0.3-0.5 mg.", "Secure airway early; prepare for difficult intubation or surgical airway if edema is severe.", "Administer IV H1 and H2 antihistamines and systemic corticosteroids."]
         },
         {
             name: 'Septic Shock with Secondary Pulmonary Compromise',
-            keywords: ['sepsis', 'lactic', 'infection', 'hypotension', 'septicemia', 'bacteremia', 'map <', 'surviving sepsis'],
+            keywords: [
+                { word: 'sepsis', weight: 2.0 }, { word: 'lactic', weight: 5.0 }, { word: 'infection', weight: 1.0 },
+                { word: 'hypotension', weight: 2.0 }, { word: 'septicemia', weight: 5.0 }, { word: 'bacteremia', weight: 5.0 },
+                { word: 'map <', weight: 5.0 }, { word: 'surviving sepsis', weight: 5.0 }, { word: 'blood pressure crashed', weight: 2.0 }
+            ],
             evidence: "The narrative points to profound systemic inflammation, driven by an underlying infection. Hypotension and metabolic distress suggest distributive shock predisposing to acute lung capillary leaks.",
             missing: "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.",
             treatments: ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors (Norepinephrine) if mean arterial pressure (MAP) remains < 65 mmHg."]
         },
 
-        // ==========================================
-        // SECTION 2: ACUTE SURGICAL, VASCULAR & CRISIS PATHOLOGIES
-        // ==========================================
+        // --- ACUTE SURGICAL, VASCULAR & CRISIS PATHOLOGIES ---
         {
             name: 'Pneumothorax / Tension Pneumothorax',
-            keywords: ['pneumothorax', 'collapsed lung', 'hyperresonance', 'absent breath', 'tracheal deviation', 'visceral pleura', 'deep sulcus sign'],
+            keywords: [
+                { word: 'pneumothorax', weight: 5.0 }, { word: 'collapsed lung', weight: 5.0 }, { word: 'hyperresonance', weight: 5.0 },
+                { word: 'absent breath', weight: 5.0 }, { word: 'tracheal deviation', weight: 5.0 }, { word: 'visceral pleura', weight: 5.0 },
+                { word: 'deep sulcus sign', weight: 5.0 }, { word: 'popped lung', weight: 5.0 }, { word: 'sudden pop in chest', weight: 5.0 },
+                { word: 'tall thin guy', weight: 2.0 }, { word: 'cannot hear breath sounds', weight: 5.0 }, { word: 'windpipe shifted', weight: 5.0 },
+                { word: 'neck veins popping out', weight: 5.0 }
+            ],
             evidence: "Asymmetric or completely absent breath sounds combined with hyperresonance to percussion indicates a critical air leak into the pleural space.",
             missing: "Immediate upright chest X-ray or point-of-care thoracic ultrasound (POCUS looking for absence of lung sliding).",
             treatments: ["Perform urgent needle decompression if tension physiology (hemodynamic collapse, tracheal deviation) is present.", "Prepare for formal tube thoracostomy insertion.", "Administer high-flow 100% oxygen to facilitate pleural gas reabsorption."]
         },
         {
-            name: 'Acute Respiratory Distress Syndrome (ARDS)',
-            keywords: ['ards', 'refractory hypoxemia', 'pao2/fio2', 'p/f ratio', 'non-cardiogenic', 'bilateral infiltrates', 'diffuse alveolar damage', 'berlin criteria'],
-            evidence: "Severe hypoxemia highly refractory to standard high-flow oxygen delivery paired with bilateral pulmonary infiltrates strongly points to a diffuse alveolar capillary leak condition.",
-            missing: "Calculation of the precise PaO2/FiO2 ratio and an echocardiogram to definitively rule out a primary hydrostatic cardiogenic origin.",
-            treatments: ["Initiate low-tidal-volume lung-protective ventilation settings (4-6 mL/kg predicted body weight).", "Titrate high positive end-expiratory pressure (PEEP) tables to preserve recruitment.", "Enforce early prolonged prone positioning cycles (16+ hours per day) for severe cases."]
+            name: 'Acute Pulmonary Embolism (PE)',
+            keywords: [
+                { word: 'pulmonary embolism', weight: 5.0 }, { word: 'pleuritic chest pain', weight: 2.0 }, { word: 'd-dimer', weight: 5.0 },
+                { word: 'ctpa', weight: 5.0 }, { word: 'hampton', weight: 5.0 }, { word: 'westermark', weight: 5.0 },
+                { word: 'wells score', weight: 5.0 }, { word: 'v/q scan', weight: 5.0 }, { word: 's1q3t3', weight: 5.0 },
+                { word: 'sudden sharp pain when breathing', weight: 5.0 }, { word: 'calf pain', weight: 2.0 }, { word: 'swollen calf', weight: 2.0 },
+                { word: 'just got off a long flight', weight: 5.0 }, { word: 'recent leg cast', weight: 5.0 }
+            ],
+            evidence: "Acute onset of pleuritic chest pain following periods of immobilization, combined with calf asymmetry, indicates a high clinical probability of a thromboembolic vascular occlusion.",
+            missing: "Urgent Computed Tomography Pulmonary Angiography (CTPA) or a Ventilation/Perfusion (V/Q) scan if contrast is contraindicated.",
+            treatments: ["Initiate systemic anticoagulation immediately (e.g., Low Molecular Weight Heparin or Unfractionated Heparin infusion).", "Evaluate for catheter-directed or systemic thrombolysis if hemodynamic instability (massive PE) develops.", "Provide supplemental oxygen support."]
         },
         {
-            name: 'Acute Pulmonary Embolism (PE)',
-            keywords: ['embolism', 'dvt', 'clot', 'thrombosis', 'wells score', 's1q3t3', 'ctpa', 'ventilation-perfusion mismatch', 'hampton', 'westermark'],
-            evidence: "Sudden onset chest pain, profound hypoxia without explicit consolidative parenchymal structural changes, or signs of right ventricular strain suggest macrovascular occlusion.",
-            missing: "CT Pulmonary Angiography (CTPA), high-sensitivity Troponin, and a quantitative D-dimer assay.",
-            treatments: ["Initiate systemic weight-based anticoagulation immediately (e.g., Unfractionated Heparin infusion) if absolute bleeding hazards are absent.", "Maintain strict bedrest and clear advanced systemic fibrinolytic or embolectomy pathways for hemodynamically unstable cases."]
+            name: 'Acute Respiratory Distress Syndrome (ARDS)',
+            keywords: [
+                { word: 'ards', weight: 5.0 }, { word: 'p/f ratio', weight: 5.0 }, { word: 'pao2/fio2', weight: 5.0 },
+                { word: 'non-cardiogenic', weight: 5.0 }, { word: 'bilateral opacities', weight: 5.0 }, { word: 'diffuse alveolar damage', weight: 5.0 },
+                { word: 'berlin criteria', weight: 5.0 }, { word: 'gasping for air after drowning', weight: 5.0 },
+                { word: 'white out on xray', weight: 5.0 }, { word: 'lungs filling with fluid completely', weight: 2.0 }
+            ],
+            evidence: "Severe refractory hypoxemia with bilateral infiltrates in the absence of primary left atrial hypertension indicates acute, non-cardiogenic inflammatory alveolar capillary membrane injury.",
+            missing: "Arterial Blood Gas (ABG) to calculate precise PaO2/FiO2 ratio, and echocardiogram to conclusively rule out cardiogenic origins.",
+            treatments: ["Implement low tidal volume lung-protective ventilation mechanics (6 mL/kg of Ideal Body Weight).", "Maintain high PEEP strategies to maximize alveolar recruitment.", "Utilize early prone positioning (16+ hours per day) for severe hypoxemia."]
         },
         {
             name: 'Fat Embolism Syndrome',
-            keywords: ['fat embolism', 'long bone fracture', 'femur fracture', 'petechial rash', 'confusion', 'lipiduria'],
+            keywords: [
+                { word: 'fat embolism', weight: 5.0 }, { word: 'long bone fracture', weight: 5.0 }, { word: 'femur fracture', weight: 5.0 },
+                { word: 'petechial rash', weight: 5.0 }, { word: 'confusion', weight: 2.0 }, { word: 'lipiduria', weight: 5.0 },
+                { word: 'broken leg', weight: 2.0 }, { word: 'broken thigh', weight: 5.0 }, { word: 'motorcycle accident', weight: 1.0 },
+                { word: 'acting crazy after surgery', weight: 5.0 }, { word: 'tiny red spots', weight: 5.0 }, { word: 'red spots on armpit', weight: 5.0 },
+                { word: 'pelvic break', weight: 5.0 }
+            ],
             evidence: "The classic triad of respiratory distress, neurological confusion, and axillary/subconjunctival petechiae following a traumatic long-bone fracture points to fat embolization.",
             missing: "Funduscopic examination for fat globules, brain MRI, and arterial blood gas metrics.",
             treatments: ["Provide aggressive supportive respiratory therapy and early mechanical ventilation.", "Enforce early surgical fixation of the causative bone fractures to minimize further marrow leakage.", "Administer systemic hydration logs carefully."]
         },
         {
             name: 'Amniotic Fluid Embolism (AFE)',
-            keywords: ['amniotic', 'labor', 'postpartum', 'dic', 'consumptive coagulopathy', 'uterine atony'],
+            keywords: [
+                { word: 'amniotic', weight: 5.0 }, { word: 'labor', weight: 5.0 }, { word: 'postpartum', weight: 5.0 },
+                { word: 'dic', weight: 5.0 }, { word: 'consumptive coagulopathy', weight: 5.0 }, { word: 'uterine atony', weight: 5.0 },
+                { word: 'giving birth', weight: 5.0 }, { word: 'during delivery', weight: 5.0 }
+            ],
             evidence: "Sudden, catastrophic cardiovascular collapse accompanied by profound hypoxia, alterations in consciousness, and acute consumptive coagulopathy (DIC) during labor dictates an AFE crisis.",
             missing: "Stat coagulation profiles (TEG/ROTEM), echocardiography to evaluate acute right heart failure, and blood gas panels.",
             treatments: ["Initiate immediate high-quality cardiopulmonary resuscitation if arrest occurs, utilizing the A-O-K protocol (Atropine, Ondansetron, Ketorolac).", "Correct consumptive coagulopathy aggressively via massive transfusion protocols (PRBC, FFP, Cryoprecipitate)."]
         },
 
-        // ==========================================
-        // SECTION 3: OCCUPATIONAL & CHEMICAL INHALATION DISEASES
-        // ==========================================
+        // --- OCCUPATIONAL & CHEMICAL INHALATION DISEASES ---
         {
-            name: 'Hypersensitivity Pneumonitis (Bird Fancier / Farmer Lung)',
-            keywords: ['bird', 'pigeon', 'feather', 'coop', 'breeder', 'hay', 'farmer', 'moldy', 'grain dust', 'thermophilic', 'isocyanates'],
-            evidence: "The acute systemic presentation immediately following exposure to organic dusts or avian antigens points directly to immune-mediated alveolar inflammation.",
-            missing: "Specific IgG serum antibodies against suspected antigens, High-Resolution CT showing centrilobular nodules, and bronchoalveolar lavage (BAL) showing marked lymphocytosis.",
-            treatments: ["Complete removal from the source of antigen exposure immediately.", "Consider systemic corticosteroid therapy for severe, acute respiratory restriction.", "Provide humidified oxygen and monitor lung volumes via spirometry."]
+            name: 'Hypersensitivity Pneumonitis',
+            keywords: [
+                { word: 'hypersensitivity pneumonitis', weight: 5.0 }, { word: 'extrinsic allergic', weight: 5.0 }, { word: 'centrilobular nodules', weight: 5.0 },
+                { word: 'pigeon breeder', weight: 5.0 }, { word: 'farmer\'s lung', weight: 5.0 }, { word: 'thermophilic', weight: 5.0 },
+                { word: 'bird cage', weight: 5.0 }, { word: 'keep pigeons', weight: 5.0 }, { word: 'parrots', weight: 2.0 },
+                { word: 'moldy hay', weight: 5.0 }, { word: 'cleaning out the barn', weight: 5.0 }, { word: 'hot tub lung', weight: 5.0 }
+            ],
+            evidence: "Granulomatous inflammation of the bronchioles and interstitium triggered by repeated inhalation of specific organic or environmental antigens.",
+            missing: "Detailed environmental exposure history, serum IgG precipitating antibodies against suspected antigens, and HRCT chest scan.",
+            treatments: ["Enforce absolute avoidance and removal of the causative environmental antigen.", "Prescribe systemic corticosteroid tapers for acute or subacute presentations.", "Consider immunosuppressants if refractory."]
         },
         {
             name: 'Acute Pulmonary Silicosis',
-            keywords: ['stonecutter', 'sandblast', 'silica', 'quarry', 'foundry', 'eggshell', 'quartz', 'rock dust', 'pottery'],
-            evidence: "An occupational history of crystalline silica exposure coupled with upper-lobe nodules and classic eggshell calcifications outlines an aggressive, fibrotic alveolar process.",
-            missing: "Occupational history mapping, HRCT Chest, and pulmonary function testing to measure restrictive degradation.",
-            treatments: ["Immediate cessation of all occupational silica dust exposure.", "Provide aggressive symptomatic therapy (bronchodilators, cough suppressants).", "Screen for secondary Mycobacterium tuberculosis infection, as these patients are at extremely high risk."]
+            keywords: [
+                { word: 'silicosis', weight: 5.0 }, { word: 'eggshell calcification', weight: 5.0 }, { word: 'sandblast', weight: 5.0 },
+                { word: 'quarry', weight: 5.0 }, { word: 'bifringent particles', weight: 5.0 }, { word: 'progressive massive fibrosis', weight: 5.0 },
+                { word: 'stone cutter', weight: 5.0 }, { word: 'worked in a foundry', weight: 5.0 }, { word: 'hard rock mining', weight: 5.0 },
+                { word: 'quartz dust', weight: 5.0 }
+            ],
+            evidence: "Fibronodular lung disease caused by the inhalation of crystalline silica dust, leading to macrophage activation, lysis, and progressive upper-lobe fibrotic nodules.",
+            missing: "Chest radiograph showing small rounded nodules in the upper lobes with classic eggshell calcifications of the hilar lymph nodes.",
+            treatments: ["Mitigate all future occupational exposures immediately.", "Perform a baseline TST/IGRA screening (silicosis dramatically increases vulnerability to Tuberculosis).", "Utilize supportive oxygen therapy."]
         },
         {
-            name: 'Asbestosis / Mesothelioma',
-            keywords: ['shipyard', 'insulation', 'brake lining', 'asbestos', 'pleural plaque', 'ferruginous body', 'chrysotile', 'crocidolite', 'mesothelial'],
-            evidence: "Chronic occupational asbestos particle inhalation leading to interstitial fibrosis or unilateral pleural thickening represents a heavy mineral dust tissue disease.",
-            missing: "High-Resolution CT to distinguish benign plaques from malignant transformation, and tissue biopsy if nodules are tracking upwards.",
-            treatments: ["Strict smoking cessation enforcement (due to exponential multiplier risk for malignancy).", "Enforce strict pulmonary surveillance with serial spirometry testing.", "Provide palliative oxygen therapy for restrictive work of breathing."]
-        },
-        {
-            name: 'Coal Workers Pneumoconiosis (Black Lung)',
-            keywords: ['anthracosis', 'coal miner', 'anthracotic', 'black lung', 'progressive massive fibrosis', 'pmf', 'caplan syndrome'],
-            evidence: "Prolonged carbonaceous dust inhalation with structural radiographic confluence of dark, fibrotic masses matches a classic black lung industrial profile.",
-            missing: "Detailed mining timeline collection, baseline spirometry, and high-resolution imaging tracking.",
-            treatments: ["Enforce definitive extraction from high-dust environments.", "Provide optimized supportive pulmonary hygiene and bronchodilator support.", "Track structural transformations to avoid progressive massive fibrosis limits."]
+            name: 'Asbestosis',
+            keywords: [
+                { word: 'asbestosis', weight: 5.0 }, { word: 'pleural plaques', weight: 5.0 }, { word: 'ferruginous bodies', weight: 5.0 },
+                { word: 'shipyard', weight: 5.0 }, { word: 'insulation worker', weight: 5.0 }, { word: 'mesothelioma', weight: 5.0 },
+                { word: 'parietal pleura calcification', weight: 5.0 }, { word: 'old brake pads', weight: 2.0 },
+                { word: 'removing old insulation', weight: 5.0 }, { word: 'calcified spots on lungs', weight: 5.0 }
+            ],
+            evidence: "Parenchymal lung fibrosis and characteristic diaphragmatic pleural plaques stemming from historic, occupational inhalation of asbestos fibers.",
+            missing: "Chest X-ray or HRCT displaying bilateral calcified plaques along the parietal pleura, and pulmonary function testing showing restriction.",
+            treatments: ["Provide symptomatic support and close monitoring for malignancy developments.", "Enforce aggressive smoking cessation counseling (due to extreme synergistic bronchogenic carcinoma risk).", "Provide routine vaccinations."]
         },
         {
             name: 'Beryllium Disease (Berylliosis)',
-            keywords: ['beryllium', 'aerospace', 'electronics plant', 'non-caseating', 'beryllium lymphocyte proliferation test', 'blpt'],
-            evidence: "Occupational histories spanning advanced electronics fabrication or aerospace manufacturing with secondary systemic sarcoid-like granulomas suggest a delayed hypersensitivity state.",
-            missing: "Beryllium Lymphocyte Proliferation Testing (BLPT) and detailed chemical exposure records.",
-            treatments: ["Initiate high-dose systemic immunosuppressive therapy via corticosteroids.", "Mandate permanent removal from specialized high-tech industrial exposure fields.", "Monitor diffusion metrics closely over multi-year cycles."]
-        },
-        {
-            name: 'Flour Hawk / Baker Asthma',
-            keywords: ['baker', 'flour dust', 'amylase', 'dough', 'mill', 'grain allergen'],
-            evidence: "Occupational IgE-mediated bronchoconstriction occurring secondary to chronic flour or enzyme dust inhalation in commercial baking settings.",
-            missing: "Skin prick testing for grain allergens and serial peak flow tracking both on and off shift.",
-            treatments: ["Implement high-efficiency mask systems and optimized workplace ventilation filters.", "Manage reactive airway updates utilizing standard inhaled corticosteroid pathways."]
+            keywords: [
+                { word: 'berylliosis', weight: 5.0 }, { word: 'cbd', weight: 5.0 }, { word: 'beryllium', weight: 5.0 },
+                { word: 'aerospace', weight: 5.0 }, { word: 'be-lpt', weight: 5.0 }, { word: 'telecommunications worker', weight: 2.0 },
+                { word: 'defense contractor facility', weight: 2.0 }, { word: 'recycling electronics dust', weight: 5.0 },
+                { word: 'making circuit boards', weight: 2.0 }
+            ],
+            evidence: "Chronic granulomatous lung disease mimicking sarcoidosis, directly mediated by a delayed hypersensitivity response to beryllium metal exposures.",
+            missing: "Beryllium Lymphocyte Proliferation Test (Be-LPT) performed using peripheral blood or bronchoalveolar lavage channels.",
+            treatments: ["Completely terminate all ongoing environmental beryllium exposure matrices.", "Initiate oral Corticosteroid therapies for symptomatic, functional declines.", "Incorporate secondary immunosuppressive protocols if required."]
         },
         {
             name: 'Silo Filler Lung (Nitrogen Dioxide Poisoning)',
-            keywords: ['silo', 'nitrogen dioxide', 'no2', 'fermenting grain', 'silo-filler', 'yellow gas'],
+            keywords: [
+                { word: 'silo', weight: 5.0 }, { word: 'nitrogen dioxide', weight: 5.0 }, { word: 'no2', weight: 5.0 },
+                { word: 'fermenting grain', weight: 5.0 }, { word: 'silo-filler', weight: 5.0 }, { word: 'yellow gas', weight: 5.0 }
+            ],
             evidence: "Inhalation of toxic nitrogen dioxide concentrations arising from freshly fermenting agricultural grain fields, triggering hyper-acute chemical pneumonitis.",
             missing: "Methemoglobin evaluation, baseline blood gas monitoring, and serial chest imaging maps.",
             treatments: ["Provide absolute mechanical avoidance of agricultural containment centers.", "Administer early aggressive corticosteroid pulses to arrest chemical bronchiolitis obliterans development."]
         },
         {
             name: 'Popcorn Lung (Bronchiolitis Obliterans via Diacetyl)',
-            keywords: ['diacetyl', 'popcorn factory', 'flavoring agent', 'vaping', 'e-cigarette', 'e-cig', 'fixed obstruction'],
+            keywords: [
+                { word: 'diacetyl', weight: 5.0 }, { word: 'popcorn factory', weight: 5.0 }, { word: 'flavoring agent', weight: 5.0 },
+                { word: 'vaping', weight: 2.0 }, { word: 'e-cigarette', weight: 2.0 }, { word: 'e-cig', weight: 2.0 }, { word: 'fixed obstruction', weight: 5.0 },
+                { word: 'vape pen', weight: 2.0 }, { word: 'juul', weight: 2.0 }, { word: 'flavoring worker', weight: 5.0 },
+                { word: 'chemical fumes', weight: 2.0 }, { word: 'asthma meds did nothing', weight: 5.0 }
+            ],
             evidence: "Severe chemical-induced injury to the terminal bronchioles via diacetyl exposure, culminating in a profound, fixed non-reversible obstructive profile.",
             missing: "High-Resolution CT demonstrating widespread air trapping on expiratory imaging, alongside spirometry profiles showing no bronchodilator response.",
             treatments: ["Strictly eliminate all exposure to artificial flavoring agents or electronic vaping materials.", "Evaluate the candidate for salvage surgical interventions, up to lung transplantation options."]
         },
 
-        // ==========================================
-        // SECTION 4: INFECTIONS & IMMUNOCOMPROMISED RESPIRATORY DISEASE
-        // ==========================================
+        // --- INFECTIONS & IMMUNOCOMPROMISED DISEASES ---
         {
             name: 'Active Pulmonary Tuberculosis (TB)',
-            keywords: ['night sweats', 'hemoptysis', 'cavitary', 'acid-fast', 'weight loss', 'afb smear', 'granuloma', 'ghon', 'caseating'],
+            keywords: [
+                { word: 'night sweats', weight: 5.0 }, { word: 'hemoptysis', weight: 5.0 }, { word: 'cavitary', weight: 5.0 },
+                { word: 'acid-fast', weight: 5.0 }, { word: 'weight loss', weight: 2.0 }, { word: 'afb smear', weight: 5.0 },
+                { word: 'granuloma', weight: 2.0 }, { word: 'ghon', weight: 5.0 }, { word: 'caseating', weight: 5.0 },
+                { word: 'coughing blood', weight: 5.0 }, { word: 'bloody spit', weight: 5.0 }, { word: 'waking up drenched', weight: 5.0 },
+                { word: 'waking up sweating', weight: 5.0 }, { word: 'lost 20 pounds', weight: 2.0 }, { word: 'homeless shelter', weight: 2.0 }
+            ],
             evidence: "Constitutional wasting symptoms combined with bloody sputum and upper lobe cavitations structurally define a chronic mycobacterial destructive parenchymal pattern.",
             missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture (x3), and molecular GeneXpert MTB/RIF tracking.",
             treatments: ["Isolate patient immediately in an airborne infection isolation room (AIIR) with negative pressure.", "Initiate empiric four-drug therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) once isolated.", "Notify local department of public health within 24 hours."]
         },
         {
-            name: 'Acute Bacterial Pneumonia',
-            keywords: ['pneumonia', 'consolidation', 'infiltrate', 'purulent sputum', 'streptococcus pneumoniae', 'lobar consolidation', 'rusty sputum', 'procalcitonin'],
-            evidence: "Focal or multi-lobar alveolar consolidations paired with purulent expectoration and high inflammatory markers indicate an acute, exudative infectious process.",
-            missing: "Sputum Gram stain and culture, urinary antigen tests (Legionella/Pneumococcal), and blood cultures.",
-            treatments: ["Administer empiric broad-spectrum antibiotic therapy matched to community or hospital guidelines within 1 hour.", "Optimize hydration profiles and deliver aggressive airway clearance support."]
+            name: 'Community-Acquired Pneumonia (CAP)',
+            keywords: [
+                { word: 'pneumonia', weight: 2.0 }, { word: 'consolidation', weight: 5.0 }, { word: 'curb-65', weight: 5.0 },
+                { word: 'bronchophony', weight: 5.0 }, { word: 'egophony', weight: 5.0 }, { word: 'tactile fremitus', weight: 5.0 },
+                { word: 'lobar infiltrate', weight: 5.0 }, { word: 'streptococcus pneumoniae', weight: 5.0 },
+                { word: 'coughing up green muck', weight: 2.0 }, { word: 'yellow spit', weight: 2.0 }, { word: 'rusty color phlegm', weight: 5.0 },
+                { word: 'shaking chills', weight: 2.0 }, { word: 'fever and hacking', weight: 2.0 }
+            ],
+            evidence: "Focal signs of pulmonary consolidation (increased tactile fremitus, egophony) paired with purulent sputum production align with an acute infectious alveolar filling pattern.",
+            missing: "Chest X-ray (PA and Lateral views) to confirm focal consolidation, along with blood and sputum cultures.",
+            treatments: ["Initiate empiric antibiotic therapy (e.g., Ceftriaxone combined with Azithromycin, or respiratory Fluoroquinolones).", "Calculate CURB-65 or PSI score to determine appropriate disposition (outpatient vs. floor vs. ICU).", "Provide aggressive fluid resuscitation if sepsis criteria are met."]
         },
         {
-            name: 'Pneumocystis Jirovecii Pneumonia (PJP / PCP)',
-            keywords: ['pcp', 'pjp', 'jirovecii', 'hiv', 'cd4 <', 'immunocompromised', 'bat-wing', 'silver stain', 'ldh elevation'],
-            evidence: "Perihilar ground-glass interstitial markings combined with disproportionately severe hypoxemia in an immunocompromised host indicates classic opportunistic fungal filling.",
-            missing: "Induced sputum or bronchoalveolar lavage for silver stain microscopy or PCR validation, alongside a CD4 T-cell count.",
-            treatments: ["Initiate high-dose intravenous or oral Trimethoprim-Sulfamethoxazole (TMP-SMX).", "Concurrently administer adjunctive systemic corticosteroids if PaO2 is less than 70 mmHg or A-a gradient exceeds 35 mmHg."]
+            name: 'Pneumocystis Jirovecii Pneumonia (PCP)',
+            keywords: [
+                { word: 'pneumocystis', weight: 5.0 }, { word: 'pcp', weight: 5.0 }, { word: 'jirovecii', weight: 5.0 },
+                { word: 'cd4 count', weight: 2.0 }, { word: 'silver stain', weight: 5.0 }, { word: 'ldh level', weight: 2.0 },
+                { word: 'interstitial infiltrates', weight: 2.0 }, { word: 'batwing', weight: 5.0 },
+                { word: 'hiv positive with dry cough', weight: 5.0 }, { word: 'aids breathing trouble', weight: 5.0 },
+                { word: 'oxygen drops drastically when walking', weight: 5.0 }
+            ],
+            evidence: "Opportunistic fungal infection causing progressive interstitial pneumonia in highly immunocompromised individuals, classically showcasing dramatic exertional desaturation.",
+            missing: "Induced sputum sample or bronchoalveolar lavage (BAL) fluid evaluated via immunofluorescence or methenamine silver staining.",
+            treatments: ["Administer high-dose Trimethoprim-Sulfamethoxazole (TMP-SMX) orally or intravenously.", "Add adjunctive Corticosteroids if the arterial blood gas reveals a PaO2 < 70 mmHg or an A-a gradient >= 35 mmHg."]
         },
         {
-            name: 'Lung Abscess',
-            keywords: ['abscess', 'cavitary lesion with fluid level', 'air-fluid level', 'foul breath', 'putrid sputum', 'aspiration risk', 'periodontal disease'],
-            evidence: "The presentation of putrid, foul-smelling sputum paired with a discrete air-fluid level on chest imaging points directly to a necrotizing parenchymal anaerobic collection.",
-            missing: "CT Chest with contrast to define the abscess wall architecture, and sputum or fluid testing to guide antimicrobial choices.",
-            treatments: ["Initiate prolonged courses of tailored antibiotic coverage containing adequate anaerobic coverage (e.g., Ampicillin-Sulbactam or Clindamycin).", "Incentivize aggressive postural drainage regimes while monitoring for sudden empyema transformations."]
+            name: 'Aspiration Pneumonitis / Pneumonia',
+            keywords: [
+                { word: 'aspiration', weight: 5.0 }, { word: 'mendelson', weight: 5.0 }, { word: 'chemical pneumonitis', weight: 2.0 },
+                { word: 'dependent segments', weight: 5.0 }, { word: 'right lower lobe', weight: 2.0 }, { word: 'anaerobic', weight: 2.0 },
+                { word: 'choked on vomit', weight: 5.0 }, { word: 'passed out drunk and choked', weight: 5.0 },
+                { word: 'foul smelling spit', weight: 5.0 }, { word: 'stroke patient coughing while eating', weight: 5.0 }
+            ],
+            evidence: "Inhalation of gastric contents or oropharyngeal secretions triggers an acute chemical burn (pneumonitis) or subsequent bacterial infection (pneumonia) in dependent lung zones.",
+            missing: "Chest X-ray identifying infiltrates preferentially localized in the right lower lobe or posterior segments of the upper lobes.",
+            treatments: ["Provide immediate airway suctioning if aspiration is witnessed.", "Avoid immediate antibiotics for early pure sterile chemical pneumonitis unless symptoms fail to resolve after 48 hours.", "Utilize Clindamycin or Ampicillin-Sulbactam if infectious pneumonia develops."]
         },
         {
-            name: 'Allergic Bronchopulmonary Aspergillosis (ABPA)',
-            keywords: ['abpa', 'aspergillus', 'brown plugs', 'central bronchiectasis', 'ige elevation', 'aspergillin'],
-            evidence: "Hypersensitivity immune reactions targeting Aspergillus colonization within structural asthmatic or cystic fibrosis airway loops, indicated by brown mucous plugs.",
-            missing: "Total serum IgE metrics, Aspergillus-specific IgE/IgG testing, and eosinophil validation logs.",
-            treatments: ["Administer systemic oral corticosteroids to reduce hyper-inflammatory responses.", "Incorporate systemic antifungal agents (e.g., Itraconazole) to deplete colonizing fungal loads."]
+            name: 'Inhalational Anthrax',
+            keywords: [
+                { word: 'anthrax', weight: 5.0 }, { word: 'bacillus anthracis', weight: 5.0 }, { word: 'mediastinal widening', weight: 5.0 },
+                { word: 'hemorrhagic mediastinitis', weight: 5.0 }, { word: 'wool-sorter', weight: 5.0 },
+                { word: 'sorting imported wools', weight: 5.0 }, { word: 'tanning animal hides', weight: 5.0 },
+                { word: 'white powder threat', weight: 5.0 }, { word: 'sudden massive chest widening on xray', weight: 5.0 }
+            ],
+            evidence: "Severe life-threatening infection initiated by inhaled Bacillus anthracis spores, progressing from generic viral prodromes into devastating hemorrhagic mediastinitis.",
+            missing: "Blood cultures showing gram-positive spore-forming rods, and a chest radiograph documenting classical mediastinal widening without parenchymal infiltrates.",
+            treatments: ["Administer multi-drug IV antibiotic regimens (e.g., Ciprofloxacin paired with Clindamycin or Linezolid).", "Incorporate anti-toxin monoclonal antibodies (e.g., Raxibacumab or Obiltoxaximab).", "Provide aggressive critical care drainage support."]
         },
 
-        // ==========================================
-        // SECTION 5: AUTOIMMUNE ALVEOLAR & VASCULITIC DISORDERS
-        // ==========================================
+        // --- AUTOIMMUNE ALVEOLAR & VASCULITIC DISORDERS ---
         {
-            name: 'Diffuse Alveolar Hemorrhage / Goodpasture Syndrome',
-            keywords: ['goodpasture', 'anti-gbm', 'glomerulonephritis', 'hemoptysis and hematuria', 'alveolar hemorrhage', 'linear iga', 'linear igg'],
-            evidence: "Concurrent presentation of structural alveolar capillary bleeding and proliferative acute glomerulonephritis secondary to anti-glomerular basement membrane (GBM) antibody attacks.",
-            missing: "Serological anti-GBM antibody screening, urgent renal biopsy evaluating crescentic changes, and serial DLCO testing metrics.",
-            treatments: ["Initiate immediate plasmapheresis cycles to filter pathogenic autoantibodies.", "Prescribe pulse-dose intravenous Methylprednisolone and concurrent Cyclophosphamide protocols."]
+            name: 'Goodpasture Syndrome (Anti-GBM Disease)',
+            keywords: [
+                { word: 'goodpasture', weight: 5.0 }, { word: 'anti-gbm', weight: 5.0 }, { word: 'basement membrane', weight: 2.0 },
+                { word: 'alveolar hemorrhage', weight: 5.0 }, { word: 'linear igg', weight: 5.0 },
+                { word: 'peeing blood and coughing blood', weight: 5.0 }, { word: 'kidney failure with lung bleeding', weight: 5.0 },
+                { word: 'bleeding from lungs and kidneys', weight: 5.0 }
+            ],
+            evidence: "Autoimmune disorder triggered by autoantibodies against the alpha-3 chain of type IV collagen, inducing a rapid, destructive pulmonary-renal syndrome.",
+            missing: "Serum anti-GBM antibody assay or a renal biopsy displaying pathognomonic linear IgG deposits along the basement membrane.",
+            treatments: ["Initiate urgent Plasmapheresis cycles to clear circulating pathogenetic autoantibodies.", "Prescribe pulse IV Methylprednisolone and concurrent Cyclophosphamide.", "Support with hemodialysis if needed."]
         },
         {
-            name: 'Granulomatosis with Polyangiitis (GPA / Wegener)',
-            keywords: ['wegener', 'gpa', 'c-anca', 'pr3', 'saddle nose', 'sinusitis', 'cavitary nodules'],
-            evidence: "Necrotizing granulomatous vasculitis involving the upper and lower respiratory tracts paired with focal necrotizing glomerulonephritis.",
-            missing: "Cytoplasmic antineutrophil cytoplasmic antibody (c-ANCA / anti-PR3) testing, sinus imaging, and histological confirmation via biopsy.",
-            treatments: ["Induce remission utilizing high-dose corticosteroids paired with Rituximab or Cyclophosphamide.", "Closely track renal and airway metrics to anticipate critical subglottic stenosis."]
+            name: 'Wegener\'s Granulomatosis (Granulomatosis with Polyangiitis)',
+            keywords: [
+                { word: 'gpa', weight: 5.0 }, { word: 'wegener', weight: 5.0 }, { word: 'c-anca', weight: 5.0 },
+                { word: 'pr3-anca', weight: 5.0 }, { word: 'saddle nose', weight: 5.0 }, { word: 'cavitary nodules', weight: 2.0 },
+                { word: 'bloody crusts in nose', weight: 5.0 }, { word: 'coughing blood with kidney failure', weight: 5.0 },
+                { word: 'collapsed nose bridge', weight: 5.0 }, { word: 'sinus pain and coughing blood', weight: 5.0 }
+            ],
+            evidence: "Granulomatous necrotizing vasculitis target-locking the upper respiratory tract, lower respiratory tract, and kidneys (pauci-immune glomerulonephritis).",
+            missing: "Serum c-ANCA (PR3) autoantibody markers and a confirming biopsy from active upper airway lesions or renal tissue.",
+            treatments: ["Induce remission using Rituximab or Cyclophosphamide paired with high-dose pulse Glucocorticoids.", "Transition to maintenance therapies via Azathioprine or Methotrexate.", "Closely track renal indices."]
         },
         {
-            name: 'Eosinophilic Granulomatosis with Polyangiitis (EGPA / Churg-Strauss)',
-            keywords: ['churg-strauss', 'egpa', 'p-anca', 'eosinophilia', 'peripheral neuropathy', 'asthma exacerbation with systemic vasculitis'],
-            evidence: "Severe corticosteroid-dependent reactive airway changes paired with profound peripheral blood eosinophilia and multi-organ vasculitic profiles imply systemic eosinophilic destruction.",
-            missing: "Perinuclear antineutrophil cytoplasmic antibody (p-ANCA) testing and specific tissue biopsy confirmation.",
-            treatments: ["Initiate high-dose systemic corticosteroid pulse therapies.", "Incorporate secondary steroid-sparing immunosuppressive agents (e.g., Cyclophosphamide or Mepolizumab) for severe configurations."]
+            name: 'Churg-Strauss Syndrome (Eosinophilic Granulomatosis with Polyangiitis)',
+            keywords: [
+                { word: 'egpa', weight: 5.0 }, { word: 'churg-strauss', weight: 5.0 }, { word: 'p-anca', weight: 5.0 },
+                { word: 'mpo-anca', weight: 5.0 }, { word: 'eosinophilia', weight: 2.0 }, { word: 'transient infiltrates', weight: 5.0 },
+                { word: 'severe asthma with numbness', weight: 5.0 }, { word: 'foot drop', weight: 5.0 }, { word: 'high eosinophils', weight: 2.0 }
+            ],
+            evidence: "Systemic necrotizing small-to-medium vessel vasculitis characterized by prominent tissue eosinophilia, severe asthma, and frequent peripheral neuropathy (mononeuritis multiplex).",
+            missing: "Tissue biopsy showing eosinophilic infiltration/vasculitis and serum p-ANCA (MPO) antibody quantification.",
+            treatments: ["Initiate high-dose systemic Corticosteroid regimens.", "Incorporate cyclophosphamide or biologic therapies (e.g., Mepolizumab) for severe multi-organ or refractory disease phases."]
         },
 
-        // ==========================================
-        // SECTION 6: CHRONIC INTERSTITIAL & STORAGE DISEASES
-        // ==========================================
+        // --- INTERSTITIAL, STRUCTURAL & STORAGE DISEASES ---
         {
             name: 'Idiopathic Pulmonary Fibrosis (IPF)',
-            keywords: ['honeycombing', 'honeycomb', 'velcro crackles', 'restrictive defect', 'traction bronchiectasis', 'uip', 'nintedanib', 'pirfenidone'],
-            evidence: "Progressive, non-productive cough, distinctive basal 'Velcro' crackles, and architectural distortion matching a Usual Interstitial Pneumonia (UIP) pattern suggest progressive parenchymal fibrosing.",
-            missing: "High-Resolution CT (HRCT) displaying subpleural, basal-predominant reticular changes, and complete autoantibody screen to exclude connective tissue disease.",
-            treatments: ["Consider initiation of antifibrotic therapies (e.g., Nintedanib or Pirfenidone) to slow decline.", "Titrate long-term supplemental oxygen therapy to protect oxygen delivery profiles.", "Refer immediately for early lung transplantation evaluation."]
-        },
-        {
-            name: 'Pulmonary Alveolar Proteinosis (PAP)',
-            keywords: ['milky', 'opaque fluid', 'lavage', 'bal', 'surfactant', 'pas-positive', 'crazy-paving', 'gm-csf'],
-            evidence: "The discovery of an opaque, milky effluent during bronchoscopy indicates a catastrophic accumulation of surfactant proteins within the alveoli due to altered clearance mechanics.",
-            missing: "Serum GM-CSF antibody testing, CT Chest confirming a distinctive 'crazy-paving' attenuation pattern.",
-            treatments: ["Prepare patient for a therapeutic Whole Lung Lavage (WLL) under general anesthesia.", "Monitor arterial oxygen saturation closely during mechanical extraction procedures.", "Consider subcutaneous GM-CSF therapy if autoimmune variants are laboratory confirmed."]
+            keywords: [
+                { word: 'idiopathic pulmonary fibrosis', weight: 5.0 }, { word: 'honeycombing', weight: 5.0 }, { word: 'fibrosis', weight: 2.0 },
+                { word: 'usual interstitial pneumonia', weight: 5.0 }, { word: 'uip pattern', weight: 5.0 }, { word: 'traction bronchiectasis', weight: 5.0 },
+                { word: 'velcro crackles', weight: 5.0 }, { word: 'nintedanib', weight: 5.0 }, { word: 'pirfenidone', weight: 5.0 },
+                { word: 'dry leathery cough', weight: 2.0 }, { word: 'fingertips look like clubs', weight: 5.0 }, { word: 'clubbing', weight: 5.0 },
+                { word: 'gradual shortness of breath over years', weight: 5.0 }, { word: 'velcro sound in lungs', weight: 5.0 }
+            ],
+            evidence: "Slowly progressive exertional dyspnea, digital clubbing, and bilateral subpleural velcro-like inspiratory crackles point to an underlying chronic fibrosing interstitial lung disease.",
+            missing: "High-Resolution Computed Tomography (HRCT) of the chest to identify telltale subpleural honeycombing and traction bronchiectasis.",
+            treatments: ["Initiate antifibrotic therapy medications (Pirfenidone or Nintedanib) to slow decline.", "Enroll in comprehensive pulmonary rehabilitation.", "Evaluate promptly for lung transplantation eligibility if progression accelerates."]
         },
         {
             name: 'Pulmonary Sarcoidosis',
-            keywords: ['sarcoidosis', 'granuloma', 'hilar lymphadenopathy', 'erythema nodosum', 'ace level', 'noncaseating', 'lfgren syndrome'],
-            evidence: "Bilateral symmetrical hilar lymphadenopathy and non-caseating granulomatous infiltration indicate a multi-system, immune-mediated epithelioid disease.",
-            missing: "Serum Angiotensin-Converting Enzyme (ACE) levels, High-Resolution CT, and transbronchial lung biopsy.",
-            treatments: ["Initiate systemic corticosteroid regimens if major functional impairment or organ involvement develops.", "Perform baseline ECGs and ophthalmological screenings to evaluate for systemic extrapulmonary tracking."]
+            keywords: [
+                { word: 'sarcoidosis', weight: 5.0 }, { word: 'bilateral hilar adenopathy', weight: 5.0 }, { word: 'non-caseating', weight: 5.0 },
+                { word: 'erythema nodosum', weight: 5.0 }, { word: 'lfgren', weight: 5.0 }, { word: 'heerfordt', weight: 5.0 },
+                { word: 'ace level', weight: 5.0 }, { word: 'lupus pernio', weight: 5.0 },
+                { word: 'swollen lymph nodes in chest', weight: 5.0 }, { word: 'painful red bumps on shins', weight: 5.0 },
+                { word: 'purple rash on nose', weight: 5.0 }
+            ],
+            evidence: "Systemic granulomatous disease characterized by non-caseating epithelioid granulomas, primarily dominating the mediastinal lymph nodes and lung parenchyma.",
+            missing: "Bronchoscopy with transbronchial lung biopsy to confirm non-caseating granulomas and exclude fungal/mycobacterial processes.",
+            treatments: ["Initiate systemic oral Corticosteroids (e.g., Prednisone) for symptomatic or progressive stage II/III disease.", "Monitor multi-organ involvement (cardiac, ophthalmic, and renal assessments).", "Utilize steroid-sparing agents like Methotrexate if needed."]
         },
         {
-            name: 'Lymphangioleiomyomatosis (LAM)',
-            keywords: ['lam', 'cystic lung disease', 'chylothorax', 'tuberous sclerosis', 'vegf-d', 'sirolimus', 'pneumothorax in young female'],
-            evidence: "Widespread thin-walled cystic parenchymal destruction seen almost exclusively in young females, frequently presenting with recurrent pneumothoraces or chylous fluid leaks.",
-            missing: "Serum VEGF-D level testing, and high-resolution imaging verifying symmetric cystic transformations.",
-            treatments: ["Initiate mTOR inhibitor therapy using Sirolimus to slow structural lung degradation.", "Enforce strict avoidance of exogenous estrogen containing pharmaceutical compounds."]
+            name: 'Atelectasis',
+            keywords: [
+                { word: 'atelectasis', weight: 5.0 }, { word: 'mucus plugging', weight: 2.0 }, { word: 'linear opacities', weight: 2.0 },
+                { word: 'volume loss', weight: 5.0 }, { word: 'ipsilateral deviation', weight: 5.0 },
+                { word: 'post surgery shallow breathing', weight: 5.0 }, { word: 'hurts to cough after stomach surgery', weight: 5.0 },
+                { word: 'collapsed air sacs', weight: 5.0 }
+            ],
+            evidence: "Loss of lung volume due to collapse of alveoli, frequently seen postoperatively secondary to splinting, shallow breathing, or airway obstructions.",
+            missing: "Chest X-ray showing structural volume loss signs (diaphragmatic elevation or fissural displacement toward the collapse).",
+            treatments: ["Implement aggressive incentive spirometry and chest physiotherapy regimens.", "Encourage early patient mobilization and optimized pain control to mitigate splinting.", "Perform therapeutic bronchoscopy if massive mucus plugging persists."]
         },
 
-        // ==========================================
-        // SECTION 7: ADVANCED PULMONARY VASCULAR DISEASES
-        // ==========================================
-        {
-            name: 'Pulmonary Arterial Hypertension (PAH)',
-            keywords: ['pah', 'cor pulmonale', 'rvh', 'right heart failure', 'tricuspid regurgitation', 'p2 loudness', 'sildenafil', 'epoprostenol'],
-            evidence: "Evidence of prominent right-sided heart workload without primary left-sided heart disease suggests structural or idiopathic remodeling of the pulmonary vascular bed.",
-            missing: "Right heart catheterization to calculate mean pulmonary artery pressure, Echocardiogram, and V/Q scan to rule out chronic thromboembolism.",
-            treatments: ["Administer targeted pulmonary vasodilators (e.g., phosphodiesterase-5 inhibitors, endothelin receptor antagonists) as indicated.", "Cautiously manage fluid balance using diuretics.", "Maintain strict avoidance of hypoxic environments."]
-        },
+        // --- ADVANCED PULMONARY VASCULAR DISEASES ---
         {
             name: 'Pulmonary Veno-Occlusive Disease (PVOD)',
-            keywords: ['pvod', 'veno-occlusive', 'septal lines', 'centrilobular ground glass', 'pulmonary edema after vasodilators'],
+            keywords: [
+                { word: 'pvod', weight: 5.0 }, { word: 'veno-occlusive', weight: 5.0 }, { word: 'septal lines', weight: 5.0 },
+                { word: 'centrilobular ground glass', weight: 5.0 }, { word: 'pulmonary edema after vasodilators', weight: 5.0 },
+                { word: 'worse after blood pressure medication', weight: 5.0 }, { word: 'worse after vasodilator', weight: 5.0 },
+                { word: 'fluid tracking in lungs', weight: 2.0 }
+            ],
             evidence: "Extremely rare vascular variant characterized by progressive post-capillary obstruction of small pulmonary veins, often presenting with paradoxical worsening of edema upon initiating standard PAH vasodilators.",
             missing: "Genetic screening for EIF2AK4 mutations, and HRCT mapping confirming septal lines and centrilobular ground-glass nodules.",
             treatments: ["Immediately discontinue any pulmonary arterial vasodilators that aggravate the condition.", "Refer urgently for emergency lung transplantation evaluation, as pharmacological management profiles are poor."]
         },
         {
-            name: 'Hereditary Hemorrhagic Telangiectasia (HHT / Osler-Weber-Rendu)',
-            keywords: ['hht', 'telangiectasia', 'osler-weber-rendu', 'pulmonary avm', 'arteriovenous malformation', 'epistaxis', 'right-to-left shunt'],
-            evidence: "Systemic vascular dysplasia featuring multi-organ arteriovenous malformations (AVMs), precipitating dynamic right-to-left shunting and structural hemoptysis loops.",
-            missing: "Contrast echocardiography (bubble study) showing direct vascular shunting and genetic tracking profiles.",
-            treatments: ["Coordinate with interventional radiology for transcatheter embolization of pulmonary AVMs with a feeding artery > 2-3mm.", "Maintain antibiotic prophylaxis before dental procedures to decrease the incidence of embolic brain abscesses."]
+            name: 'Hepatopulmonary Syndrome',
+            keywords: [
+                { word: 'hepatopulmonary', weight: 5.0 }, { word: 'platypnea', weight: 5.0 }, { word: 'orthodeoxia', weight: 5.0 },
+                { word: 'intrapulmonary vascular dilatations', weight: 5.0 }, { word: 'macroaggregated albumin', weight: 5.0 },
+                { word: 'easier to breathe lying down', weight: 5.0 }, { word: 'oxygen drops when I sit up', weight: 5.0 },
+                { word: 'liver cirrhosis with breathing trouble', weight: 5.0 }
+            ],
+            evidence: "Triad of advanced liver disease, intrapulmonary vascular dilations, and abnormal arterial oxygenation that worsens characteristically when moving to an upright posture.",
+            missing: "Contrast-enhanced transthoracic echocardiography (bubble study) showing delayed appearance of microbubbles in the left atrium (frames 4-6).",
+            treatments: ["Provide supplemental oxygen support tailored to postural position variations.", "Evaluate for definitive curative treatment via liver transplantation, as medical interventions provide limited long-term success."]
         },
 
-        // ==========================================
-        // SECTION 8: CONGENITAL, GENETIC & AIRWAY DISEASES
-        // ==========================================
-        {
-            name: 'Severe Bronchiectasis',
-            keywords: ['tram-track', 'foul sputum', 'foul-smelling', 'dilated bronchi', 'cylindrical bronchiectasis', 'mucociliary clearance', 'signet ring sign'],
-            evidence: "Chronic production of high-volume, foul-smelling sputum combined with radiographic evidence of irreversible bronchial dilation suggests structural airway destruction.",
-            missing: "High-Resolution CT (HRCT) of the chest to map airway dimensions, sputum cultures for Pseudomonas aeruginosa, and sweat chloride test to rule out late-onset cystic fibrosis.",
-            treatments: ["Implement high-frequency chest wall oscillation or mechanical airway clearance twice daily.", "Prescribe hypertonic saline nebulization to facilitate mobilization of impacted secretions.", "Initiate targeted antibiotic cycles during acute infectious exacerbations."]
-        },
+        // --- GENETIC, STRUCTURAL & STRUCTURAL AIRWAY DISEASES ---
         {
             name: 'Alpha-1 Antitrypsin Deficiency',
-            keywords: ['alpha-1', 'aatd', 'panacinar', 'basal emphysema', 'pizz', 'cirrhosis and emphysema'],
-            evidence: "Early-onset panacinar emphysema displaying a distinct predilection for the lower lung zones, frequently paired with unprovoked hepatic dysfunction.",
-            missing: "Quantitative serum Alpha-1 antitrypsin level testing and definitive AAT proteotype/genotype parsing.",
-            treatments: ["Initiate weekly intravenous augmentation therapy with human alpha-1 antitrypsin concentrates.", "Enforce absolute smoking cessation and optimized bronchodilation schedules."]
+            keywords: [
+                { word: 'alpha-1', weight: 5.0 }, { word: 'aatd', weight: 5.0 }, { word: 'panacinar', weight: 5.0 },
+                { word: 'piwz', weight: 5.0 }, { word: 'pizz', weight: 5.0 }, { word: 'basilar emphysema', weight: 5.0 },
+                { word: 'serpin1', weight: 5.0 }, { word: 'emphysema in my 30s', weight: 5.0 },
+                { word: 'never smoked but have copd', weight: 5.0 }, { word: 'liver problems and lung problems', weight: 5.0 }
+            ],
+            evidence: "Genetic deficiency of the protease inhibitor AAT, unleashing unchecked neutrophil elastase activity that degrades alveolar walls, classically dominating the lower lung zones.",
+            missing: "Quantitative serum Alpha-1 Antitrypsin level measurement and subsequent Pi-typing genotypic validation.",
+            treatments: ["Administer regular IV augmentation therapy with purified human AAT proteins.", "Maintain standard aggressive bronchodilator and vaccination protocols.", "Strictly avoid any form of tobacco or chemical irritant exposures."]
         },
         {
-            name: 'Cystic Fibrosis (Adult Presentation / Classic)',
-            keywords: ['cystic fibrosis', 'cftr', 'sweat chloride', 'pancreatic insufficiency', 'apical bronchiectasis', 'delta f508'],
-            evidence: "Multisystem exocrine pathway degradation driven by defective chloride ion transport, creating thick, viscous secretions that manifest as chronic apical bronchiectasis.",
-            missing: "Quantitative pilocarpine iontophoresis sweat chloride testing and comprehensive CFTR mutation genetic profiling panels.",
-            treatments: ["Administer regular nebulized dornase alfa (Pulmozyme) and hypertonic saline to cleave inspissated mucus.", "Incorporate CFTR modulators tailored specifically to the patient's verified genetic variations."]
+            name: 'Tracheobronchial Foreign Body Aspiration',
+            keywords: [
+                { word: 'foreign body aspiration', weight: 5.0 }, { word: 'focal wheezing', weight: 5.0 }, { word: 'air trapping', weight: 2.0 },
+                { word: 'asymmetric hyperlucency', weight: 5.0 }, { word: 'choked on a peanut', weight: 5.0 },
+                { word: 'swallowed a small toy', weight: 5.0 }, { word: 'sudden coughing fit while eating nuts', weight: 5.0 },
+                { word: 'whistling breath sound on one side', weight: 5.0 }
+            ],
+            evidence: "Acute partial or total mechanical airway obstruction via exogenous materials, presenting with localized unilateral wheezing and focal respiratory phase alterations.",
+            missing: "Inspiratory/Expiratory chest radiographs mapping localized unilateral air trapping, or direct rigid bronchoscopic visualization.",
+            treatments: ["Perform emergent rigid bronchoscopy to safely grasp and extract the foreign material body.", "Avoid blind finger sweeps to prevent driving objects deeper.", "Administer short-term steroids if localized mucosal swelling is severe."]
         },
         {
-            name: 'Primary Ciliary Dyskinesia / Kartagener Syndrome',
-            keywords: ['kartagener', 'situs inversus', 'dyskinesia', 'dynein arm', 'chronic sinusitis and bronchiectasis', 'sinus inversus'],
-            evidence: "Congenital structural defect involving the ciliary dynein arms, yielding a classic triad of chronic sinusitis, bronchiectasis, and complete visceral transposition (situs inversus).",
-            missing: "Nasal nitric oxide screening measurements, and specialized high-speed video microscopy evaluation of ciliary beat frequency.",
-            treatments: ["Establish lifelong, aggressive mechanical airway clearance routines.", "Treat recurrent sinopulmonary microbial flares early using targeted antibiotic choices."]
-        },
-
-        // ==========================================
-        // SECTION 9: PHYSIOLOGICAL VENTILATORY LOOPS & RESTRUCTURING
-        // ==========================================
-        {
-            name: 'Sleep Apnea Hypoventilation Syndrome',
-            keywords: ['snoring', 'daytime somnolence', 'obese', 'neck circumference', 'micrognathia', 'osa', 'cpap', 'polysomnography', 'ahi index'],
-            evidence: "Severe upper airway tissue collapse during rest causing progressive daytime fatigue and nocturnal hypoxia points to mechanical ventilatory failure.",
-            missing: "Overnight in-lab Polysomnography (Sleep Study) to track Apnea-Hypopnea Index (AHI) and nocturnal desaturations.",
-            treatments: ["Titrate nocturnal Continuous Positive Airway Pressure (CPAP) device parameters.", "Mandate structured weight reduction plans and evaluation of jaw anatomy.", "Avoid all central nervous system depressants and alcohol before sleeping."]
-        },
-        {
-            name: 'Obesity Hypoventilation Syndrome (Pickwickian)',
-            keywords: ['pickwickian', 'bmi >', 'hypercapnic respiratory failure', 'pco2 elevation', 'somnolence', 'bicarbonate elevation'],
-            evidence: "The combination of severe obesity, chronic daytime hypercapnia, and nocturnal hypoventilation without alternative primary lung conditions confirms Pickwickian respiratory physiology.",
-            missing: "Daytime ABG confirming pCO2 > 45 mmHg alongside formal pulmonary function profiling to rule out severe obstructive constraints.",
-            treatments: ["Deploy continuous nocturnal non-invasive positive pressure configurations (BiPAP).", "Enforce specialized dietary interventions and investigate options for bariatric care pathways."]
-        },
-        {
-            name: 'Diaphragmatic Paralysis / Neuromuscular Weakness',
-            keywords: ['diaphragm elevation', 'sniff test', 'als', 'myasthenia', 'paradoxical abdominal', 'guillain-barre', 'negative inspiratory force', 'nif'],
-            evidence: "Paradoxical inward movement of the abdominal wall during inspiration paired with rapidly declining vital capacities suggests paralysis or failure of the ventilatory pump.",
-            missing: "Fluoroscopic sniff testing, vital capacity tracking in both upright and supine positions, and serial Negative Inspiratory Force (NIF) trends.",
-            treatments: ["Establish early non-invasive or invasive mechanical ventilatory configurations before dynamic hypoventilation collapse occurs.", "Minimize systemic muscle-relaxing chemical configurations and avoid aggressive volume loading."]
-        },
-        {
-            name: 'Radiation Pneumonitis',
-            keywords: ['radiation pneumonitis', 'radiotherapy', 'malignancy exposure', 'linear opacity', 'breast cancer radiation'],
-            evidence: "Subacute fibrotic inflammation of the lung parenchyma confined strictly to previous therapeutic chest radiotherapy ports, precipitating restrictive hypoxemia.",
-            missing: "Chest CT confirming consolidation precisely correlating with geometric radiation portals, alongside exclusion of active local infections.",
-            treatments: ["Initiate prolonged systemic corticosteroid tapers (e.g., Prednisone starting at 40-60mg daily).", "Employ supportive cough suppressants and maximize targeted gas exchange parameters."]
+            name: 'Obstructive Sleep Apnea (OSA)',
+            keywords: [
+                { word: 'osa', weight: 5.0 }, { word: 'ahi index', weight: 5.0 }, { word: 'epworth', weight: 5.0 },
+                { word: 'polysomnography', weight: 5.0 }, { word: 'microarousals', weight: 2.0 }, { word: 'polycythemia', weight: 2.0 },
+                { word: 'snoring loudly', weight: 2.0 }, { word: 'stop breathing in my sleep', weight: 5.0 },
+                { word: 'waking up gasping', weight: 5.0 }, { word: 'morning headaches', weight: 2.0 }, { word: 'husband says I gasp', weight: 5.0 }
+            ],
+            evidence: "Repetitive collapse of the pharyngeal airway during sleep leading to nocturnal hypoxemia, disruptive microarousals, and profound daytime somnolence.",
+            missing: "An attended overnight diagnostic Polysomnography (sleep study) to compute the Apnea-Hypopnea Index (AHI).",
+            treatments: ["Prescribe nocturnal Continuous Positive Airway Pressure (CPAP) therapy.", "Counsel on weight reduction strategies and structural positional sleep adaptations.", "Avoid central nervous system depressants and alcohol before bedtime."]
         }
     ];
 
-    let leadingProfile = null;
+    // ==========================================
+    // LAYER 4: THE SCORING LOOP EXECUTIVE
+    // ==========================================
     let highestScore = 0;
+    let matchedProfile = null;
 
-    // SCORING ENGINE: Parallel density matrix processing
     pathologyProfiles.forEach(profile => {
-        let currentScore = 0;
-        profile.keywords.forEach(keyword => {
-            if (text.includes(keyword)) {
-                currentScore++;
+        let currentProfileScore = 0;
+        
+        profile.keywords.forEach(keywordObj => {
+            if (text.includes(keywordObj.word)) {
+                // Execute negation filter gatekeeper check
+                if (!isNegated(keywordObj.word, text)) {
+                    currentProfileScore += keywordObj.weight;
+                }
             }
         });
 
-        if (currentScore > highestScore) {
-            highestScore = currentScore;
-            leadingProfile = profile;
+        if (currentProfileScore > highestScore) {
+            highestScore = currentProfileScore;
+            matchedProfile = profile;
         }
     });
 
-    // Validated Match Threshold (Density minimum check to minimize false positives)
-    if (leadingProfile && highestScore >= 2) {
-        suspicion = leadingProfile.name;
-        evidence = leadingProfile.evidence + vitalsStr;
-        missing = leadingProfile.missing;
-        treatments = leadingProfile.treatments;
-        if (leadingProfile.presetMap) presetMap = leadingProfile.presetMap;
-    } else {
-        // ==========================================
-        // SECTION 10: DYNAMIC REGEX NAME EXTRACTION FALLBACK
-        // ==========================================
-        const regexExtractor = /(?:suspect|suspected|suspicion for|diagnosis of|consistent with|evidence of)\s+([a-z\s\-]+(?:syndrome|disease|disorder|itis|oma|osis|pathy|fibrosis|asthma|edema|failure|carcinoma|malignancy|hypertension|tuberculosis|apnea|pneumoconiosis))/i;
-        const extractedMatch = text.match(regexExtractor);
-
-        if (extractedMatch && extractedMatch[1]) {
-            let exactName = extractedMatch[1].trim().toUpperCase();
-            suspicion = `Identified Pathology: ${exactName}`;
-            evidence = `The clinical documentation outlines structural anomalies explicitly matching ${exactName}. Functional diagnostics must build out this specific thoracic baseline.` + vitalsStr;
-            missing = "Targeted radiological scanning, disease-specific serology metrics, and specialized pulmonary tracking.";
-            treatments = [
-                `Follow direct clinical guidelines specific to managing ${exactName}.`,
-                "Stabilize gas-exchange parameters via targeted supplemental oxygen titration.",
-                "Order urgent subspecialty evaluation based on localized tissue impacts."
-            ];
-        } else {
-            // Unmapped Presentation Baseline
-            suspicion = 'Atypical Pulmonary Insufficiency';
-            evidence = "The patient shows objective signs of respiratory stress, but the clinical clues do not isolate a classic preset or specific disease footprint. Requires open diagnostic mapping." + vitalsStr;
-            missing = "High-Resolution CT Chest, Arterial Blood Gas profiling, and urgent specialist consultation.";
-            treatments = ["Deliver supplemental oxygen to safeguard vital organs.", "Initiate continuous monitoring of cardiac rhythm and SpO2.", "Coordinate a formal pulmonology evaluation."];
-        }
+    // ==========================================
+    // LAYER 5: OUTPUT RENDER DISPATCHER
+    // ==========================================
+    // Critical validation threshold: Requires at least a weight of 1.5 to switch baseline criteria
+    if (matchedProfile && highestScore >= 1.5) {
+        suspicion = matchedProfile.name;
+        evidence = matchedProfile.evidence;
+        missing = matchedProfile.missing;
+        treatments = matchedProfile.treatments;
+        presetMap = matchedProfile.presetMap || 'custom';
     }
 
-    // Output Data Injection
-    const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\n\nCLINICAL EVIDENCE: ${evidence}\n\nMISSING DATA: ${missing}`;
+    // Dynamic Engine Feedback Metrics
+    console.log(`ANALYSIS LOG: Matched Differential [${suspicion}] with an accrued weight of [${highestScore}]`);
     
-    document.getElementById('custom_ai_desc').value = formattedOutput;
-    const condElem = document.getElementById('custom_ai_cond');
-    if(condElem) condElem.value = suspicion;
-    const planElem = document.getElementById('custom_ai_plan');
-    if(planElem) planElem.value = JSON.stringify(treatments);
+    // UI Integration Hook mappings:
+    document.getElementById('suspicion_output').innerText = suspicion;
+    document.getElementById('evidence_output').innerText = evidence + vitalsStr;
+    document.getElementById('missing_output').innerText = missing;
     
-    const langCode = localStorage.getItem('selectedLang') || 'en';
-    let msg = "Record analyzed. Generating profile for " + suspicion.toUpperCase();
-    document.getElementById('lyra-status').innerText = msg;
-    lyraSpeak(msg, langCode);
-    
-    if (presetMap !== 'custom') {
-        setTimeout(() => { loadPreset(presetMap); }, 2500);
-    } else {
-        document.getElementById('preset_id').value = 'custom';
-        document.getElementById('preset-dropdown').value = 'custom';
-        setTimeout(() => { document.getElementById('calc-form').submit(); }, 2500);
-    }
+    // Clear and rebuild dynamic treatment lists safely
+    const txContainer = document.getElementById('treatments_output');
+    txContainer.innerHTML = "";
+    treatments.forEach(tx => {
+        let li = document.createElement('li');
+        li.innerText = tx;
+        txContainer.appendChild(li);
+    });
 }
 
     // LYRA VOICE REPROGRAMMED
