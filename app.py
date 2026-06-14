@@ -7,7 +7,7 @@ from flask import Flask, request, redirect, url_for, session, flash, render_temp
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_ultimate_sync_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_absolute_sync_2026")
 DB_NAME = "aerolung_database.db"
 
 # ==========================================
@@ -19,20 +19,18 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users 
                  (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
     
-    # Create default admin if no users exist
     c.execute("SELECT * FROM users WHERE username='admin'")
     if not c.fetchone():
         hashed_pw = generate_password_hash('admin2026')
         c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
                   ('admin', hashed_pw, 'System Architect'))
-    
     conn.commit()
     conn.close()
 
 init_db()
 
 # ==========================================
-# 2. 20 PATHOLOGIES & MATH ENGINE
+# 2. STRICT PATHOLOGY DATABASE & MATH ENGINE
 # ==========================================
 
 DISEASE_PROFILES = {
@@ -105,35 +103,27 @@ class RespiratoryEngine:
         try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
         except Exception: ph = 7.40
 
-        # STRICT SYNCHRONIZATION LOCK
+        # ABSOLUTE SYNCHRONIZATION LOCK
         if preset_id in DISEASE_PROFILES:
             ai_result = DISEASE_PROFILES[preset_id]
         else:
             ai_result = cls._fallback_ai_diagnostics(compliance, resistance, shunt_pct, vd_vt_ratio)
             
         acid_base_status = cls._analyze_acid_base(ph, paco2)
-
         p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
         pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
-
         t_cycle = 60.0 / rr
         tau = max(0.001, (resistance / 1000.0) * compliance)
         waveform_data = cls._generate_waveforms(t_cycle, ie, pip, peep, vt, tau)
 
         return {
-            'compliance': round(compliance, 1), 
-            'resistance': round(resistance, 1),
-            'vd_vt': round(vd_vt_ratio * 100, 1), 
-            'shunt': shunt_pct,
-            'ai_condition': ai_result['condition'], 
-            'ai_description': ai_result['description'], 
+            'compliance': round(compliance, 1), 'resistance': round(resistance, 1),
+            'vd_vt': round(vd_vt_ratio * 100, 1), 'shunt': shunt_pct,
+            'preset_id': preset_id if preset_id in DISEASE_PROFILES else "custom",
+            'ai_condition': ai_result['condition'], 'ai_description': ai_result['description'], 
             'ai_solutions': ai_result['solutions'],
-            'paco2': paco2, 
-            'pao2': pao2, 
-            'ph': ph, 
-            'hco3': hco3_input, 
-            'acid_base_status': acid_base_status, 
-            'minute_vent': round(min_vent_est, 2),
+            'paco2': paco2, 'pao2': pao2, 'ph': ph, 'hco3': hco3_input, 
+            'acid_base_status': acid_base_status, 'minute_vent': round(min_vent_est, 2),
             'waveform_data': json.dumps(waveform_data)
         }
 
@@ -197,16 +187,16 @@ BACKGROUND_SVG = """
 GLOBAL_CSS_JS = """
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    body { font-family: 'Outfit', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: 'Outfit', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     @keyframes holographicBreathe { 0% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.2; } 50% { transform: translate(-50%, -50%) scale(1.03); opacity: 0.6; } 100% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.2; } }
     .living-lung { position: fixed; top: 50%; left: 50%; width: 100vw; max-width: 900px; z-index: 0; pointer-events: none; animation: holographicBreathe 5s ease-in-out infinite; }
-    .glass-panel { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); position: relative; z-index: 10; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+    .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); position: relative; z-index: 10; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
     .glass-input { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; }
     .glass-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 10px rgba(34,211,238,0.3); }
-    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 </style>
 <script>
     function updateClock() {
@@ -216,18 +206,24 @@ GLOBAL_CSS_JS = """
         const dayStr = d.toLocaleDateString(lang, { weekday: 'long' });
         const dateStr = d.toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' });
         
+        // Sidebar Clock
         const clockTimeEl = document.getElementById('clock-time');
         if(clockTimeEl) {
             clockTimeEl.innerText = timeStr;
             document.getElementById('clock-day').innerText = dayStr;
             document.getElementById('clock-date').innerText = dateStr;
         }
+
+        // Graph Timestamp
         const graphTimeEl = document.getElementById('graph-timestamp');
-        if(graphTimeEl) graphTimeEl.innerText = `${dayStr}, ${dateStr} - ${timeStr}`;
+        if(graphTimeEl) {
+            graphTimeEl.innerText = `${dayStr}, ${dateStr} - ${timeStr}`;
+        }
     }
     setInterval(updateClock, 1000);
     window.onload = updateClock;
 
+    // GLOBAL TRANSLATIONS INCLUDING ALL 20 PATHOLOGIES
     const TRANSLATIONS = {
         en: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -238,7 +234,31 @@ GLOBAL_CSS_JS = """
             abg: "Arterial Blood Gas", mech_exp: "Mechanics Explained",
             comp: "Compliance", res: "Resistance", dead: "Dead Space", shunt: "Shunt",
             graphs: "Waveform Analytics", lyra_btn: "Wake Lyra", lyra_status: "Lyra Sleeping", copy_btn: "Copy Config",
-            update_title: "Update Credentials"
+            
+            // Diagnostics
+            "healthy_cond": "Stable Pulmonary Homeostasis", "healthy_desc": "Ventilatory mechanics, airway resistance, and gas exchange are within normal limits.",
+            "ards_cond": "Severe Acute Respiratory Distress Syndrome", "ards_desc": "Profound hypoxemia secondary to intrapulmonary shunting and stiff non-compliant lungs.",
+            "copd_cond": "End-Stage COPD / Emphysema", "copd_desc": "High static compliance with elevated airway resistance and loss of elastic recoil.",
+            "asthma_cond": "Status Asthmaticus", "asthma_desc": "Critically elevated airway resistance indicating severe bronchospasm and mucus plugging.",
+            "fibrosis_cond": "Advanced Pulmonary Fibrosis", "fibrosis_desc": "Restricted lung volumes due to dense parenchymal scarring. Compliance is critically low.",
+            "pe_cond": "Massive Pulmonary Embolism", "pe_desc": "Severe dead-space (Vd/Vt) anomaly. Alveoli are ventilated, but blood flow is obstructed.",
+            "pneumonia_cond": "Severe Lobar Pneumonia", "pneumonia_desc": "Localized alveolar filling causing significant right-to-left intrapulmonary shunting.",
+            "neuro_cond": "Neuromuscular Pump Failure", "neuro_desc": "Lung mechanics are normal, but minute ventilation is grossly inadequate leading to hypercapnia.",
+            "obesity_cond": "Obesity Hypoventilation Syndrome", "obesity_desc": "Decreased compliance due to adiposity on the chest wall, leading to CO2 retention.",
+            "pneumothorax_cond": "Tension Pneumothorax", "pneumothorax_desc": "Catastrophic loss of compliance combined with acute hypercapnia and mediastinal shift.",
+            "edema_cond": "Cardiogenic Pulmonary Edema", "edema_desc": "Reduced compliance and elevated shunt indicative of fluid transudation from LV failure.",
+            "cf_cond": "Cystic Fibrosis Exacerbation", "cf_desc": "Mixed obstructive/shunting defect. Purulent secretions causing high resistance.",
+            "kypho_cond": "Severe Kyphoscoliosis Decompensation", "kypho_desc": "Structural chest wall deformity restricting lung expansion, leading to hypercapnia.",
+            "bronch_cond": "Acute Bronchiectasis Exacerbation", "bronch_desc": "Chronically dilated, scarred airways filled with sputum causing massive resistance.",
+            "mild_ards_cond": "Early / Mild ARDS", "mild_ards_desc": "Decreasing compliance and tachypnea causing respiratory alkalosis early in disease process.",
+            "atelectasis_cond": "Major Lobar Atelectasis", "atelectasis_desc": "Acute loss of lung volume due to collapsed lobe, resulting in decreased compliance.",
+            "flail_cond": "Flail Chest / Blunt Thoracic Trauma", "flail_desc": "Paradoxical chest wall movement due to rib fractures, leading to impaired compliance.",
+            "p_htn_cond": "Pulmonary Hypertension / Cor Pulmonale", "p_htn_desc": "Right-sided heart failure causing poor perfusion. High dead space and stiff vasculature.",
+            "co_poison_cond": "Carbon Monoxide Toxicity", "co_poison_desc": "Critical cellular hypoxia despite standard SpO2 indicating excellent oxygenation.",
+            "ards_mod_cond": "Moderate ARDS", "ards_mod_desc": "Significant intrapulmonary shunting. PaO2/FiO2 ratio below 200.",
+            "Respiratory Acidosis": "Respiratory Acidosis", "Metabolic Acidosis": "Metabolic Acidosis",
+            "Respiratory Alkalosis": "Respiratory Alkalosis", "Metabolic Alkalosis": "Metabolic Alkalosis",
+            "Normal Acid-Base Equilibrium": "Normal Acid-Base Equilibrium"
         },
         es: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -249,7 +269,30 @@ GLOBAL_CSS_JS = """
             abg: "Gases Arteriales", mech_exp: "Mecánica Explicada",
             comp: "Distensibilidad", res: "Resistencia", dead: "Espacio Muerto", shunt: "Cortocircuito",
             graphs: "Análisis de Ondas", lyra_btn: "Despertar Lyra", lyra_status: "Lyra Durmiendo", copy_btn: "Copiar Config",
-            update_title: "Actualizar Credenciales"
+            
+            "healthy_cond": "Homeostasis Pulmonar Estable", "healthy_desc": "La mecánica ventilatoria, la resistencia de las vías respiratorias y el intercambio de gases están dentro de los límites normales.",
+            "ards_cond": "Síndrome de Dificultad Respiratoria Aguda Severa", "ards_desc": "Hipoxemia profunda secundaria a un cortocircuito intrapulmonar y pulmones rígidos no distensibles.",
+            "copd_cond": "EPOC en Etapa Terminal / Enfisema", "copd_desc": "Distensibilidad estática alta con resistencia elevada de las vías respiratorias y pérdida de retroceso elástico.",
+            "asthma_cond": "Estado Asmático", "asthma_desc": "Resistencia de las vías respiratorias críticamente elevada que indica broncoespasmo severo y tapones de moco.",
+            "fibrosis_cond": "Fibrosis Pulmonar Avanzada", "fibrosis_desc": "Volúmenes pulmonares restringidos debido a cicatrices parenquimatosas densas. La distensibilidad es críticamente baja.",
+            "pe_cond": "Embolia Pulmonar Masiva", "pe_desc": "Anomalía severa del espacio muerto (Vd/Vt). Los alvéolos están ventilados, pero el flujo sanguíneo está obstruido.",
+            "pneumonia_cond": "Neumonía Lobar Severa", "pneumonia_desc": "Llenado alveolar localizado que causa un cortocircuito intrapulmonar significativo de derecha a izquierda.",
+            "neuro_cond": "Fallo de la Bomba Neuromuscular", "neuro_desc": "La mecánica pulmonar es normal, pero la ventilación minuto es sumamente inadecuada, lo que lleva a la hipercapnia.",
+            "obesity_cond": "Síndrome de Hipoventilación por Obesidad", "obesity_desc": "Disminución de la distensibilidad debido a la adiposidad en la pared torácica, lo que lleva a la retención de CO2.",
+            "pneumothorax_cond": "Neumotórax a Tensión", "pneumothorax_desc": "Pérdida catastrófica de distensibilidad combinada con hipercapnia aguda y desplazamiento mediastínico.",
+            "edema_cond": "Edema Pulmonar Cardiogénico", "edema_desc": "Reducción de la distensibilidad y cortocircuito elevado indicativo de trasudación de líquidos por insuficiencia del VI.",
+            "cf_cond": "Exacerbación de Fibrosis Quística", "cf_desc": "Defecto mixto obstructivo / de cortocircuito. Secreciones purulentas que causan alta resistencia.",
+            "kypho_cond": "Descompensación Severa de Cifoescoliosis", "kypho_desc": "Deformidad estructural de la pared torácica que restringe la expansión pulmonar, lo que lleva a la hipercapnia.",
+            "bronch_cond": "Exacerbación de Bronquiectasia Aguda", "bronch_desc": "Vías respiratorias crónicamente dilatadas y cicatrizadas llenas de esputo que causan una resistencia masiva.",
+            "mild_ards_cond": "SDRA Temprano / Leve", "mild_ards_desc": "Disminución de la distensibilidad y taquipnea que causan alcalosis respiratoria en las primeras etapas de la enfermedad.",
+            "atelectasis_cond": "Atelectasia Lobar Mayor", "atelectasis_desc": "Pérdida aguda de volumen pulmonar debido al lóbulo colapsado, lo que resulta en una disminución de la distensibilidad.",
+            "flail_cond": "Tórax Inestable / Trauma Torácico Cerrado", "flail_desc": "Movimiento paradójico de la pared torácica debido a fracturas de costillas, lo que lleva a una distensibilidad alterada.",
+            "p_htn_cond": "Hipertensión Pulmonar / Cor Pulmonale", "p_htn_desc": "Insuficiencia cardíaca derecha que causa mala perfusión. Espacio muerto alto y vasculatura rígida.",
+            "co_poison_cond": "Toxicidad por Monóxido de Carbono", "co_poison_desc": "Hipoxia celular crítica a pesar de que el SpO2 estándar indica una oxigenación excelente.",
+            "ards_mod_cond": "SDRA Moderado", "ards_mod_desc": "Cortocircuito intrapulmonar significativo. Relación PaO2/FiO2 por debajo de 200.",
+            "Respiratory Acidosis": "Acidosis Respiratoria", "Metabolic Acidosis": "Acidosis Metabólica",
+            "Respiratory Alkalosis": "Alcalosis Respiratoria", "Metabolic Alkalosis": "Alcalosis Metabólica",
+            "Normal Acid-Base Equilibrium": "Equilibrio Ácido-Base Normal"
         },
         fr: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -260,7 +303,30 @@ GLOBAL_CSS_JS = """
             abg: "Gaz du Sang", mech_exp: "Mécanique Expliquée",
             comp: "Compliance", res: "Résistance", dead: "Espace Mort", shunt: "Shunt",
             graphs: "Analyse des Ondes", lyra_btn: "Réveiller Lyra", lyra_status: "Lyra Dort", copy_btn: "Copier Config",
-            update_title: "Mettre à jour"
+            
+            "healthy_cond": "Homéostasie Pulmonaire Stable", "healthy_desc": "La mécanique ventilatoire, la résistance et les échanges gazeux sont normaux.",
+            "ards_cond": "Syndrome de Détresse Respiratoire Aiguë Sévère", "ards_desc": "Hypoxémie profonde secondaire à un shunt intrapulmonaire et des poumons rigides.",
+            "copd_cond": "BPCO au Stade Terminal / Emphysème", "copd_desc": "Compliance statique élevée avec résistance des voies aériennes élevée et perte de recul élastique.",
+            "asthma_cond": "État de Mal Asthmatique", "asthma_desc": "Résistance extrêmement élevée indiquant un bronchospasme sévère et des bouchons muqueux.",
+            "fibrosis_cond": "Fibrose Pulmonaire Avancée", "fibrosis_desc": "Volumes pulmonaires restreints dus à de denses cicatrices parenchymateuses. La compliance est très faible.",
+            "pe_cond": "Embolie Pulmonaire Massive", "pe_desc": "Anomalie sévère de l'espace mort (Vd/Vt). Les alvéoles sont ventilées, mais le flux sanguin est obstrué.",
+            "pneumonia_cond": "Pneumonie Lobaire Sévère", "pneumonia_desc": "Remplissage alvéolaire localisé provoquant un important shunt intrapulmonaire droite-gauche.",
+            "neuro_cond": "Défaillance de la Pompe Neuromusculaire", "neuro_desc": "Mécanique pulmonaire normale, mais ventilation minute inadéquate entraînant une hypercapnie.",
+            "obesity_cond": "Syndrome d'Hypoventilation de l'Obésité", "obesity_desc": "Diminution de la compliance due à l'adiposité de la paroi thoracique, entraînant une rétention de CO2.",
+            "pneumothorax_cond": "Pneumothorax sous Tension", "pneumothorax_desc": "Perte catastrophique de compliance combinée à une hypercapnie aiguë et un déplacement médiastinal.",
+            "edema_cond": "Œdème Pulmonaire Cardiogénique", "edema_desc": "Compliance réduite et shunt élevé indiquant une transsudation de liquide due à une insuffisance ventriculaire gauche.",
+            "cf_cond": "Exacerbation de la Mucoviscidose", "cf_desc": "Défaut mixte obstructif/shunt. Sécrétions purulentes provoquant une forte résistance.",
+            "kypho_cond": "Décompensation Sévère de Cyphoscoliose", "kypho_desc": "Déformation structurelle de la paroi thoracique limitant l'expansion pulmonaire.",
+            "bronch_cond": "Exacerbation Aiguë de Bronchectasie", "bronch_desc": "Voies respiratoires chroniquement dilatées et cicatrisées remplies d'expectorations.",
+            "mild_ards_cond": "SDRA Précoce / Léger", "mild_ards_desc": "Diminution de la compliance et tachypnée provoquant une alcalose respiratoire au début de la maladie.",
+            "atelectasis_cond": "Atélectasie Lobaire Majeure", "atelectasis_desc": "Perte aiguë de volume pulmonaire due à l'effondrement du lobe, entraînant une diminution de la compliance.",
+            "flail_cond": "Volet Costal / Traumatisme Thoracique Fermé", "flail_desc": "Mouvement paradoxal de la paroi thoracique dû à des fractures des côtes, entraînant une altération de la compliance.",
+            "p_htn_cond": "Hypertension Pulmonaire / Cœur Pulmonaire", "p_htn_desc": "Insuffisance cardiaque droite entraînant une mauvaise perfusion. Espace mort élevé et vaisseaux rigides.",
+            "co_poison_cond": "Intoxication au Monoxyde de Carbone", "co_poison_desc": "Hypoxie cellulaire critique malgré une SpO2 standard indiquant une excellente oxygénation.",
+            "ards_mod_cond": "SDRA Modéré", "ards_mod_desc": "Shunt intrapulmonaire important. Rapport PaO2/FiO2 inférieur à 200.",
+            "Respiratory Acidosis": "Acidose Respiratoire", "Metabolic Acidosis": "Acidose Métabolique",
+            "Respiratory Alkalosis": "Alcalose Respiratoire", "Metabolic Alkalosis": "Alcalose Métabolique",
+            "Normal Acid-Base Equilibrium": "Équilibre Acido-Basique Normal"
         }
     };
 
@@ -268,8 +334,25 @@ GLOBAL_CSS_JS = """
         localStorage.setItem('selectedLang', lang);
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
+            if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
         });
+        
+        // Translate dynamic diagnosis text
+        const presetId = document.getElementById('current_preset_id')?.value;
+        if(presetId && presetId !== 'custom') {
+            const condEl = document.getElementById('ai-cond');
+            const descEl = document.getElementById('ai-desc');
+            if (condEl && TRANSLATIONS[lang][presetId + '_cond']) condEl.innerText = TRANSLATIONS[lang][presetId + '_cond'];
+            if (descEl && TRANSLATIONS[lang][presetId + '_desc']) descEl.innerText = TRANSLATIONS[lang][presetId + '_desc'];
+        }
+        
+        // Translate ABG Status
+        const abgEl = document.getElementById('abg-status');
+        if (abgEl) {
+            const rawStatus = abgEl.getAttribute('data-raw');
+            if (TRANSLATIONS[lang][rawStatus]) abgEl.innerText = TRANSLATIONS[lang][rawStatus];
+        }
+
         const dd = document.getElementById('preset-dropdown');
         if(dd) dd.options[0].text = TRANSLATIONS[lang]['select_preset'];
     }
@@ -277,38 +360,23 @@ GLOBAL_CSS_JS = """
     function copyConfiguration() {
         const dd = document.getElementById('preset-dropdown');
         const pathName = dd.options[dd.selectedIndex].text;
-        
-        const configText = `
---- AEROLUNG SYNC EXPORT ---
-Pathology: ${pathName}
-Vt: ${document.getElementById('vt_input').value} mL
-Rate: ${document.getElementById('rr').value} bpm
-PIP: ${document.getElementById('pip').value} cmH2O
-Pplat: ${document.getElementById('pplat').value} cmH2O
-PEEP: ${document.getElementById('peep').value} cmH2O
-FiO2: ${document.getElementById('fio2').value} %
------------------------------
-        `.trim();
-        
+        const configText = `--- AEROLUNG SYNC EXPORT ---\nPathology: ${pathName}\nVt: ${document.getElementById('vt_input').value} mL\nRate: ${document.getElementById('rr').value} bpm\nPIP: ${document.getElementById('pip').value} cmH2O\nPplat: ${document.getElementById('pplat').value} cmH2O\nPEEP: ${document.getElementById('peep').value} cmH2O\nFiO2: ${document.getElementById('fio2').value} %\n-----------------------------`;
         navigator.clipboard.writeText(configText).then(() => {
             const btn = document.getElementById('copy-btn');
             const originalText = btn.innerText;
             btn.innerText = "Copied!";
             btn.classList.add('bg-emerald-600');
-            setTimeout(() => { 
-                btn.innerText = originalText; 
-                btn.classList.remove('bg-emerald-600');
-            }, 2000);
+            setTimeout(() => { btn.innerText = originalText; btn.classList.remove('bg-emerald-600'); }, 2000);
         });
     }
 
-    // INTERACTIVE LYRA VOICE ENGINE
+    // INTERACTIVE LYRA VOICE ENGINE WITH STRICT PHONETIC LOCKS
     let recognition;
     let lyraActive = false;
 
     function toggleLyra() {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert("Speech API not supported. Please use Chrome/Edge.");
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert("Speech API not supported. Please use Chrome/Edge/Safari.");
             return;
         }
         
@@ -317,7 +385,8 @@ FiO2: ${document.getElementById('fio2').value} %
         const langCode = localStorage.getItem('selectedLang') || 'en';
 
         if (!lyraActive) {
-            recognition = new webkitSpeechRecognition();
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
             recognition.continuous = true;
             recognition.interimResults = false;
             
@@ -328,29 +397,38 @@ FiO2: ${document.getElementById('fio2').value} %
             recognition.onresult = function(event) {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 status.innerText = "Heard: " + transcript;
+                
                 if (transcript.includes("lyra") || transcript.includes("lira")) {
                     processLyraCommand(transcript, langCode);
                 }
             };
 
             recognition.onend = function() { if (lyraActive) recognition.start(); };
-            recognition.start();
-            lyraActive = true;
-            btn.innerText = "Stop Lyra";
-            btn.className = "w-full py-2 rounded bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(225,29,72,0.6)]";
-            status.innerText = "Listening... Say 'Hey Lyra load COPD'";
-            lyraSpeak("Lyra activated. Ready for synchronization.", langCode);
+            
+            try {
+                recognition.start();
+                lyraActive = true;
+                btn.innerText = "Stop Lyra";
+                btn.className = "w-full py-3 rounded-lg bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
+                status.innerText = "Listening... Say 'Hey Lyra load COPD'";
+                
+                lyraSpeak("Lyra activated. Ready for synchronization.", langCode);
+            } catch(e) {
+                console.log(e);
+            }
         } else {
             lyraActive = false;
             recognition.stop();
             btn.innerText = TRANSLATIONS[langCode]['lyra_btn'];
-            btn.className = "w-full py-2 rounded bg-purple-600 font-bold text-white text-xs uppercase tracking-wider";
+            btn.className = "w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)]";
             status.innerText = TRANSLATIONS[langCode]['lyra_status'];
         }
     }
 
     function processLyraCommand(text, lang) {
         let matched = null;
+        
+        // STRICT SYNCHRONIZATION DICTIONARY
         if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
         else if (text.includes('mild') && text.includes('ards')) matched = 'mild_ards';
         else if (text.includes('mod') && text.includes('ards')) matched = 'ards_mod';
@@ -364,13 +442,13 @@ FiO2: ${document.getElementById('fio2').value} %
         else if (text.includes('obesity') || text.includes('obesidad') || text.includes('obesite')) matched = 'obesity';
         else if (text.includes('pneumothorax') || text.includes('neumotorax')) matched = 'pneumothorax';
         else if (text.includes('edema') || text.includes('oedeme')) matched = 'edema';
-        else if (text.includes('cystic') || text.includes('quistica')) matched = 'cf';
+        else if (text.includes('cystic') || text.includes('quistica') || text.includes('cf')) matched = 'cf';
         else if (text.includes('kypho') || text.includes('cifosis')) matched = 'kypho';
         else if (text.includes('bronch') || text.includes('bronquiectasias')) matched = 'bronch';
         else if (text.includes('atelectas')) matched = 'atelectasis';
         else if (text.includes('flail') || text.includes('trauma')) matched = 'flail';
-        else if (text.includes('hypertension') || text.includes('hipertension')) matched = 'p_htn';
-        else if (text.includes('carbon') || text.includes('monoxide') || text.includes('monoxido')) matched = 'co_poison';
+        else if (text.includes('hypertension') || text.includes('hipertension') || text.includes('htn')) matched = 'p_htn';
+        else if (text.includes('carbon') || text.includes('monoxide') || text.includes('monoxido') || text.includes('poison')) matched = 'co_poison';
 
         if (matched) {
             let msg = "Synchronizing matrix for " + matched;
@@ -379,7 +457,7 @@ FiO2: ${document.getElementById('fio2').value} %
             
             lyraSpeak(msg, lang);
             document.getElementById('lyra-status').innerText = msg;
-            setTimeout(() => { loadPreset(matched); }, 2000);
+            setTimeout(() => { loadPreset(matched); }, 2500); // Give time to speak before reload
         } else {
             let msg = "Pathology parameter not recognized. Please repeat.";
             if (lang === 'es') msg = "Parámetro no reconocido. Repita.";
@@ -396,6 +474,7 @@ FiO2: ${document.getElementById('fio2').value} %
             else if(lang === 'fr') u.lang = 'fr-FR';
             else u.lang = 'en-US';
             u.pitch = 1.1;
+            u.rate = 1.0;
             window.speechSynthesis.speak(u);
         }
     }
@@ -428,6 +507,8 @@ FiO2: ${document.getElementById('fio2').value} %
         const data = PRESETS[type];
         document.getElementById('preset_id').value = type;
         document.getElementById('preset-dropdown').value = type;
+        
+        // Load all 14 parameters
         document.getElementById('vt_input').value = data.vt;
         document.getElementById('rr').value = data.rr;
         document.getElementById('pip').value = data.pip;
@@ -442,6 +523,7 @@ FiO2: ${document.getElementById('fio2').value} %
         document.getElementById('peco2').value = data.peco2;
         document.getElementById('vco2').value = data.vco2;
         document.getElementById('hco3_input').value = data.hco3;
+        
         document.getElementById('calc-form').submit();
     }
 </script>
@@ -460,40 +542,50 @@ LOGIN_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 </body>
 """
 
+SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
+<body class="flex items-center justify-center relative flex-col min-h-screen">
+    <nav class="glass-panel w-full bg-slate-950/90 py-4 px-6 flex justify-between absolute top-0 z-50">
+        <h1 class="text-2xl font-black tracking-tighter text-white" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
+        <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold uppercase" data-i18n="return_dash">Return to Dashboard</a>
+    </nav>
+    <div class="glass-panel rounded-3xl p-10 w-full max-w-lg mt-20">
+        <h2 class="text-3xl font-black text-white mb-2 uppercase" data-i18n="settings">Settings</h2>
+        <form action="/settings" method="POST" class="space-y-5 text-left">
+            <div><label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">New ID</label><input type="text" name="new_username" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm"></div>
+            <div><label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">New Passkey</label><input type="password" name="new_password" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm"></div>
+            <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 text-white font-bold text-sm uppercase">Commit Changes</button>
+        </form>
+    </div>
+</body>
+"""
+
 DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="min-h-screen flex bg-slate-950/80">
     
-    <!-- SIDEBAR: Clock, Lang, Sync Settings -->
-    <aside class="w-[340px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6">
-        <div class="space-y-6 overflow-y-auto pr-2">
+    <aside class="w-[360px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
+        <div class="space-y-5">
             <div>
                 <h1 class="text-3xl font-black text-white tracking-tighter" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
-                <div class="flex items-center justify-between mt-4">
+                <div class="flex items-center gap-3 mt-4">
                     <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-black/50 border border-slate-700 text-slate-300 text-[10px] font-bold uppercase rounded-lg px-2 py-1.5 cursor-pointer">
                         <option value="en">EN</option><option value="es">ES</option><option value="fr">FR</option>
                     </select>
-                    <div class="flex gap-2">
-                        <!-- SETTINGS AND LOGOUT BUTTONS -->
-                        <button onclick="document.getElementById('settings-modal').classList.remove('hidden')" class="text-[9px] font-bold text-slate-300 uppercase border border-slate-700 bg-black/50 px-2 py-1.5 rounded transition hover:bg-slate-800" data-i18n="settings">Settings</button>
-                        <a href="/logout" class="text-[9px] font-bold text-rose-400 uppercase border border-rose-900/50 bg-rose-950/30 px-2 py-1.5 rounded transition hover:bg-rose-900" data-i18n="logout">Logout</a>
-                    </div>
+                    <a href="/settings" class="text-[9px] font-bold text-slate-300 uppercase border border-slate-700 bg-black/50 px-2 py-1.5 rounded" data-i18n="settings">Settings</a>
+                    <a href="/logout" class="text-[9px] font-bold text-rose-400 uppercase border border-rose-900/50 bg-rose-950/30 px-2 py-1.5 rounded" data-i18n="logout">Logout</a>
                 </div>
             </div>
 
-            <!-- LIVE CLOCK -->
             <div class="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
                 <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl"></div>
                 <div id="clock-day" class="text-slate-300 text-xs font-bold uppercase tracking-widest mt-1"></div>
                 <div id="clock-date" class="text-slate-500 text-[10px] font-mono mt-0.5"></div>
             </div>
 
-            <!-- LYRA VOICE TOGGLE -->
             <div class="bg-purple-950/20 border border-purple-500/30 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(147,51,234,0.1)]">
-                <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-2 rounded bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all" data-i18n="lyra_btn">Wake Lyra</button>
-                <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-2" data-i18n="lyra_status">Lyra Sleeping</div>
+                <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
+                <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-3" data-i18n="lyra_status">Lyra Sleeping</div>
             </div>
 
-            <!-- 20 PATHOLOGIES DROPDOWN -->
             <div>
                 <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2" data-i18n="db_title">Pathology Matrix</label>
                 <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-2 rounded-lg text-xs font-semibold">
@@ -522,40 +614,46 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <!-- MANUAL INPUTS & COPY BTN -->
             <form id="calc-form" method="POST" action="/dashboard" class="border-t border-white/10 pt-4">
                 <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block" data-i18n="override">Manual Override</label>
                     <button type="button" id="copy-btn" onclick="copyConfiguration()" class="bg-slate-800 text-cyan-300 text-[8px] uppercase font-bold px-2 py-1 rounded transition-colors" data-i18n="copy_btn">Copy Config</button>
                 </div>
-                <div class="grid grid-cols-2 gap-2 mb-4">
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Vt</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono" oninput="document.getElementById('preset-dropdown').value='custom'; document.getElementById('preset_id').value='custom';"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">FiO2</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-2 py-1 rounded text-xs font-mono"></div>
-                    <input type="hidden" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}">
-                    <input type="hidden" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}">
-                    <input type="hidden" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}">
-                    <input type="hidden" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}">
-                    <input type="hidden" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}">
-                    <input type="hidden" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}">
-                    <input type="hidden" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}">
-                    <input type="hidden" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}">
+                
+                <div class="grid grid-cols-4 gap-1.5 mb-2">
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Vt</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono" oninput="document.getElementById('preset-dropdown').value='custom'; document.getElementById('preset_id').value='custom';"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-rose-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-rose-300"></div>
                 </div>
-                <button type="submit" class="w-full py-2 rounded bg-cyan-600 text-white font-bold text-xs uppercase" data-i18n="btn_scan">Synchronize Data</button>
+                <div class="grid grid-cols-4 gap-1.5 mb-2">
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-cyan-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Flow</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">FiO2</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">I:E</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 mb-2">
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 mb-4">
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-amber-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-amber-300"></div>
+                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-purple-300"></div>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded bg-cyan-600 text-white font-bold text-xs uppercase" data-i18n="btn_scan">Synchronize Data</button>
             </form>
         </div>
-
+        
         <div class="border-t border-slate-800/80 pt-4 text-center mt-4">
             <p class="text-[10px] text-slate-500 font-mono tracking-wide">&copy; 2026 Shreesh Santoshkumar Rolli</p>
         </div>
     </aside>
 
-    <!-- MAIN DASHBOARD -->
-    <main class="flex-1 p-8 overflow-y-auto w-full relative z-10">
+    <main class="flex-1 p-6 overflow-y-auto w-full relative z-10">
         {% if not sim_data %}
         <div class="glass-panel rounded-3xl h-[600px] flex flex-col items-center justify-center text-center p-8 border-dashed border-white/10 shadow-2xl">
             <h2 class="text-3xl font-black text-white uppercase tracking-tight mb-2" data-i18n="standby_title">System Standby</h2>
@@ -563,13 +661,15 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </div>
         {% else %}
         
+        <input type="hidden" id="current_preset_id" value="{{ sim_data.preset_id }}">
+        
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-cyan-400 bg-gradient-to-br from-slate-900/90 to-black">
                 <h3 class="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-1" data-i18n="primary_diag">Primary Diagnosis</h3>
-                <div class="text-3xl font-black text-white uppercase mb-4">{{ sim_data.ai_condition }}</div>
+                <div id="ai-cond" class="text-3xl font-black text-white uppercase mb-4">{{ sim_data.ai_condition }}</div>
                 
                 <h4 class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1" data-i18n="physio">Physiology</h4>
-                <p class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 mb-4">{{ sim_data.ai_description }}</p>
+                <p id="ai-desc" class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 mb-4">{{ sim_data.ai_description }}</p>
                 
                 <h4 class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1" data-i18n="action_plan">Action Plan</h4>
                 <ul class="space-y-2">
@@ -588,7 +688,7 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                     <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">PaCO2</div><div class="text-3xl font-black font-mono text-amber-400">{{ sim_data.paco2 }}</div></div>
                     <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">HCO3</div><div class="text-3xl font-black font-mono text-purple-400">{{ sim_data.hco3 }}</div></div>
                 </div>
-                <div class="text-sm font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
+                <div id="abg-status" data-raw="{{ sim_data.acid_base_status }}" class="text-sm font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
             </div>
         </div>
 
@@ -602,7 +702,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
             </div>
         </div>
 
-        <!-- LIVE GRAPHS WITH TIMESTAMP -->
         <div class="glass-panel p-6 rounded-2xl h-[400px] flex flex-col relative">
             <div id="graph-timestamp" class="absolute top-6 right-6 text-xs text-cyan-400/80 font-mono tracking-wider z-20"></div>
             <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
@@ -643,20 +742,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </script>
         {% endif %}
     </main>
-
-    <!-- UPDATE CREDENTIALS MODAL -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="glass-panel p-8 rounded-2xl w-[400px] border border-cyan-500/30 shadow-2xl relative">
-            <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">✕</button>
-            <h2 class="text-xl font-black text-white uppercase tracking-widest mb-6" data-i18n="update_title">Update Credentials</h2>
-            <form action="/update_credentials" method="POST" class="space-y-4">
-                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">New Architect ID</label><input type="text" name="new_username" class="w-full glass-input px-3 py-2 rounded text-sm" required></div>
-                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">New Passkey</label><input type="password" name="new_password" class="w-full glass-input px-3 py-2 rounded text-sm" required></div>
-                <button type="submit" class="w-full mt-4 py-2 rounded bg-cyan-600 font-bold text-white uppercase text-xs tracking-wider transition hover:bg-cyan-500">Save Changes</button>
-            </form>
-        </div>
-    </div>
-
 </body>
 """
 
@@ -684,31 +769,28 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/update_credentials', methods=['POST'])
-def update_credentials():
-    if 'user' not in session: 
-        return redirect(url_for('home'))
-    
-    new_user = request.form.get('new_username')
-    new_pass = request.form.get('new_password')
-    
-    if new_user and new_pass:
-        hashed_pw = generate_password_hash(new_pass)
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if 'user' not in session: return redirect(url_for('home'))
+    if request.method == 'POST':
+        curr = session['user']
+        nu = request.form.get('new_username').strip()
+        np = request.form.get('new_password').strip()
         conn = sqlite3.connect(DB_NAME)
         c = conn.cursor()
-        
-        try:
-            # Update the currently logged-in user's credentials
-            c.execute("UPDATE users SET username=?, password=? WHERE username=?", (new_user, hashed_pw, session['user']))
-            conn.commit()
-            session['user'] = new_user  # Keep them logged in with the new username
-        except sqlite3.IntegrityError:
-            # If the username already exists, just fail silently for now or flash an error
-            pass
-        finally:
-            conn.close()
-            
-    return redirect(url_for('dashboard'))
+        if nu:
+            try:
+                c.execute("UPDATE users SET username=? WHERE username=?", (nu, curr))
+                session['user'] = nu
+                curr = nu
+            except sqlite3.IntegrityError:
+                pass
+        if np:
+            c.execute("UPDATE users SET password=? WHERE username=?", (generate_password_hash(np), curr))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('dashboard'))
+    return render_template_string(SETTINGS_HTML)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
