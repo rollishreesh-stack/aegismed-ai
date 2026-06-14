@@ -109,255 +109,6 @@ class RespiratoryEngine:
         else:
             ai_result = cls._fallback_ai_diagnostics(compliance, resistance, shunt_pct, vd_vt_ratio).copy()
             
-        # APPLY CUSTOM PATIENT RECORD ANALYSIS OVERRIDE IF PROVIDED
-        if custom_desc:
-            ai_result['description'] = custom_desc
-
-        acid_base_status = cls._analyze_acid_base(ph, paco2, hco3_input, preset_id if preset_id in DISEASE_PROFILES else "custom")
-        
-        p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
-        pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
-        t_cycle = 60.0 / rr
-        tau = max(0.001, (resistance / 1000.0) * compliance)
-        waveform_data = cls._generate_waveforms(t_cycle, ie, pip, peep, vt, tau)
-
-        return {
-            'compliance': round(compliance, 1), 'resistance': round(resistance, 1),
-            'vd_vt': round(vd_vt_ratio * 100, 1), 'shunt': shunt_pct,
-            'preset_id': preset_id if preset_id in DISEASE_PROFILES else "custom",
-            'ai_condition': ai_result['condition'], 'ai_description': ai_result['description'], 
-            'ai_solutions': ai_result['solutions'],
-            'paco2': paco2, 'pao2': pao2, 'ph': ph, 'hco3': hco3_input, 
-            'acid_base_status': acid_base_status, 'minute_vent': round(min_vent_est, 2),
-            'waveform_data': json.dumps(waveform_data)
-        }
-
-    @staticmethod
-    def _fallback_ai_diagnostics(compliance, resistance, shunt_pct, vd_vt_ratio):
-        if compliance < 30 and shunt_pct > 25: return DISEASE_PROFILES['ards']
-        elif resistance > 20: return DISEASE_PROFILES['asthma']
-        elif vd_vt_ratio > 0.50: return DISEASE_PROFILES['pe']
-        elif compliance > 50 and resistance > 12: return DISEASE_PROFILES['copd']
-        elif compliance < 35 and shunt_pct < 15: return DISEASE_PROFILES['fibrosis']
-        else: return DISEASE_PROFILES['healthy']
-
-    @staticmethod
-    def _analyze_acid_base(ph, paco2, hco3, preset_id=""):
-        # Determine Primary and Compensatory Base Disorder
-        if ph < 7.35:
-            if paco2 > 45 and hco3 > 26: base = "Partially Compensated Respiratory Acidosis"
-            elif paco2 > 45: base = "Uncompensated Respiratory Acidosis"
-            elif hco3 < 22 and paco2 < 35: base = "Partially Compensated Metabolic Acidosis"
-            elif hco3 < 22: base = "Uncompensated Metabolic Acidosis"
-            else: base = "Mixed Acidosis"
-        elif ph > 7.45:
-            if paco2 < 35 and hco3 < 22: base = "Partially Compensated Respiratory Alkalosis"
-            elif paco2 < 35: base = "Uncompensated Respiratory Alkalosis"
-            elif hco3 > 26 and paco2 > 45: base = "Partially Compensated Metabolic Alkalosis"
-            elif hco3 > 26: base = "Uncompensated Metabolic Alkalosis"
-            else: base = "Mixed Alkalosis"
-        else:
-            if paco2 > 45 and hco3 > 26: base = "Fully Compensated Respiratory Acidosis"
-            elif paco2 < 35 and hco3 < 22: base = "Fully Compensated Respiratory Alkalosis"
-            else: base = "Normal Acid-Base Equilibrium"
-
-        # Apply Highly Specific Pathology Context
-        path_map = {
-            "healthy": "Stable Homeostasis",
-            "ards": "Severe Hypoxic Failure",
-            "copd": "Chronic Retainer Profile",
-            "asthma": "Acute Hypercapnia",
-            "fibrosis": "Restrictive Defect",
-            "pe": "V/Q Mismatch",
-            "pneumonia": "Shunting Defect",
-            "neuro": "Pump Failure",
-            "obesity": "OHS Profile",
-            "pneumothorax": "Tension Physiology",
-            "edema": "Alveolar Flooding",
-            "cf": "Mixed Obstructive",
-            "kypho": "Structural Defect",
-            "bronch": "Airway Dilatation",
-            "mild_ards": "Early Alkalosis",
-            "atelectasis": "Volume Loss",
-            "flail": "Paradoxical Mechanics",
-            "p_htn": "Dead Space Anomaly",
-            "co_poison": "Cellular Hypoxia",
-            "ards_mod": "Moderate Shunt"
-        }
-        
-        context = path_map.get(preset_id, "Manual Simulation Profile")
-        return f"{base} | {context}"
-
-    @staticmethod
-    def _generate_waveforms(t_cycle, ie, pip, peep, vt, tau):
-        t_i = t_cycle * (1 / (1 + ie))
-        t_pts, p_pts, v_pts, f_pts = [], [], [], []
-        res = 40
-        for i in range(res + 1):
-            t = (i / res) * t_cycle
-            t_pts.append(round(t, 3))
-            if t <= t_i:
-                p_pts.append(round(pip, 1))
-                v_pts.append(round(vt * (1 - math.exp(-t / tau)), 1))
-                f_pts.append(round(((vt / tau) * math.exp(-t / tau)), 1) * 0.06)
-            else:
-                t_exp = t - t_i
-                p_pts.append(round(peep, 1))
-                v_pts.append(round(vt * math.exp(-t_exp / tau), 1))
-                f_pts.append(round(-((vt / tau) * math.exp(-t_exp / tau)), 1) * 0.06)
-        return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts}
-
-# ==========================================
-# 3. HTML, CSS & JAVASCRIPT
-# ==========================================
-
-BACKGROUND_SVG = """
-<svg class="living-lung" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-        <radialGradient id="cyanGrad" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.6"/>
-            <stop offset="50%" stop-color="#0891b2" stop-opacity="0.8"/>
-            <stop offset="100%" stop-color="#164e63" stop-opacity="1"/>
-        </radialGradient>
-        <filter id="glow"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    </defs>
-    <g filter="url(#glow)">
-        <path d="M245 40 h10 v80 h-10 z" fill="#06b6d4"/>
-        <path d="M250 120 L190 160 L195 170 L250 135 L305 170 L310 160 Z" fill="#06b6d4"/>
-        <path d="M230 135 C 130 90, 50 210, 70 330 C 90 390, 190 390, 230 330 C 250 270, 240 180, 230 135 Z" fill="url(#cyanGrad)"/>
-        <path d="M270 135 C 370 90, 450 210, 430 330 C 410 390, 310 390, 270 330 C 250 270, 260 180, 270 135 Z" fill="url(#cyanGrad)"/>
-    </g>
-</svg>
-"""
-
-GLOBAL_CSS_JS = """
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-    body { font-family: 'Outfit', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    @keyframes holographicBreathe { 0% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.2; } 50% { transform: translate(-50%, -50%) scale(1.03); opacity: 0.6; } 100% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.2; } }
-    .living-lung { position: fixed; top: 50%; left: 50%; width: 100vw; max-width: 900px; z-index: 0; pointer-events: none; animation: holographicBreathe 5s ease-in-out infinite; }
-    .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); position: relative; z-index: 10; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
-    .glass-input { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; }
-    .glass-input:focus { outlineThis is an excellent enhancement. By factoring in $HCO_3$ levels alongside $pH$ and $PaCO_2$, the acid-base logic can now accurately differentiate between acute, partially compensated, and fully compensated states for manual data inputs. Furthermore, appending the specific physiological context of the 20 pathologies transforms the output into a highly clinical, diagnostic string (e.g., "Fully Compensated Resp. Acidosis | Chronic CO2 Retainer Profile").
-
-I have updated the `_analyze_acid_base` calculation and modified the UI slightly to accommodate the longer, more detailed strings. Everything else, including the Clinical Notes Analyzer, remains fully intact.
-
-### Replace your entire `app.py` code with this updated master version:
-
-```python
-import os
-import math
-import json
-import sqlite3
-import traceback
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string
-from werkzeug.security import generate_password_hash, check_password_hash
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_absolute_sync_2026")
-DB_NAME = "aerolung_database.db"
-
-# ==========================================
-# 1. DATABASE INITIALIZATION
-# ==========================================
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users 
-                 (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
-    
-    c.execute("SELECT * FROM users WHERE username='admin'")
-    if not c.fetchone():
-        hashed_pw = generate_password_hash('admin2026')
-        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                  ('admin', hashed_pw, 'System Architect'))
-    conn.commit()
-    conn.close()
-
-init_db()
-
-# ==========================================
-# 2. STRICT PATHOLOGY DATABASE & MATH ENGINE
-# ==========================================
-
-DISEASE_PROFILES = {
-    "healthy": {"condition": "Stable Pulmonary Homeostasis", "description": "Ventilatory mechanics, airway resistance, and gas exchange are within normal limits.", "solutions": ["Maintain current support.", "Monitor readiness to wean."]},
-    "ards": {"condition": "Severe Acute Respiratory Distress Syndrome", "description": "Profound hypoxemia secondary to intrapulmonary shunting and stiff non-compliant lungs.", "solutions": ["Implement lung-protective ventilation (Vt 4-6 mL/kg).", "Optimize PEEP via ARDSNet.", "Prone positioning."]},
-    "copd": {"condition": "End-Stage COPD / Emphysema", "description": "High static compliance with elevated airway resistance and loss of elastic recoil.", "solutions": ["Accept permissive hypercapnia (pH > 7.20).", "Apply extrinsic PEEP to match Auto-PEEP.", "Administer bronchodilators."]},
-    "asthma": {"condition": "Status Asthmaticus", "description": "Critically elevated airway resistance indicating severe bronchospasm and mucus plugging.", "solutions": ["Administer continuous nebulized Albuterol.", "Decrease respiratory rate to allow exhalation.", "IV corticosteroids."]},
-    "fibrosis": {"condition": "Advanced Pulmonary Fibrosis", "description": "Restricted lung volumes due to dense parenchymal scarring. Compliance is critically low.", "solutions": ["Utilize ultra-low tidal volume ventilation.", "Titrate PEEP cautiously.", "Evaluate for acute exacerbation."]},
-    "pe": {"condition": "Massive Pulmonary Embolism", "description": "Severe dead-space (Vd/Vt) anomaly. Alveoli are ventilated, but blood flow is obstructed.", "solutions": ["Initiate systemic anticoagulation.", "Consider thrombolytics if unstable.", "Vasopressor support for RV failure."]},
-    "pneumonia": {"condition": "Severe Lobar Pneumonia", "description": "Localized alveolar filling causing significant right-to-left intrapulmonary shunting.", "solutions": ["Administer broad-spectrum IV antibiotics.", "Position patient 'good lung down'.", "Moderate PEEP."]},
-    "neuro": {"condition": "Neuromuscular Pump Failure", "description": "Lung mechanics are normal, but minute ventilation is grossly inadequate leading to hypercapnia.", "solutions": ["Provide full mechanical ventilatory support.", "Assess for reversible neurologic causes.", "Aggressive pulmonary hygiene."]},
-    "obesity": {"condition": "Obesity Hypoventilation Syndrome", "description": "Decreased compliance due to adiposity on the chest wall, leading to CO2 retention.", "solutions": ["Utilize higher PEEP to overcome chest wall weight.", "Position in reverse Trendelenburg.", "Target Ideal Body Weight for Vt."]},
-    "pneumothorax": {"condition": "Tension Pneumothorax", "description": "Catastrophic loss of compliance combined with acute hypercapnia and mediastinal shift.", "solutions": ["IMMEDIATE needle thoracostomy.", "Prepare for chest tube insertion.", "Disconnect from positive pressure briefly if unstable."]},
-    "edema": {"condition": "Cardiogenic Pulmonary Edema", "description": "Reduced compliance and elevated shunt indicative of fluid transudation from LV failure.", "solutions": ["Administer IV loop diuretics.", "Administer vasodilators to reduce preload.", "Apply sufficient PEEP to displace fluid."]},
-    "cf": {"condition": "Cystic Fibrosis Exacerbation", "description": "Mixed obstructive/shunting defect. Purulent secretions causing high resistance.", "solutions": ["Aggressive inhaled mucolytics.", "Chest physiotherapy.", "Targeted IV antibiotics."]},
-    "kypho": {"condition": "Severe Kyphoscoliosis Decompensation", "description": "Structural chest wall deformity restricting lung expansion, leading to hypercapnia.", "solutions": ["Utilize NiPPV/BiPAP.", "Apply high PEEP to overcome resistance.", "Treat infectious triggers."]},
-    "bronch": {"condition": "Acute Bronchiectasis Exacerbation", "description": "Chronically dilated, scarred airways filled with sputum causing massive resistance.", "solutions": ["Aggressive pulmonary toilet.", "Targeted IV antibiotics.", "Low respiratory rates to prevent Auto-PEEP."]},
-    "mild_ards": {"condition": "Early / Mild ARDS", "description": "Decreasing compliance and tachypnea causing respiratory alkalosis early in disease process.", "solutions": ["Monitor strictly for progression.", "Apply moderate PEEP (8-10 cmH2O).", "Restrict IV fluids."]},
-    "atelectasis": {"condition": "Major Lobar Atelectasis", "description": "Acute loss of lung volume due to collapsed lobe, resulting in decreased compliance.", "solutions": ["Therapeutic bronchoscopy.", "Aggressive chest physiotherapy.", "Alveolar recruitment maneuvers."]},
-    "flail": {"condition": "Flail Chest / Blunt Thoracic Trauma", "description": "Paradoxical chest wall movement due to rib fractures, leading to impaired compliance.", "solutions": ["Positive pressure ventilation ('pneumatic splinting').", "Aggressive pain control.", "Consult thoracic surgery."]},
-    "p_htn": {"condition": "Pulmonary Hypertension / Cor Pulmonale", "description": "Right-sided heart failure causing poor perfusion. High dead space and stiff vasculature.", "solutions": ["Inhaled pulmonary vasodilators.", "Avoid hypoxia and hypercapnia.", "Optimize RV preload."]},
-    "co_poison": {"condition": "Carbon Monoxide Toxicity", "description": "Critical cellular hypoxia despite standard SpO2 indicating excellent oxygenation.", "solutions": ["Maintain 100% FiO2.", "Obtain ABG with CO-oximetry.", "Arrange hyperbaric oxygen transfer."]},
-    "ards_mod": {"condition": "Moderate ARDS", "description": "Significant intrapulmonary shunting. PaO2/FiO2 ratio below 200.", "solutions": ["ARDSNet low tidal volume protocols.", "Maintain plateau pressures below 30 cmH2O.", "Consider paralysis if dyssynchrony persists."]}
-}
-
-class RespiratoryEngine:
-    @staticmethod
-    def safe_float(val, default):
-        try:
-            if val is None or str(val).strip() == '': return float(default)
-            return float(val)
-        except ValueError:
-            return float(default)
-
-    @classmethod
-    def calculate_simulation(cls, inputs, preset_id="", custom_desc=""):
-        vt = max(10.0, inputs['vt_input'])
-        peep = max(0.0, inputs['peep'])
-        pplat = max(peep + 1.0, inputs['pplat'])
-        pip = max(pplat + 1.0, inputs['pip'])
-        flow_lmin = max(5.0, inputs['peak_flow'])
-        peco2 = max(0.1, inputs['peco2'])
-        cao2 = max(0.1, inputs['cao2'])
-        cco2 = max(cao2 + 0.1, inputs['cco2'])
-        cvo2 = min(cao2 - 0.1, inputs['cvo2'])
-        hco3_input = max(0.1, inputs['hco3_input'])
-        rr = max(1.0, inputs['rr'])
-        ie = max(0.1, inputs['ie_ratio'])
-        vco2 = max(10.0, inputs['vco2'])
-        fio2_val = inputs['fio2']
-
-        driving_pressure = pplat - peep
-        compliance = vt / driving_pressure
-        flow_lsec = flow_lmin / 60.0
-        resistance = (pip - pplat) / flow_lsec
-        min_vent_est = (vt * rr) / 1000.0
-        
-        vd_base = 0.35
-        if compliance < 45: vd_base += (45.0 - compliance) * 0.012
-        if resistance > 12: vd_base += (resistance - 12.0) * 0.008
-        vd_vt_ratio = max(0.15, min(0.75, vd_base))
-        
-        alv_vent = max(0.5, min_vent_est * (1.0 - vd_vt_ratio))
-        paco2 = round((0.863 * vco2) / alv_vent, 1)
-
-        shunt_denominator = max(0.1, cco2 - cvo2)
-        shunt_ratio = (cco2 - cao2) / shunt_denominator
-        shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
-        
-        try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
-        except Exception: ph = 7.40
-
-        if preset_id in DISEASE_PROFILES:
-            ai_result = DISEASE_PROFILES[preset_id].copy()
-        else:
-            ai_result = cls._fallback_ai_diagnostics(compliance, resistance, shunt_pct, vd_vt_ratio).copy()
-            
         if custom_desc:
             ai_result['description'] = custom_desc
 
@@ -464,7 +215,7 @@ class RespiratoryEngine:
 # ==========================================
 
 BACKGROUND_SVG = """
-<svg class="living-lung" viewBox="0 0 500 500" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+<svg class="living-lung" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <radialGradient id="cyanGrad" cx="50%" cy="50%" r="60%">
             <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.6"/>
@@ -483,9 +234,9 @@ BACKGROUND_SVG = """
 """
 
 GLOBAL_CSS_JS = """
-<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-<script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
-<link href="[https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap](https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap)" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
     body { font-family: 'Outfit', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -627,7 +378,7 @@ GLOBAL_CSS_JS = """
             
             if (descEl) {
                 if (customVal && customVal.trim() !== '') {
-                    descEl.innerText = customVal; // keep custom NLP description
+                    descEl.innerText = customVal;
                 } else if (TRANSLATIONS[lang][presetId + '_desc']) {
                     descEl.innerText = TRANSLATIONS[lang][presetId + '_desc'];
                 }
@@ -892,7 +643,6 @@ SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="min-h-screen flex bg-slate-950/80">
     
-    <!-- SIDEBAR -->
     <aside class="w-[360px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
         <div class="space-y-5">
             <div>
@@ -906,23 +656,19 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </div>
             </div>
 
-            <!-- LIVE CLOCK SIDEBAR -->
             <div class="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
                 <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl"></div>
                 <div id="clock-day" class="text-slate-300 text-xs font-bold uppercase tracking-widest mt-1"></div>
                 <div id="clock-date" class="text-slate-500 text-[10px] font-mono mt-0.5"></div>
             </div>
 
-            <!-- LYRA VOICE TOGGLE -->
             <div class="bg-purple-950/20 border border-purple-500/30 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(147,51,234,0.1)]">
                 <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
                 <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-3" data-i18n="lyra_status">Lyra Sleeping</div>
                 
-                <!-- PATIENT RECORD ANALYZER BUTTON -->
                 <button type="button" onclick="document.getElementById('notes-modal').classList.remove('hidden')" class="w-full py-2 mt-3 rounded border border-emerald-600/50 bg-emerald-900/30 text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all hover:bg-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]">Analyze Patient Record</button>
             </div>
 
-            <!-- PATHOLOGIES DROPDOWN -->
             <div>
                 <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2" data-i18n="db_title">Pathology Matrix</label>
                 <select id="preset-dropdown" onchange="document.getElementById('custom_ai_desc').value=''; if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-2 rounded-lg text-xs font-semibold">
@@ -951,7 +697,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <!-- ALL 14 INPUTS -->
             <form id="calc-form" method="POST" action="/dashboard" class="border-t border-white/10 pt-4">
                 <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
                 <input type="hidden" name="custom_ai_desc" id="custom_ai_desc" value="{{ inputs.custom_ai_desc|default('') }}">
@@ -993,7 +738,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </div>
     </aside>
 
-    <!-- MAIN DASHBOARD -->
     <main class="flex-1 p-6 overflow-y-auto w-full relative z-10">
         {% if not sim_data %}
         <div class="glass-panel rounded-3xl h-[600px] flex flex-col items-center justify-center text-center p-8 border-dashed border-white/10 shadow-2xl">
@@ -1010,7 +754,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 <div id="ai-cond" class="text-3xl font-black text-white uppercase mb-4">{{ sim_data.ai_condition }}</div>
                 
                 <h4 class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1" data-i18n="physio">Physiology</h4>
-                <!-- whitespace-pre-wrap ensures NLP text breaks lines cleanly -->
                 <p id="ai-desc" class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 mb-4 whitespace-pre-wrap">{{ sim_data.ai_description }}</p>
                 
                 <h4 class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1" data-i18n="action_plan">Action Plan</h4>
@@ -1030,7 +773,7 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                     <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">PaCO2</div><div class="text-3xl font-black font-mono text-amber-400">{{ sim_data.paco2 }}</div></div>
                     <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">HCO3</div><div class="text-3xl font-black font-mono text-purple-400">{{ sim_data.hco3 }}</div></div>
                 </div>
-                <div id="abg-status" class="text-[11px] font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
+                <div id="abg-status" data-raw="{{ sim_data.acid_base_status }}" class="text-[11px] font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 px-2 rounded-lg border border-purple-800 leading-relaxed">{{ sim_data.acid_base_status }}</div>
             </div>
         </div>
 
@@ -1085,7 +828,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         {% endif %}
     </main>
 
-    <!-- PATIENT RECORD ANALYZER MODAL -->
     <div id="notes-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
         <div class="glass-panel p-8 rounded-2xl w-[500px] border border-emerald-500/30 shadow-2xl relative flex flex-col">
             <button onclick="document.getElementById('notes-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg">✕</button>
