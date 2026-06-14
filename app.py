@@ -604,93 +604,204 @@ GLOBAL_CSS_JS = """
         });
     }
 
-    // NLP CLINICAL RECORD ANALYZER
-    function processClinicalNotes() {
-        const text = document.getElementById('patient_record_input').value.toLowerCase();
-        if(!text.trim()) return;
-        
-        document.getElementById('notes-modal').classList.add('hidden');
-        
-        let suspicion = 'Undifferentiated Respiratory Distress';
-        let evidence = "The patient presents with respiratory compromise of mixed or atypical etiology. No single classic pattern dominated the narrative. Clinical presentation warrants broad diagnostic workup.";
-        let missing = "Comprehensive metabolic panel, ABG, and advanced imaging (CT Chest).";
-        let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
-        let presetMap = 'custom';
+  // NLP CLINICAL RECORD ANALYZER
+function processClinicalNotes() {
+    const text = document.getElementById('patient_record_input').value.toLowerCase();
+    if(!text.trim()) return;
+    
+    document.getElementById('notes-modal').classList.add('hidden');
+    
+    let suspicion = 'Undifferentiated Respiratory Distress';
+    let evidence = "The patient presents with respiratory compromise of mixed or atypical etiology. No single classic pattern dominated the narrative. Clinical presentation warrants broad diagnostic workup.";
+    let missing = "Comprehensive metabolic panel, ABG, and advanced imaging (CT Chest).";
+    let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
+    let presetMap = 'custom';
 
-        let vitals = [];
-        const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\\d{2,3})/);
-        if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
-        const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\\d{2,3})/);
-        if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
-        const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\\d{2,3})/);
-        if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
-        
-        let vitalsStr = vitals.length > 0 ? `\\n\\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
+    let vitals = [];
+    const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\\d{2,3})/);
+    if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
+    const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\\d{2,3})/);
+    if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
+    const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\\d{2,3})/);
+    if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
+    
+    let vitalsStr = vitals.length > 0 ? `\\n\\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
 
-        if (text.includes('effusion') || text.includes('dullness') || text.includes('fluid collection') || text.includes('thoracentesis')) {
-            suspicion = 'Massive Pleural Effusion';
-            evidence = "The patient's presentation is highly indicative of a massive pleural effusion. Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space. This fluid physically compresses the underlying lung parenchyma, resulting in acute restrictive lung mechanics, impaired gas exchange, and potential mediastinal shift." + vitalsStr;
-            missing = "Diagnostic thoracentesis for pleural fluid analysis (Light's criteria), Cytology, and CT Chest with contrast to evaluate for underlying malignancy, infection, or heart failure.";
-            treatments = ["Perform therapeutic and diagnostic thoracentesis.", "Consider pigtail catheter or chest tube placement if fluid reaccumulates rapidly.", "Send pleural fluid for cell count, Gram stain, protein, LDH, and cytology.", "Administer supplemental oxygen to maintain SpO2 > 92%."];
-        } 
-        else if (text.includes('anaphylaxis') || text.includes('hives') || text.includes('allergen') || text.includes('stridor') || text.includes('epinephrine')) {
-            suspicion = 'Acute Anaphylactic Shock / Airway Edema';
-            evidence = "The rapid onset of respiratory distress combined with potential allergic triggers strongly suggests anaphylaxis. The presence of stridor or upper airway compromise indicates severe laryngeal edema, drastically increasing upper airway resistance and threatening complete occlusion." + vitalsStr;
-            missing = "Serum tryptase levels and a detailed allergen exposure history.";
-            treatments = ["IMMEDIATE Intramuscular Epinephrine (1:1000) 0.3-0.5 mg.", "Secure airway early; prepare for difficult intubation or surgical airway if edema is severe.", "Administer IV H1 and H2 antihistamines (e.g., Diphenhydramine, Famotidine).", "Administer IV Corticosteroids (e.g., Methylprednisolone) to prevent biphasic reaction.", "Aggressive IV fluid resuscitation for distributive shock."];
-        }
-        else if (text.includes('sepsis') || text.includes('lactic') || text.includes('infection') || text.includes('hypotension')) {
-            suspicion = 'Septic Shock with Secondary Pulmonary Compromise';
-            evidence = "The narrative points to profound systemic inflammation, likely driven by an underlying infection. Hypotension and metabolic distress (e.g., elevated lactate) suggest distributive shock, which frequently leads to acute capillary leak syndrome in the lungs, predisposing the patient to early ARDS and severe ventilation-perfusion mismatch." + vitalsStr;
-            missing = "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.";
-            treatments = ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors (Norepinephrine) if mean arterial pressure (MAP) remains < 65 mmHg.", "Monitor for signs of fluid overload or developing ARDS."];
-        }
-        else if (text.includes('smok') || text.includes('barrel') || text.includes('productive cough')) {
-            suspicion = 'End-Stage COPD / Emphysema';
-            evidence = "The chronic productive cough and heavy smoking history strongly suggest COPD with underlying emphysematous changes. The presence of a barrel chest and prolonged expiratory phase indicates chronic air trapping, hyperinflation, and loss of lung elastic recoil, leading to high static compliance and significant auto-PEEP risk." + vitalsStr;
-            missing = "Formal Spirometry showing FEV1/FVC < 0.70 to confirm severe obstruction, and a current baseline ABG to check for chronic hypercapnia.";
-            treatments = ["Administer continuous nebulized bronchodilators (Albuterol/Ipratropium).", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92% to prevent blunting of hypoxic drive.", "Utilize NiPPV/BiPAP to reduce work of breathing and improve ventilation."];
-            presetMap = 'copd';
-        } 
-        else if (text.includes('wheez') || text.includes('asthma') || text.includes('albuterol')) {
-            suspicion = 'Status Asthmaticus';
-            evidence = "Auscultation of loud, bilateral expiratory wheezing along with episodic shortness of breath suggests severe reactive airway disease. The patient's inability to find relief from standard rescue inhalers indicates critical bronchospasm and profound airway resistance, risking catastrophic hypercapnic respiratory failure." + vitalsStr;
-            missing = "Peak expiratory flow rate (PEFR) and response to continuous nebulization.";
-            treatments = ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids (e.g., Solu-Medrol).", "Consider IV Magnesium Sulfate for severe refractory bronchospasm.", "If intubated, strictly decrease respiratory rate to allow full exhalation and avoid Auto-PEEP."];
-            presetMap = 'asthma';
-        } 
-        else if (text.includes('crackles') || text.includes('orthopnea') || text.includes('frothy') || text.includes('jvd')) {
-            suspicion = 'Cardiogenic Pulmonary Edema';
-            evidence = "Findings of bibasilar crackles, orthopnea, and hypoxemia strongly point to left ventricular failure. The presence of JVD and pink frothy sputum indicates massive fluid transudation into the alveoli, resulting in rapidly declining lung compliance and a severe right-to-left intrapulmonary shunt." + vitalsStr;
-            missing = "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.";
-            treatments = ["Administer IV loop diuretics (e.g., Furosemide) immediately.", "Apply CPAP or BiPAP to decrease work of breathing and displace alveolar fluid.", "Administer vasodilators (e.g., Nitroglycerin) to reduce cardiac preload and afterload.", "Strict monitoring of urine output and hemodynamics."];
-            presetMap = 'edema';
-        }
-        else {
-            evidence = evidence + vitalsStr;
+    // 1. ORIGINAL CORE PATHOLOGIES
+    if (text.includes('effusion') || text.includes('dullness') || text.includes('fluid collection') || text.includes('thoracentesis')) {
+        suspicion = 'Massive Pleural Effusion';
+        evidence = "The patient's presentation is highly indicative of a massive pleural effusion. Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space." + vitalsStr;
+        missing = "Diagnostic thoracentesis for pleural fluid analysis (Light's criteria), Cytology, and CT Chest with contrast.";
+        treatments = ["Perform therapeutic and diagnostic thoracentesis.", "Consider pigtail catheter or chest tube placement.", "Administer supplemental oxygen to maintain SpO2 > 92%."];
+    } 
+    else if (text.includes('anaphylaxis') || text.includes('hives') || text.includes('allergen') || text.includes('stridor') || text.includes('epinephrine')) {
+        suspicion = 'Acute Anaphylactic Shock / Airway Edema';
+        evidence = "Rapid onset of respiratory distress with allergic triggers suggests anaphylaxis. Upper airway compromise indicates severe laryngeal edema." + vitalsStr;
+        missing = "Serum tryptase levels and a detailed allergen exposure history.";
+        treatments = ["IMMEDIATE Intramuscular Epinephrine (1:1000) 0.3-0.5 mg.", "Secure airway early.", "Administer IV H1/H2 antihistamines and Corticosteroids.", "Aggressive IV fluid resuscitation."];
+    }
+    else if (text.includes('sepsis') || text.includes('lactic') || text.includes('infection') || text.includes('hypotension')) {
+        suspicion = 'Septic Shock with Secondary Pulmonary Compromise';
+        evidence = "Systemic inflammation driven by infection. Hypotension and metabolic distress suggest distributive shock leading to acute capillary leak in the lungs." + vitalsStr;
+        missing = "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.";
+        treatments = ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors if MAP < 65 mmHg."];
+    }
+    else if (text.includes('smok') || text.includes('barrel') || text.includes('productive cough')) {
+        suspicion = 'End-Stage COPD / Emphysema';
+        evidence = "Chronic productive cough and heavy smoking history strongly suggest COPD with emphysematous changes, chronic air trapping, and hyperinflation." + vitalsStr;
+        missing = "Formal Spirometry showing FEV1/FVC < 0.70, and a baseline ABG for chronic hypercapnia.";
+        treatments = ["Administer continuous nebulized bronchodilators.", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92%.", "Utilize NiPPV/BiPAP."];
+        presetMap = 'copd';
+    } 
+    else if (text.includes('wheez') || text.includes('asthma') || text.includes('albuterol')) {
+        suspicion = 'Status Asthmaticus';
+        evidence = "Loud, bilateral expiratory wheezing suggests severe reactive airway disease, critical bronchospasm, and profound airway resistance." + vitalsStr;
+        missing = "Peak expiratory flow rate (PEFR) and response to continuous nebulization.";
+        treatments = ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids.", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."];
+        presetMap = 'asthma';
+    } 
+    else if (text.includes('crackles') || text.includes('orthopnea') || text.includes('frothy') || text.includes('jvd')) {
+        suspicion = 'Cardiogenic Pulmonary Edema';
+        evidence = "Bibasilar crackles, orthopnea, and JVD point to left ventricular failure causing massive fluid transudation into the alveoli." + vitalsStr;
+        missing = "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.";
+        treatments = ["Administer IV loop diuretics (e.g., Furosemide).", "Apply CPAP or BiPAP.", "Administer vasodilators (e.g., Nitroglycerin)."];
+        presetMap = 'edema';
+    }
+    else {
+        // 2. EXACT DISORDER DICTIONARY (For specific diseases outside the main 6)
+        const extendedPathologies = [
+            {
+                keywords: ['tuberculosis', 'tb', 'hemoptysis', 'night sweats', 'cavitary', 'acid-fast'],
+                name: 'Active Pulmonary Tuberculosis (TB)',
+                evidence: "Clinical signs including potential hemoptysis, night sweats, or cavitary lesions are highly specific for Mycobacterium tuberculosis infection.",
+                missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture, GeneXpert MTB/RIF assay, and isolation protocols.",
+                treatments: ["Place patient in a negative pressure airborne isolation room immediately.", "Initiate RIPE therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) upon confirmation.", "Report to local public health authorities."]
+            },
+            {
+                keywords: ['pulmonary embolism', 'pe', 'dvt', 'clot', 'thrombosis', 's1q3t3'],
+                name: 'Acute Pulmonary Embolism (PE)',
+                evidence: "Signs of vascular obstruction, potential DVT history, or acute right heart strain indicate a thromboembolic event blocking pulmonary arterial circulation.",
+                missing: "CT Pulmonary Angiography (CTPA), D-dimer, and high-sensitivity Troponin.",
+                treatments: ["Initiate prompt systemic anticoagulation (e.g., Heparin) if no contraindications.", "Provide continuous high-flow oxygen.", "Evaluate for thrombolysis if hemodynamically unstable."]
+            },
+            {
+                keywords: ['cystic fibrosis', 'cf', 'sweat chloride', 'pseudomonas', 'steatorrhea', 'thick mucus'],
+                name: 'Cystic Fibrosis (CF) Exacerbation',
+                evidence: "History of thick mucopurulent secretions and chronic recurrent infections is hallmark for CFTR gene mutations causing severely impaired mucociliary clearance.",
+                missing: "Sputum culture specific for Pseudomonas aeruginosa/Burkholderia, and baseline PFTs.",
+                treatments: ["Aggressive airway clearance therapy (chest physiotherapy, hypertonic saline).", "Administer targeted IV antibiotics based on previous sputum cultures.", "Provide pancreatic enzyme replacement if indicated."]
+            },
+            {
+                keywords: ['pneumothorax', 'collapsed lung', 'hyperresonance', 'absent breath', 'tracheal deviation'],
+                name: 'Pneumothorax / Tension Pneumothorax',
+                evidence: "Absent breath sounds and asymmetric chest expansion indicate a rupture in the pleural space, leading to lung collapse and restricted ventilation.",
+                missing: "Urgent upright portable Chest X-Ray or bedside thoracic ultrasound (eFAST).",
+                treatments: ["Prepare for emergent needle decompression if tension physiology is present.", "Set up for formal thoracostomy (chest tube) insertion.", "Administer 100% oxygen to accelerate pleural air resorption."]
+            },
+            {
+                keywords: ['cancer', 'tumor', 'malignancy', 'carcinoma', 'nodule', 'mass', 'paraneoplastic'],
+                name: 'Bronchogenic Carcinoma / Lung Malignancy',
+                evidence: "Mentions of pulmonary masses, nodules, or unexplained constitutional symptoms strongly suggest a primary lung malignancy or metastatic disease.",
+                missing: "PET-CT scan, tissue biopsy via bronchoscopy or CT-guidance, and comprehensive metabolic panel.",
+                treatments: ["Consult pulmonology and oncology for tissue staging.", "Manage acute symptoms (e.g., hemoptysis, pain).", "Evaluate for malignant pleural effusion."]
+            },
+            {
+                keywords: ['hypertension', 'pah', 'cor pulmonale', 'rvh', 'right heart failure'],
+                name: 'Pulmonary Arterial Hypertension (PAH)',
+                evidence: "Evidence of right-sided heart strain without left-sided failure suggests chronically elevated pressures in the pulmonary vascular bed (Cor Pulmonale).",
+                missing: "Right heart catheterization (gold standard), Echocardiogram to estimate PASP, and V/Q scan.",
+                treatments: ["Administer targeted pulmonary vasodilators (e.g., Sildenafil, Epoprostenol) if prescribed.", "Cautious use of diuretics for right ventricular volume overload.", "Avoid hypoxia, which worsens pulmonary vasoconstriction."]
+            },
+            {
+                keywords: ['sarcoidosis', 'granuloma', 'hilar', 'erythema nodosum', 'ace level'],
+                name: 'Pulmonary Sarcoidosis',
+                evidence: "Bilateral hilar lymphadenopathy and potential non-caseating granulomatous inflammation point directly to Sarcoidosis.",
+                missing: "Serum ACE levels, High-Resolution CT (HRCT), and transbronchial biopsy.",
+                treatments: ["Initiate systemic corticosteroids for acute symptomatic flares.", "Monitor for extrapulmonary involvement (cardiac, ocular).", "Routine pulmonary function testing."]
+            },
+            {
+                keywords: ['bronchiectasis', 'tram-track', 'foul sputum', 'dilated bronchi'],
+                name: 'Severe Bronchiectasis',
+                evidence: "Chronic daily production of foul-smelling sputum and structural airway dilation indicate irreversible bronchial damage and chronic colonization.",
+                missing: "High-Resolution CT (HRCT) to confirm airway dilation/tram-track opacities, and sputum culture.",
+                treatments: ["Daily airway clearance techniques and mucolytics.", "Targeted oral or inhaled antibiotics for exacerbations.", "Bronchodilator therapy."]
+            },
+            {
+                keywords: ['pneumonia', 'consolidation', 'infiltrate', 'purulent'],
+                name: 'Acute Bacterial Pneumonia',
+                evidence: "Focal alveolar consolidations and purulent sputum signify an acute, exudative infectious process within the lung parenchyma.",
+                missing: "Sputum Gram stain/culture, Procalcitonin, and Blood cultures.",
+                treatments: ["Administer empiric broad-spectrum antibiotics immediately.", "Aggressive pulmonary hygiene.", "Targeted oxygen therapy."]
+            }
+        ];
+
+        let foundExactDisease = false;
+
+        // Scan the dictionary for an exact match
+        for (let disease of extendedPathologies) {
+            if (disease.keywords.some(kw => text.includes(kw))) {
+                suspicion = disease.name;
+                evidence = disease.evidence + vitalsStr;
+                missing = disease.missing;
+                treatments = disease.treatments;
+                foundExactDisease = true;
+                break;
+            }
         }
 
-        const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\\n\\nCLINICAL EVIDENCE: ${evidence}\\n\\nMISSING DATA: ${missing}`;
-        
-        document.getElementById('custom_ai_desc').value = formattedOutput;
-        const condElem = document.getElementById('custom_ai_cond');
-        if(condElem) condElem.value = suspicion;
-        const planElem = document.getElementById('custom_ai_plan');
-        if(planElem) planElem.value = JSON.stringify(treatments);
-        
-        const langCode = localStorage.getItem('selectedLang') || 'en';
-        let msg = "Record analyzed. Generating profile for " + suspicion.toUpperCase();
-        document.getElementById('lyra-status').innerText = msg;
-        lyraSpeak(msg, langCode);
-        
-        if (presetMap !== 'custom') {
-            setTimeout(() => { loadPreset(presetMap); }, 2500);
-        } else {
-            document.getElementById('preset_id').value = 'custom';
-            document.getElementById('preset-dropdown').value = 'custom';
-            setTimeout(() => { document.getElementById('calc-form').submit(); }, 2500);
+        // 3. THE SMART NLP EXTRACTOR (If it's a random disease not in ANY list)
+        if (!foundExactDisease) {
+            // This Regex looks for phrases like "diagnosis of X", "suspected X", "evidence of X" 
+            // where X is a disease name ending in syndrome, disease, disorder, itis, oma, osis, etc.
+            const regexExtractor = /(?:suspect|suspected|suspicion for|diagnosis of|consistent with|evidence of)\s+([a-z\s\-]+(?:syndrome|disease|disorder|itis|oma|osis|pathy|fibrosis|asthma|edema|failure|carcinoma|malignancy|hypertension|tuberculosis|apnea|pneumoconiosis))/i;
+            const extractedMatch = text.match(regexExtractor);
+
+            if (extractedMatch && extractedMatch[1]) {
+                // We successfully pulled the exact random disease name out of the text!
+                let exactName = extractedMatch[1].trim().toUpperCase();
+                suspicion = `Specific Pathology Identified: ${exactName}`;
+                evidence = `The clinical notes explicitly reference ${exactName}. The systemic presentation requires diagnostic focus tailored specifically to this named pathology.` + vitalsStr;
+                missing = "Condition-specific specialized lab panels, High-Resolution Imaging, and formal Pulmonology / Specialist consultation.";
+                treatments = [
+                    `Follow standard-of-care protocols specific to ${exactName}.`,
+                    "Provide supportive oxygenation and hemodynamic monitoring as required.",
+                    "Review specific contraindications related to this exact pathology before administering standard respiratory drugs."
+                ];
+            } else {
+                // 4. ULTIMATE FALLBACK
+                suspicion = 'Atypical / Unspecified Pulmonary Disorder';
+                evidence = "The patient presents with an isolated respiratory condition that does not match common presets and lacks a specifically named diagnosis in the notes. Requires broad diagnostic mapping." + vitalsStr;
+                missing = "High-Resolution CT Chest, comprehensive autoimmune/infectious panels, and full PFTs.";
+                treatments = [
+                    "Maintain optimal oxygenation and hemodynamic stability.",
+                    "Consult Pulmonary Medicine for advanced diagnostics (e.g., Bronchoscopy).",
+                    "Provide symptomatic relief while awaiting definitive imaging results."
+                ];
+            }
         }
     }
+
+    const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\\n\\nCLINICAL EVIDENCE: ${evidence}\\n\\nMISSING DATA: ${missing}`;
+    
+    document.getElementById('custom_ai_desc').value = formattedOutput;
+    const condElem = document.getElementById('custom_ai_cond');
+    if(condElem) condElem.value = suspicion;
+    const planElem = document.getElementById('custom_ai_plan');
+    if(planElem) planElem.value = JSON.stringify(treatments);
+    
+    const langCode = localStorage.getItem('selectedLang') || 'en';
+    let msg = "Record analyzed. Generating profile for " + suspicion.toUpperCase();
+    document.getElementById('lyra-status').innerText = msg;
+    lyraSpeak(msg, langCode);
+    
+    if (presetMap !== 'custom') {
+        setTimeout(() => { loadPreset(presetMap); }, 2500);
+    } else {
+        document.getElementById('preset_id').value = 'custom';
+        document.getElementById('preset-dropdown').value = 'custom';
+        setTimeout(() => { document.getElementById('calc-form').submit(); }, 2500);
+    }
+}
 
     // LYRA VOICE REPROGRAMMED
     let recognition;
