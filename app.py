@@ -205,7 +205,6 @@ GLOBAL_CSS_JS = """
         const dayStr = d.toLocaleDateString(lang, { weekday: 'long' });
         const dateStr = d.toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' });
         
-        // Sidebar Clock Only (Removed from Graph to fix clutter)
         const clockTimeEl = document.getElementById('clock-time');
         if(clockTimeEl) {
             clockTimeEl.innerText = timeStr;
@@ -265,7 +264,7 @@ GLOBAL_CSS_JS = """
             "ards_cond": "Síndrome de Dificultad Respiratoria Aguda Severa", "ards_desc": "Hipoxemia profunda secundaria a un cortocircuito intrapulmonar y pulmones rígidos no distensibles.",
             "copd_cond": "EPOC en Etapa Terminal / Enfisema", "copd_desc": "Distensibilidad estática alta con resistencia elevada de las vías respiratorias y pérdida de retroceso elástico.",
             "asthma_cond": "Estado Asmático", "asthma_desc": "Resistencia de las vías respiratorias críticamente elevada que indica broncoespasmo severo y tapones de moco.",
-            "fibrosis_cond": "Fibrosis Pulmonar Avanzada", "fibrosis_desc": "Volúmenes pulmonares restringidos debido a cicatrices parenquimatosas densas. La distensibilidad es críticamente baja.",
+            "fibrosis_cond": "Fibrosis Pulmonar Avanzada", "fibrosis_desc": "Volúmenes pulmonares restringidos debido a cicatrices parenchymatosas densas. La distensibilidad es críticamente baja.",
             "pe_cond": "Embolia Pulmonar Masiva", "pe_desc": "Anomalía severa del espacio muerto (Vd/Vt). Los alvéolos están ventilados, pero el flujo sanguíneo está obstruido.",
             "pneumonia_cond": "Neumonía Lobar Severa", "pneumonia_desc": "Llenado alveolar localizado que causa un cortocircuito intrapulmonar significativo de derecha a izquierda.",
             "neuro_cond": "Fallo de la Bomba Neuromuscular", "neuro_desc": "La mecánica pulmonar es normal, pero la ventilación minuto es sumamente inadecuada, lo que lleva a la hipercapnia.",
@@ -359,7 +358,6 @@ GLOBAL_CSS_JS = """
         });
     }
 
-    // LYRA VOICE REPROGRAMMED: NO NEED TO SAY "LYRA" AGAIN ONCE ACTIVATED
     let recognition;
     let lyraActive = false;
 
@@ -384,11 +382,8 @@ GLOBAL_CSS_JS = """
             else recognition.lang = 'en-US';
 
             recognition.onresult = function(event) {
-                // Instantly capture whatever the user said
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 status.innerText = "Heard: " + transcript;
-                
-                // Directly process the command since the mic is on!
                 processLyraCommand(transcript, langCode);
             };
 
@@ -417,7 +412,6 @@ GLOBAL_CSS_JS = """
     function processLyraCommand(text, lang) {
         let matched = null;
         
-        // Broadened trigger words to ensure Lyra captures the request accurately
         if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
         else if (text.includes('mild') && text.includes('ards')) matched = 'mild_ards';
         else if (text.includes('mod') && text.includes('ards')) matched = 'ards_mod';
@@ -447,7 +441,6 @@ GLOBAL_CSS_JS = """
             lyraSpeak(msg, lang);
             document.getElementById('lyra-status').innerText = msg;
             
-            // Auto stop Lyra and load
             lyraActive = false;
             recognition.stop();
             setTimeout(() => { loadPreset(matched); }, 2500);
@@ -552,7 +545,6 @@ SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="min-h-screen flex bg-slate-950/80">
     
-    <!-- SIDEBAR -->
     <aside class="w-[360px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
         <div class="space-y-5">
             <div>
@@ -566,20 +558,17 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </div>
             </div>
 
-            <!-- LIVE CLOCK SIDEBAR (Only location) -->
             <div class="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
                 <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl"></div>
                 <div id="clock-day" class="text-slate-300 text-xs font-bold uppercase tracking-widest mt-1"></div>
                 <div id="clock-date" class="text-slate-500 text-[10px] font-mono mt-0.5"></div>
             </div>
 
-            <!-- LYRA VOICE TOGGLE -->
             <div class="bg-purple-950/20 border border-purple-500/30 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(147,51,234,0.1)]">
                 <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
                 <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-3" data-i18n="lyra_status">Lyra Sleeping</div>
             </div>
 
-            <!-- PATHOLOGIES DROPDOWN -->
             <div>
                 <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2" data-i18n="db_title">Pathology Matrix</label>
                 <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-2 rounded-lg text-xs font-semibold">
@@ -608,7 +597,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <!-- ALL 14 INPUTS - RESTRUCTURED TO 2 COLUMNS TO PREVENT MERGING -->
             <form id="calc-form" method="POST" action="/dashboard" class="border-t border-white/10 pt-4">
                 <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
                 <div class="flex justify-between items-center mb-4">
@@ -644,11 +632,10 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </div>
         
         <div class="border-t border-slate-800/80 pt-4 text-center mt-4">
-            <p class="text-[10px] text-slate-500 font-mono tracking-wide">&copy; 2026 Shreesh Santoshkumar Rolli</p>
+            <p class="text-[10px] text-slate-500 font-mono tracking-wide">&copy; 2026 Shreesh Santoshkumar Rolli. All Rights Reserved.</p>
         </div>
     </aside>
 
-    <!-- MAIN DASHBOARD -->
     <main class="flex-1 p-6 overflow-y-auto w-full relative z-10">
         {% if not sim_data %}
         <div class="glass-panel rounded-3xl h-[600px] flex flex-col items-center justify-center text-center p-8 border-dashed border-white/10 shadow-2xl">
@@ -702,7 +689,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
             <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                 <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400" data-i18n="graphs">Waveform Analytics</h3>
                 
-                <!-- Fixed margin merging here -->
                 <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">
                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#22d3ee]"></span><span class="font-bold">Paw</span></div>
                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#10b981]"></span><span class="font-bold">Vol</span></div>
