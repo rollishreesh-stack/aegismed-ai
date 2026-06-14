@@ -1,523 +1,584 @@
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string, jsonify
 import os
 import math
-import json
-import traceback
+import time
+from datetime import datetime
 
+# ==========================================
+# 1. SERVER CONFIGURATION & IN-MEMORY DB
+# ==========================================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_ultimate_matrix_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "shreesh_premium_lung_matrix_2026")
 
-# ==========================================
-# 1. DATABASE & PRESETS
-# ==========================================
-
-CLINICAL_DATABASE = {
-    "sys_admin": {
-        "password": "secure2026", 
-        "role": "Chief Systems Architect", 
-        "clearance": "Level 5 Omni-Access"
+# In a real app, this would be a SQL database. 
+# For this advanced script, we use an in-memory dictionary that updates live.
+SYSTEM_USERS = {
+    "admin": {
+        "password": "password123",
+        "clearance": "Supreme Architect"
     }
 }
 
-PRESETS = {
-    "healthy": {"vt_input": 500, "pip": 20, "pplat": 13, "peep": 5, "peak_flow": 60, "peco2": 28, "cao2": 19.8, "cco2": 20.4, "cvo2": 14.8, "hco3_input": 24, "rr": 14, "fio2": 30, "ie_ratio": 2.0, "vco2": 200},
-    "ards":    {"vt_input": 350, "pip": 35, "pplat": 29, "peep": 14, "peak_flow": 50, "peco2": 18, "cao2": 16.2, "cco2": 20.1, "cvo2": 11.2, "hco3_input": 21, "rr": 25, "fio2": 70, "ie_ratio": 1.5, "vco2": 220},
-    "copd":    {"vt_input": 520, "pip": 32, "pplat": 16, "peep": 5, "peak_flow": 45, "peco2": 24, "cao2": 18.5, "cco2": 20.2, "cvo2": 14.2, "hco3_input": 31, "rr": 10, "fio2": 35, "ie_ratio": 4.0, "vco2": 190},
-    "asthma":  {"vt_input": 480, "pip": 42, "pplat": 17, "peep": 5, "peak_flow": 40, "peco2": 25, "cao2": 19.2, "cco2": 20.3, "cvo2": 14.1, "hco3_input": 24, "rr": 12, "fio2": 40, "ie_ratio": 5.0, "vco2": 210}
-}
-
 # ==========================================
-# 2. ADVANCED CLINICAL ENGINE
+# 2. THE AI DIAGNOSTIC ENGINE (BACKEND)
 # ==========================================
-
-class RespiratoryEngine:
+class AILungEngine:
     @staticmethod
-    def safe_float(val, default):
-        try:
-            if val is None or str(val).strip() == '': return float(default)
-            return float(val)
-        except ValueError:
-            return float(default)
+    def analyze_vitals(spo2, resp_rate, heart_rate, cough_severity, sob_level):
+        """
+        Analyzes the inputs to generate a simulated AI response explaining the physiology
+        and offering precise clinical solutions.
+        """
+        # Convert inputs safely
+        try: spo2 = float(spo2)
+        except: spo2 = 98.0
+        try: rr = float(resp_rate)
+        except: rr = 14.0
+        try: hr = float(heart_rate)
+        except: hr = 75.0
+        try: cough = int(cough_severity)
+        except: cough = 0
+        try: sob = int(sob_level)
+        except: sob = 0
 
-    @classmethod
-    def calculate_simulation(cls, inputs):
-        """Processes raw physiological inputs into actionable clinical matrices."""
-        vt = max(10.0, inputs['vt_input'])
-        pip = max(1.0, inputs['pip'])
-        pplat = max(1.0, inputs['pplat'])
-        peep = max(0.0, inputs['peep'])
-        flow_lmin = max(5.0, inputs['peak_flow'])
-        peco2 = max(0.1, inputs['peco2'])
-        cao2, cco2, cvo2 = inputs['cao2'], inputs['cco2'], inputs['cvo2']
-        hco3_input = max(0.1, inputs['hco3_input'])
-        rr = max(1.0, inputs['rr'])
-        ie = max(0.1, inputs['ie_ratio'])
-        vco2 = max(10.0, inputs['vco2'])
-        fio2_val = inputs['fio2']
+        # Calculate severity indices
+        hypoxia_index = max(0, 95 - spo2) * 2.5
+        tachypnea_index = max(0, rr - 20) * 1.5
+        distress_score = hypoxia_index + tachypnea_index + (cough * 2) + (sob * 3)
 
-        # Core Mechanics
-        driving_pressure = max(0.1, pplat - peep)
-        compliance = vt / driving_pressure
-        flow_lsec = flow_lmin / 60.0
-        resistance = max(0.1, (pip - pplat) / flow_lsec)
+        # Base outputs
+        status = "NORMAL HOMEOSTASIS"
+        color = "text-emerald-400"
+        explanation = "The pulmonary system is operating within optimal parameters. Alveolar gas exchange is efficient, maintaining excellent blood oxygenation without excess cardiopulmonary strain."
+        solutions = [
+            "Maintain current cardiovascular exercise routine.",
+            "Continue standard atmospheric breathing.",
+            "No pharmacological intervention required."
+        ]
+        vital_breakdown = f"SpO2 ({spo2}%) is excellent. Respiratory rate ({rr} bpm) indicates low work of breathing."
+
+        # Logic Tree for AI Assessment
+        if distress_score > 30 or spo2 < 88:
+            status = "CRITICAL HYPOXIC RESPIRATORY FAILURE"
+            color = "text-rose-500"
+            explanation = "SEVERE ALERT: The pulmonary parenchyma is failing to adequately oxygenate the arterial blood. This level of hypoxia indicates significant alveolar shunting, dead-space ventilation, or massive airflow obstruction. The myocardium is likely under immense stress to compensate."
+            solutions = [
+                "IMMEDIATE INTERVENTION REQUIRED: Apply high-flow supplemental oxygen.",
+                "Prepare for potential intubation and mechanical ventilatory support.",
+                "Draw immediate Arterial Blood Gas (ABG) for pH/PaCO2 analysis.",
+                "Administer rapid-acting bronchodilators and IV corticosteroids."
+            ]
+            vital_breakdown = f"SpO2 critically low at {spo2}%. Tachypnea ({rr} bpm) and tachycardia ({hr} bpm) signify impending respiratory muscle fatigue."
+        elif distress_score > 15 or spo2 < 94:
+            status = "MODERATE RESPIRATORY DISTRESS / IMPAIRED EXCHANGE"
+            color = "text-amber-400"
+            explanation = "The system detects a moderate impairment in gas exchange. The subjective feeling of shortness of breath correlates with the decreased oxygen saturation. There is likely an inflammatory process, fluid accumulation, or bronchospasm occurring within the terminal bronchioles."
+            solutions = [
+                "Apply low-flow oxygen via nasal cannula (2-4 L/min) to target SpO2 > 94%.",
+                "Conduct a thorough auscultation of lung fields to check for wheezing or rales.",
+                "Consider spirometry testing to rule out obstructive pathology.",
+                "Monitor closely; elevate the patient's upper body to reduce diaphragmatic pressure."
+            ]
+            vital_breakdown = f"SpO2 is suboptimal ({spo2}%). Work of breathing is elevated with a respiratory rate of {rr} bpm."
+        elif cough > 6 or sob > 6:
+            status = "ACUTE AIRWAY REACTIVITY / INFLAMMATION"
+            color = "text-blue-400"
+            explanation = "While systemic oxygenation remains relatively stable, the high severity of coughing and shortness of breath indicates severe hypersensitivity or inflammation of the airway mucosa. This is characteristic of reactive airway disease or an acute viral bronchitis."
+            solutions = [
+                "Administer inhaled Beta-2 agonists (e.g., Albuterol) to induce bronchodilation.",
+                "Prescribe an inhaled corticosteroid to suppress localized airway inflammation.",
+                "Ensure adequate hydration to thin pulmonary secretions.",
+                "Identify and remove potential environmental triggers (dust, allergens, smoke)."
+            ]
+            vital_breakdown = f"Oxygenation is maintained ({spo2}%), but symptom indices (Cough: {cough}/10, SOB: {sob}/10) require intervention."
+
+        # Simulate processing delay for UI effect
+        time.sleep(1.2)
         
-        # Ventilation & Gas Exchange
-        min_vent_est = (vt * rr) / 1000.0
-        paco2_derived = max(1.0, (0.863 * vco2) / max(0.1, min_vent_est * 0.75))
-        if peco2 >= paco2_derived: 
-            peco2 = max(0.1, paco2_derived - 4.0)
-            
-        vd_vt_ratio = max(0.01, min(0.95, (paco2_derived - peco2) / paco2_derived))
-        shunt_denominator = max(0.1, cco2 - cvo2)
-        shunt_ratio = (cco2 - cao2) / shunt_denominator
-        shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
-
-        alv_vent = max(0.1, ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0)
-        paco2 = round((0.863 * vco2) / alv_vent, 1)
-        
-        # Acid-Base Status
-        try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * max(1.0, paco2))), 2)
-        except Exception: ph = 7.40
-
-        ai_condition, ai_intervention, differentials = cls._generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph)
-        acid_base_status, acid_base_delta_text = cls._analyze_acid_base(ph, paco2)
-        spirometry_eval, fev1_vol, fvc_vol_realized, fev1_fvc_pct, decay_constant = cls._calculate_spirometry(compliance, resistance)
-
-        # Oxygenation & Power
-        p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
-        pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
-        mech_power = round(0.098 * rr * (vt / 1000.0) * (pip - (driving_pressure / 2)), 1)
-
-        # Waveform Generation
-        t_cycle = 60.0 / rr
-        tau = max(0.001, (resistance / 1000.0) * compliance)
-        waveform_data = cls._generate_waveforms(t_cycle, ie, pip, peep, vt, tau, fvc_vol_realized, decay_constant)
-
         return {
-            'derived_compliance': round(compliance, 1), 'derived_resistance': round(resistance, 1),
-            'derived_vd_vt': round(vd_vt_ratio * 100, 1), 'derived_shunt': shunt_pct,
-            'fev1_vol': fev1_vol, 'fvc_vol': fvc_vol_realized, 'fev1_fvc_pct': fev1_fvc_pct, 'spirometry_eval': spirometry_eval,
-            'ai_condition': ai_condition, 'ai_intervention': ai_intervention, 'differentials': differentials,
-            'paco2': paco2, 'pao2': pao2, 'aa_gradient': round(p_A_O2 - pao2, 1), 'mech_power': mech_power,
-            'ph': ph, 'hco3': hco3_input, 'acid_base_status': acid_base_status, 'acid_base_delta_text': acid_base_delta_text,
-            'peak_volume': vt, 'minute_vent': round(min_vent_est, 2), 'alveolar_vent': round(alv_vent, 2),
-            'auto_peep_risk': "CRITICAL" if (t_cycle - (t_cycle * (1 / (1 + ie)))) < (3.0 * tau) else "LOW", 
-            'time_const': round(tau, 3),
-            'waveform_data': json.dumps(waveform_data)
+            "status": status,
+            "color": color,
+            "explanation": explanation,
+            "vital_breakdown": vital_breakdown,
+            "solutions": solutions,
+            "score": round(distress_score, 1)
         }
 
-    @staticmethod
-    def _generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph):
-        r_severity = max(0.0, (45.0 - compliance) / 5.0) if compliance < 45 else 0.0
-        if shunt_pct > 15: r_severity += (shunt_pct - 15) / 4.0
-        o_severity = max(0.0, (resistance - 12.0) / 3.0) if resistance > 12 else 0.0
-        if paco2 > 48: o_severity += (paco2 - 48) / 10.0
-
-        if r_severity == 0 and o_severity == 0 and 7.35 <= ph <= 7.45:
-            return "NORMAL PHYSIOLOGY BASELINE", "System stable. Maintain current ventilator parameters. Continue to monitor blood gases.", ["Healthy Control", "No Intervention Required"]
-        elif r_severity >= o_severity:
-            return "RESTRICTIVE LUNG DEFECT", f"TARGET MAP: Restrict Volume. Compliance critically low at {round(compliance,1)}. Escalate PEEP to recruit collapsed alveoli.", ["ARDS", "Pulmonary Fibrosis", "Atelectasis"]
-        else:
-            if compliance >= 50:
-                return "OBSTRUCTIVE EMPHYSEMATOUS DISEASE", "DANGER: High risk of Auto-PEEP. Decrease respiratory rate to allow full exhalation. Broaden I:E ratio.", ["COPD", "Hyperinflation State"]
-            else:
-                return "ACUTE BRONCHOSPASM", f"Resistance severely elevated at {round(resistance,1)} cmH2O. Administer bronchodilators immediately. Monitor peak pressures.", ["Status Asthmaticus", "Airway Inflammation"]
-
-    @staticmethod
-    def _analyze_acid_base(ph, paco2):
-        if ph < 7.35:
-            return ("Respiratory Acidosis", "Hypoventilation causing CO2 retention.") if paco2 > 45 else ("Metabolic Acidosis", "Systemic bicarbonate depletion.")
-        elif ph > 7.45:
-            return ("Respiratory Alkalosis", "Hyperventilation blowing off excessive CO2.") if paco2 < 35 else ("Metabolic Alkalosis", "Accumulation of systemic alkali.")
-        return "Normal Homeostasis", "Blood gas parameters are within normal biological thresholds."
-
-    @staticmethod
-    def _calculate_spirometry(compliance, resistance):
-        if compliance <= 40: fvc, decay, eval_text = 2.4, 2.2, "Restrictive pattern: Decreased FVC."
-        elif resistance >= 15: fvc, decay, eval_text = 4.5, 0.55, "Obstructive pattern: Delayed exhalation."
-        else: fvc, decay, eval_text = 5.0, 1.65, "Normal spirometry tracing."
-        
-        fev1 = round(fvc * (1.0 - math.exp(-decay * 1.0)), 2)
-        fvc_realized = round(fvc * (1.0 - math.exp(-decay * 6.0)), 2)
-        return eval_text, fev1, fvc_realized, round((fev1 / fvc_realized) * 100, 1), decay
-
-    @staticmethod
-    def _generate_waveforms(t_cycle, ie, pip, peep, vt, tau, fvc, decay):
-        t_i = t_cycle * (1 / (1 + ie))
-        t_pts, p_pts, v_pts, f_pts = [], [], [], []
-        res = 60
-        for i in range(res + 1):
-            t = (i / res) * t_cycle
-            t_pts.append(round(t, 3))
-            if t <= t_i:
-                p_pts.append(round(pip, 1))
-                v_pts.append(round(vt * (1 - math.exp(-t / tau)), 1))
-                f_pts.append(round(((vt / tau) * math.exp(-t / tau)), 1) * 0.06)
-            else:
-                t_exp = t - t_i
-                p_pts.append(round(peep, 1))
-                v_pts.append(round(vt * math.exp(-t_exp / tau), 1))
-                f_pts.append(round(-((vt / tau) * math.exp(-t_exp / tau)), 1) * 0.06)
-        
-        spiro_t_pts = [round(step * 0.15, 2) for step in range(41)]
-        spiro_v_pts = [round(fvc * (1.0 - math.exp(-decay * t)), 2) for t in spiro_t_pts]
-        return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts, 'spiro_t': spiro_t_pts, 'spiro_v': spiro_v_pts}
-
 # ==========================================
-# 3. PREMIUM HTML/CSS TEMPLATES
+# 3. GLOBAL UI ASSETS (CSS, SVG BACKGROUND)
 # ==========================================
 
-BASE_CSS_SVG = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;900&family=JetBrains+Mono:wght=400;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #050505; color: #e4e4e7; overflow-x: hidden; min-height: 100vh; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    
-    @keyframes bioBreathe {
-        0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.08; filter: drop-shadow(0 0 20px rgba(225,29,72,0.1)); }
-        50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.25; filter: drop-shadow(0 0 60px rgba(225,29,72,0.4)); }
-        100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.08; filter: drop-shadow(0 0 20px rgba(225,29,72,0.1)); }
-    }
-    .living-lung { position: fixed; top: 50%; left: 50%; width: 100vw; max-width: 1000px; z-index: 0; pointer-events: none; animation: bioBreathe 6s ease-in-out infinite; }
-    
-    .glass-card { background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 16px; position: relative; z-index: 10; overflow: hidden; }
-    .glass-header { background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); position: sticky; top: 0; z-index: 50; }
-    
-    .input-field { background: #000; border: 1px solid #27272a; color: #fff; padding: 8px 12px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; width: 100%; transition: all 0.3s; }
-    .input-field:focus { border-color: #e11d48; outline: none; box-shadow: 0 0 15px rgba(225,29,72,0.4); background: #18181b; }
-    
-    .stat-box { background: linear-gradient(180deg, rgba(24,24,27,0.5) 0%, rgba(9,9,11,0.8) 100%); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; }
-    .stat-box:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
-    
-    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #e11d48; }
-</style>
-
-<svg class="living-lung" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+# The animated, breathing background lung
+BACKGROUND_SVG = """
+<svg class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[120vw] md:w-[80vw] z-[-1] pointer-events-none opacity-20" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="animation: breatheBackground 6s ease-in-out infinite;">
     <defs>
-        <radialGradient id="fleshGrad" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stop-color="#fda4af" stop-opacity="0.8"/><stop offset="50%" stop-color="#be123c" stop-opacity="0.8"/><stop offset="100%" stop-color="#4c0519" stop-opacity="1"/>
+        <radialGradient id="lungGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.3"/>
+            <stop offset="60%" stop-color="#0891b2" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
         </radialGradient>
-        <filter id="glow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="neonBlur"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     </defs>
-    <g filter="url(#glow)">
-        <path d="M145 20 h10 v60 h-10 z" fill="#9f1239"/>
-        <path d="M150 80 L110 115 L115 125 L150 95 L185 125 L190 115 Z" fill="#9f1239"/>
-        <path d="M130 95 C 60 70, 20 150, 35 230 C 50 270, 110 270, 130 230 C 145 190, 140 130, 130 95 Z" fill="url(#fleshGrad)"/>
-        <path d="M170 95 C 240 70, 280 150, 265 230 C 250 270, 190 270, 170 230 C 155 190, 160 130, 170 95 Z" fill="url(#fleshGrad)"/>
+    <rect width="400" height="400" fill="url(#lungGlow)" />
+    <g filter="url(#neonBlur)" stroke="#06b6d4" stroke-width="1.5" fill="none">
+        <path d="M190 40 v60 M210 40 v60" stroke-width="2"/>
+        <path d="M190 100 C 80 80, 20 200, 50 300 C 80 340, 160 340, 190 280 Z" fill="rgba(6, 182, 212, 0.05)"/>
+        <path d="M210 100 C 320 80, 380 200, 350 300 C 320 340, 240 340, 210 280 Z" fill="rgba(6, 182, 212, 0.05)"/>
+        <path d="M190 120 L140 160 M165 140 L130 130 M140 160 L100 180 M140 160 L120 210 M120 210 L80 230"/>
+        <path d="M210 120 L260 160 M235 140 L270 130 M260 160 L300 180 M260 160 L280 210 M280 210 L320 230"/>
     </g>
 </svg>
+<style>
+    @keyframes breatheBackground {
+        0% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.15; }
+        50% { transform: translate(-50%, -50%) scale(1.02); opacity: 0.3; }
+        100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.15; }
+    }
+</style>
 """
 
-LOGIN_HTML = BASE_CSS_SVG + """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>AeroLung | Neural Login</title>
-</head>
-<body class="flex items-center justify-center h-screen">
-    <div class="glass-card p-10 w-full max-w-md shadow-[0_0_80px_rgba(225,29,72,0.15)]">
-        <div class="text-center mb-10">
-            <h1 class="text-5xl font-black tracking-tighter text-white drop-shadow-lg">AERO<span class="text-rose-600">LUNG</span></h1>
-            <p class="text-rose-500/80 mt-2 font-mono text-xs uppercase tracking-[0.3em]">Matrix Initialization</p>
-        </div>
-        {% if get_flashed_messages() %}
-            <div class="mb-6 p-3 text-center text-xs font-mono bg-rose-950/40 text-rose-400 border border-rose-900/50 rounded">{{ get_flashed_messages()[0] }}</div>
-        {% endif %}
-        <form method="POST" action="/login" class="space-y-5">
-            <div>
-                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5 ml-1">Architect ID</label>
-                <input type="text" name="username" class="input-field text-left" required>
-            </div>
-            <div>
-                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5 ml-1">Secure Passkey</label>
-                <input type="password" name="password" class="input-field text-left" required>
-            </div>
-            <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(225,29,72,0.4)] hover:shadow-[0_0_30px_rgba(225,29,72,0.6)] mt-4">
-                Uplink Terminal
-            </button>
-        </form>
+GLOBAL_STYLES = """
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Outfit', sans-serif; background-color: #030712; color: #f3f4f6; margin: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Glassmorphism Classes */
+    .glass-panel { background: rgba(17, 24, 39, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    .glass-input { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; transition: all 0.3s ease; }
+    .glass-input:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); background: rgba(0, 0, 0, 0.7); }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #030712; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
+    /* Scan Line Animation */
+    .scan-container { position: relative; overflow: hidden; }
+    .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #06b6d4; box-shadow: 0 0 15px 3px #06b6d4; opacity: 0; transform: translateY(-100%); }
+    .scanning .scan-line { animation: scanDown 1.5s linear infinite; opacity: 1; }
+    @keyframes scanDown { 0% { transform: translateY(0); } 100% { transform: translateY(400px); } }
+
+    /* Typing cursor */
+    .cursor-blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+</style>
+<script>
+    // Global Clock Function
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        const clockElem = document.getElementById('global-clock');
+        if(clockElem) clockElem.innerHTML = `<span class="text-cyan-400 font-bold">${timeStr}</span> <span class="text-gray-500 text-xs ml-2">${dateStr}</span>`;
+    }
+    setInterval(updateClock, 1000);
+    window.onload = updateClock;
+</script>
+"""
+
+COPYRIGHT_FOOTER = """
+<footer class="mt-auto py-6 text-center relative z-10 border-t border-white/5 bg-black/40 backdrop-blur-md">
+    <div class="flex items-center justify-center gap-2 text-xs font-mono tracking-widest text-gray-500 uppercase">
+        <span>&copy; 2026</span>
+        <span class="w-1 h-1 rounded-full bg-cyan-500 animate-pulse"></span>
+        <span class="text-gray-300 font-bold">Shreesh Santoshkumar Rolli</span>
+        <span class="w-1 h-1 rounded-full bg-cyan-500 animate-pulse"></span>
+        <span>Premium Architecture</span>
     </div>
-</body>
-</html>
+</footer>
 """
 
-DASHBOARD_HTML = BASE_CSS_SVG + """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>AeroLung | Master Command</title>
-</head>
-<body class="min-h-screen flex flex-col">
+# ==========================================
+# 4. HTML TEMPLATES (VIEWS)
+# ==========================================
 
-    <nav class="glass-header px-8 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-rose-950 flex items-center justify-center shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50">
-                <div class="w-3 h-3 bg-white rounded-full animate-ping"></div>
+LOGIN_HTML = f"""
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Neural Gateway</title>{GLOBAL_STYLES}</head>
+<body>
+    {BACKGROUND_SVG}
+    <div class="flex-1 flex items-center justify-center p-4 relative z-10">
+        <div class="glass-panel rounded-2xl p-10 w-full max-w-md">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-950 border border-cyan-800 shadow-[0_0_30px_rgba(6,182,212,0.3)] mb-4">
+                    <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tight text-white mb-1">AERO<span class="text-cyan-400">LUNG</span></h1>
+                <p class="text-xs font-mono text-cyan-600/80 uppercase tracking-[0.3em]">AI Pulmonary Matrix</p>
             </div>
-            <span class="font-black text-3xl tracking-tighter text-white">AERO<span class="text-rose-600">LUNG</span></span>
+            
+            {{% if get_flashed_messages() %}}
+                <div class="mb-6 p-3 rounded bg-red-950/50 border border-red-500/50 text-red-400 text-xs text-center font-mono uppercase tracking-wide">
+                    {{% for msg in get_flashed_messages() %}} {{ msg }} {{% endfor %}}
+                </div>
+            {{% endif %}}
+
+            <form action="/login" method="POST" class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Architect ID</label>
+                    <input type="text" name="username" class="w-full glass-input px-4 py-3 rounded-xl font-mono text-sm" placeholder="Enter ID..." required>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Secure Passkey</label>
+                    <input type="password" name="password" class="w-full glass-input px-4 py-3 rounded-xl font-mono text-sm" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-sm uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] transition-all transform hover:-translate-y-0.5">
+                    Establish Uplink
+                </button>
+            </form>
         </div>
-        <div class="flex items-center space-x-6">
-            <div class="text-right hidden md:block border-r border-zinc-800 pr-6">
-                <div class="text-white text-sm font-bold">{{ session.get('role', 'Admin') }}</div>
-                <div class="text-emerald-500 text-[10px] font-mono tracking-widest uppercase">System Online</div>
+    </div>
+    {COPYRIGHT_FOOTER}
+</body></html>
+"""
+
+DASHBOARD_HTML = f"""
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Master Interface</title>{GLOBAL_STYLES}</head>
+<body>
+    {BACKGROUND_SVG}
+    
+    <nav class="glass-panel sticky top-0 z-50 border-b-0 border-white/5">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-cyan-950/50 border border-cyan-500/30 flex items-center justify-center">
+                    <div class="w-3 h-3 bg-cyan-400 rounded-full animate-ping absolute"></div>
+                    <div class="w-3 h-3 bg-cyan-400 rounded-full relative"></div>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">AERO<span class="text-cyan-400">LUNG</span></h1>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase tracking-widest">Active Session: {{ session.user }}</div>
+                </div>
             </div>
-            <a href="/logout" class="text-xs font-bold text-rose-400 hover:text-white border border-rose-900/50 bg-rose-950/20 px-5 py-2.5 rounded-lg transition-all hover:bg-rose-600">TERMINATE</a>
+            
+            <div class="flex items-center gap-8">
+                <div id="global-clock" class="font-mono text-sm text-right hidden sm:block border-r border-white/10 pr-8"></div>
+                <div class="flex gap-4">
+                    <a href="/settings" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-white/10">Settings</a>
+                    <a href="/logout" class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider transition-colors border border-red-500/20">Disconnect</a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <main class="flex-1 p-6 w-full max-w-[2560px] mx-auto z-10 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        
-        <div class="xl:col-span-3 flex flex-col gap-4">
-            <div class="glass-card">
-                <div class="p-4 border-b border-zinc-800/50 flex justify-between items-center bg-black/20">
-                    <h2 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> Input Matrix
+    <main class="flex-1 max-w-[1600px] mx-auto w-full p-6 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <div class="lg:col-span-4 glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+                <div class="bg-black/40 p-5 border-b border-white/5">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        Patient Telemetry
                     </h2>
+                    <p class="text-[10px] text-gray-500 font-mono mt-1">Enter subjective and objective physiological data.</p>
                 </div>
                 
-                <div class="p-3 grid grid-cols-4 gap-2 bg-zinc-900/30 border-b border-zinc-800/50">
-                    <a href="?preset=healthy" class="text-[10px] text-center font-bold bg-zinc-800 text-zinc-300 py-2 rounded hover:bg-zinc-700">Norm</a>
-                    <a href="?preset=ards" class="text-[10px] text-center font-bold bg-rose-950/40 text-rose-400 border border-rose-900/50 py-2 rounded">ARDS</a>
-                    <a href="?preset=copd" class="text-[10px] text-center font-bold bg-amber-950/40 text-amber-400 border border-amber-900/50 py-2 rounded">COPD</a>
-                    <a href="?preset=asthma" class="text-[10px] text-center font-bold bg-blue-950/40 text-blue-400 border border-blue-900/50 py-2 rounded">Asthma</a>
-                </div>
-
-                <form method="POST" action="/dashboard" class="p-5">
-                    <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-                        <div>
-                            <h3 class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-1">Mechanics</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">Vt (mL)</label><input type="number" name="vt_input" value="{{ inputs.vt_input }}" class="input-field"></div>
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">PIP</label><input type="number" name="pip" value="{{ inputs.pip }}" class="input-field"></div>
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">Pplat</label><input type="number" name="pplat" value="{{ inputs.pplat }}" class="input-field"></div>
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">PEEP</label><input type="number" name="peep" value="{{ inputs.peep }}" class="input-field"></div>
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">Flow (L/m)</label><input type="number" name="peak_flow" value="{{ inputs.peak_flow }}" class="input-field"></div>
-                                <div><label class="text-[9px] text-amber-500 uppercase font-bold block mb-1">PECO2</label><input type="number" name="peco2" value="{{ inputs.peco2 }}" class="input-field text-amber-400 border-amber-900/30"></div>
+                <form id="ai-form" class="p-6 space-y-5">
+                    <div>
+                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Objective Vitals</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-bold text-gray-300 w-1/2">Blood Oxygen (SpO2 %)</label>
+                                <input type="number" id="spo2" value="98" min="50" max="100" class="glass-input w-1/2 px-3 py-2 rounded-lg text-right text-cyan-300 font-mono text-sm">
                             </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-[10px] text-teal-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-1">Blood Gas & Labs</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="text-[9px] text-teal-500 uppercase font-bold block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" value="{{ inputs.cao2 }}" class="input-field text-teal-400 border-teal-900/30"></div>
-                                <div><label class="text-[9px] text-teal-500 uppercase font-bold block mb-1">CcO2</label><input type="number" step="0.1" name="cco2" value="{{ inputs.cco2 }}" class="input-field text-teal-400 border-teal-900/30"></div>
-                                <div><label class="text-[9px] text-teal-500 uppercase font-bold block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" value="{{ inputs.cvo2 }}" class="input-field text-teal-400 border-teal-900/30"></div>
-                                <div><label class="text-[9px] text-purple-400 uppercase font-bold block mb-1">HCO3</label><input type="number" step="0.1" name="hco3_input" value="{{ inputs.hco3_input }}" class="input-field text-purple-400 border-purple-900/30"></div>
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-bold text-gray-300 w-1/2">Resp. Rate (Breaths/min)</label>
+                                <input type="number" id="rr" value="14" min="5" max="60" class="glass-input w-1/2 px-3 py-2 rounded-lg text-right text-cyan-300 font-mono text-sm">
                             </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-3 border-b border-zinc-800/50 pb-1">Ventilator Settings</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="text-[9px] text-blue-400 uppercase font-bold block mb-1">Resp Rate</label><input type="number" name="rr" value="{{ inputs.rr }}" class="input-field border-blue-900/30"></div>
-                                <div><label class="text-[9px] text-blue-400 uppercase font-bold block mb-1">FiO2 %</label><input type="number" name="fio2" value="{{ inputs.fio2 }}" class="input-field border-blue-900/30"></div>
-                                <div><label class="text-[9px] text-blue-400 uppercase font-bold block mb-1">I:E Ratio</label><input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio }}" class="input-field border-blue-900/30"></div>
-                                <div><label class="text-[9px] text-zinc-400 uppercase font-bold block mb-1">VCO2</label><input type="number" name="vco2" value="{{ inputs.vco2 }}" class="input-field"></div>
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-bold text-gray-300 w-1/2">Heart Rate (BPM)</label>
+                                <input type="number" id="hr" value="75" min="30" max="220" class="glass-input w-1/2 px-3 py-2 rounded-lg text-right text-cyan-300 font-mono text-sm">
                             </div>
                         </div>
                     </div>
-                    
-                    <button type="submit" class="w-full mt-6 bg-white hover:bg-zinc-200 text-black font-black py-4 rounded-xl text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]">
-                        Initialize Matrix
+
+                    <div class="pt-4">
+                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Subjective Symptoms (0-10)</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-bold text-gray-300 mb-2"><span>Cough Severity</span><span id="cough-val" class="font-mono text-amber-400">0</span></div>
+                                <input type="range" id="cough" min="0" max="10" value="0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" oninput="document.getElementById('cough-val').innerText=this.value">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold text-gray-300 mb-2"><span>Shortness of Breath</span><span id="sob-val" class="font-mono text-rose-400">0</span></div>
+                                <input type="range" id="sob" min="0" max="10" value="0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-rose-500" oninput="document.getElementById('sob-val').innerText=this.value">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full mt-6 py-4 rounded-xl bg-white hover:bg-gray-200 text-black font-extrabold text-sm uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all">
+                        Execute AI Scan
                     </button>
                 </form>
             </div>
-        </div>
 
-        {% if not sim_data %}
-        <div class="xl:col-span-9 glass-card flex flex-col items-center justify-center min-h-[60vh] border-dashed border-zinc-700/50 bg-black/20">
-            <div class="w-16 h-16 border-4 border-zinc-800 border-t-rose-600 rounded-full animate-spin mb-4"></div>
-            <p class="text-zinc-500 font-mono text-sm uppercase tracking-widest">Awaiting Simulation Matrix Initialization...</p>
-        </div>
-        {% else %}
-        
-        <div class="xl:col-span-9 grid grid-cols-1 lg:grid-cols-2 gap-6 content-start">
-            
-            <div class="flex flex-col gap-6">
-                
-                <div class="glass-card p-6 border-l-4 border-l-rose-600 shadow-[0_10px_40px_rgba(225,29,72,0.1)] bg-gradient-to-br from-zinc-900/90 to-black">
-                    <h3 class="text-[10px] text-rose-500 font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span> Neural Diagnostic Engine
-                    </h3>
-                    <div class="text-2xl font-black text-white leading-tight tracking-tight mb-2">{{ sim_data.ai_condition }}</div>
-                    <div class="text-sm font-medium text-rose-200 bg-rose-950/30 p-4 rounded-xl border border-rose-900/50 mb-4 leading-relaxed">
-                        {{ sim_data.ai_intervention }}
+            <div class="lg:col-span-8 flex flex-col h-full min-h-[600px]">
+                <div id="ai-output-container" class="glass-panel rounded-2xl flex-1 flex flex-col relative scan-container">
+                    <div class="scan-line"></div>
+                    
+                    <div id="idle-state" class="flex-1 flex flex-col items-center justify-center text-center p-10 opacity-100 transition-opacity duration-500">
+                        <div class="w-24 h-24 border-4 border-dashed border-gray-700 rounded-full animate-[spin_10s_linear_infinite] flex items-center justify-center mb-6">
+                            <div class="w-16 h-16 border-4 border-cyan-900 rounded-full flex items-center justify-center">
+                                <div class="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2 uppercase tracking-widest">AI Engine Standby</h3>
+                        <p class="text-sm text-gray-500 font-mono max-w-md">Input patient telemetry parameters and execute scan to generate neural diagnosis and clinical interventions.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        {% for diff in sim_data.differentials %}
-                            <span class="text-[10px] font-mono bg-black text-zinc-400 border border-zinc-800 px-2 py-1 rounded">{{ diff }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
 
-                <div class="glass-card p-6">
-                    <h3 class="text-[10px] text-amber-500 font-black uppercase tracking-[0.2em] mb-4">Derived Pulmonary Mechanics</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="stat-box">
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Static Compliance</span>
-                            <div class="flex items-end gap-2">
-                                <span class="text-4xl font-black text-white font-mono leading-none">{{ sim_data.derived_compliance }}</span>
-                                <span class="text-xs text-zinc-500 font-medium pb-1">mL/cmH2O</span>
-                            </div>
+                    <div id="result-state" class="hidden flex-1 flex flex-col p-8 overflow-y-auto">
+                        <div class="flex items-center gap-3 mb-8 border-b border-white/10 pb-4">
+                            <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                            <h2 class="text-sm font-black uppercase tracking-[0.3em] text-white">Neural Assessment Complete</h2>
                         </div>
-                        <div class="stat-box">
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Airway Resistance</span>
-                            <div class="flex items-end gap-2">
-                                <span class="text-4xl font-black text-white font-mono leading-none">{{ sim_data.derived_resistance }}</span>
-                                <span class="text-xs text-zinc-500 font-medium pb-1">cmH2O/L/s</span>
+                        
+                        <div class="space-y-8">
+                            <div>
+                                <h4 class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Primary Condition</h4>
+                                <div id="res-status" class="text-3xl font-black tracking-tight drop-shadow-md"></div>
                             </div>
-                        </div>
-                        <div class="stat-box border-amber-900/30">
-                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1">Dead Space (Vd/Vt)</span>
-                            <div class="flex items-end gap-2">
-                                <span class="text-4xl font-black text-amber-400 font-mono leading-none">{{ sim_data.derived_vd_vt }}</span>
-                                <span class="text-xs text-amber-600/60 font-medium pb-1">%</span>
-                            </div>
-                        </div>
-                        <div class="stat-box border-teal-900/30">
-                            <span class="text-[10px] text-teal-500 font-bold uppercase tracking-widest mb-1">Shunt Fraction</span>
-                            <div class="flex items-end gap-2">
-                                <span class="text-4xl font-black text-teal-400 font-mono leading-none">{{ sim_data.derived_shunt }}</span>
-                                <span class="text-xs text-teal-600/60 font-medium pb-1">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="glass-card p-6 border-t-2 border-t-purple-500/50">
-                    <h3 class="text-[10px] text-purple-400 font-black uppercase tracking-[0.2em] mb-4">Arterial Blood Gas Equilibrium</h3>
-                    <div class="flex justify-between items-end mb-4 bg-black/40 p-4 rounded-xl border border-zinc-800">
-                        <div>
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase block mb-1">pH Level</span>
-                            <span class="text-3xl font-black font-mono {% if sim_data.ph < 7.35 %}text-red-500{% elif sim_data.ph > 7.45 %}text-blue-500{% else %}text-emerald-400{% endif %}">{{ sim_data.ph }}</span>
-                        </div>
-                        <div class="text-center border-l border-zinc-800 pl-4">
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase block mb-1">PaCO2</span>
-                            <span class="text-2xl font-bold font-mono text-amber-400">{{ sim_data.paco2 }}</span>
-                        </div>
-                        <div class="text-right border-l border-zinc-800 pl-4">
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase block mb-1">HCO3</span>
-                            <span class="text-2xl font-bold font-mono text-purple-400">{{ sim_data.hco3 }}</span>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-black/30 p-5 rounded-xl border border-white/5">
+                                    <h4 class="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Physiological Explanation</h4>
+                                    <p id="res-explanation" class="text-sm text-gray-300 leading-relaxed"></p>
+                                </div>
+                                <div class="bg-black/30 p-5 rounded-xl border border-white/5">
+                                    <h4 class="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> Telemetry Breakdown</h4>
+                                    <p id="res-breakdown" class="text-sm text-gray-300 leading-relaxed font-mono"></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-3 border-b border-emerald-900/30 pb-2">Recommended Clinical Solutions</h4>
+                                <ul id="res-solutions" class="space-y-3"></ul>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-sm font-bold text-white uppercase tracking-wide mb-1">{{ sim_data.acid_base_status }}</div>
-                    <div class="text-xs text-zinc-400 leading-relaxed">{{ sim_data.acid_base_delta_text }}</div>
                 </div>
             </div>
-
-            <div class="flex flex-col gap-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-card p-5 border border-sky-900/30 flex justify-between items-center bg-sky-950/10">
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-sky-500 tracking-widest block mb-1">PaO2 Tension</span>
-                            <span class="text-3xl font-black text-white font-mono">{{ sim_data.pao2 }}</span><span class="text-xs text-sky-700 ml-1">mmHg</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-[9px] font-bold uppercase text-zinc-500 block">A-a Gradient</span>
-                            <span class="text-sm font-mono text-zinc-300">{{ sim_data.aa_gradient }}</span>
-                        </div>
-                    </div>
-                    <div class="glass-card p-5 border border-emerald-900/30 flex justify-between items-center bg-emerald-950/10">
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-emerald-500 tracking-widest block mb-1">Minute Vent</span>
-                            <span class="text-3xl font-black text-white font-mono">{{ sim_data.minute_vent }}</span><span class="text-xs text-emerald-700 ml-1">L/m</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-[9px] font-bold uppercase text-zinc-500 block">Mech Power</span>
-                            <span class="text-sm font-mono text-zinc-300">{{ sim_data.mech_power }} J/m</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-card p-4 h-[220px] flex flex-col relative">
-                    <span class="absolute top-4 right-4 text-[9px] font-black text-blue-500 uppercase tracking-widest bg-blue-950/50 px-2 py-1 rounded border border-blue-900/50">Pressure (Paw)</span>
-                    <div class="flex-1 w-full"><canvas id="chartP"></canvas></div>
-                </div>
-                
-                <div class="glass-card p-4 h-[220px] flex flex-col relative">
-                    <span class="absolute top-4 right-4 text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-950/50 px-2 py-1 rounded border border-emerald-900/50">Flow (L/m)</span>
-                    <div class="flex-1 w-full"><canvas id="chartF"></canvas></div>
-                </div>
-
-                <div class="glass-card p-4 h-[220px] flex flex-col relative">
-                    <span class="absolute top-4 right-4 text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-950/50 px-2 py-1 rounded border border-rose-900/50">Volume (mL)</span>
-                    <div class="flex-1 w-full"><canvas id="chartV"></canvas></div>
-                </div>
-            </div>
-
-            <script>
-                const waveData = {{ sim_data.waveform_data | safe }};
-                
-                Chart.defaults.color = '#71717a';
-                Chart.defaults.font.family = "'JetBrains Mono', monospace";
-                Chart.defaults.font.size = 9;
-                
-                const opt = {
-                    responsive: true, maintainAspectRatio: false, animation: false,
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0.2 } },
-                    scales: { 
-                        x: { grid: { color: '#27272a', borderDash: [2, 4] }, ticks: { maxTicksLimit: 6 } }, 
-                        y: { grid: { color: '#27272a', borderDash: [2, 4] } } 
-                    }
-                };
-
-                new Chart(document.getElementById('chartP'), { type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.p, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] }, options: opt });
-                new Chart(document.getElementById('chartF'), { type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.f, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] }, options: opt });
-                new Chart(document.getElementById('chartV'), { type: 'line', data: { labels: waveData.t, datasets: [{ data: waveData.v, borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.1)', fill: true }] }, options: opt });
-            </script>
-
         </div>
-        {% endif %}
     </main>
-</body>
-</html>
+    {COPYRIGHT_FOOTER}
+
+    <script>
+        document.getElementById('ai-form').addEventListener('submit', async (e) => {{
+            e.preventDefault();
+            
+            const container = document.getElementById('ai-output-container');
+            const idle = document.getElementById('idle-state');
+            const result = document.getElementById('result-state');
+            
+            // Start scanning effect
+            container.classList.add('scanning');
+            idle.style.display = 'none';
+            result.style.display = 'none';
+            
+            // Gather data
+            const data = new FormData();
+            data.append('spo2', document.getElementById('spo2').value);
+            data.append('rr', document.getElementById('rr').value);
+            data.append('hr', document.getElementById('hr').value);
+            data.append('cough', document.getElementById('cough').value);
+            data.append('sob', document.getElementById('sob').value);
+
+            // Fetch AI Response from backend
+            try {{
+                const res = await fetch('/api/ai_analyze', {{ method: 'POST', body: data }});
+                const json = await res.json();
+                
+                // Stop scanning, show results
+                container.classList.remove('scanning');
+                result.style.display = 'flex';
+                
+                // Populate DOM
+                const statusEl = document.getElementById('res-status');
+                statusEl.className = `text-3xl font-black tracking-tight drop-shadow-md ${{json.color}}`;
+                statusEl.innerText = json.status;
+                
+                document.getElementById('res-breakdown').innerText = json.vital_breakdown;
+                
+                // Typewriter effect for explanation
+                const expEl = document.getElementById('res-explanation');
+                expEl.innerHTML = '<span id="type-text"></span><span class="cursor-blink">|</span>';
+                typeWriter(json.explanation, document.getElementById('type-text'), 0, 15);
+                
+                // Render solutions list
+                const solList = document.getElementById('res-solutions');
+                solList.innerHTML = '';
+                json.solutions.forEach(sol => {{
+                    const li = document.createElement('li');
+                    li.className = "flex items-start gap-3 bg-white/5 p-3 rounded-lg border border-white/5 text-sm font-medium text-gray-200";
+                    li.innerHTML = `<svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span>${{sol}}</span>`;
+                    solList.appendChild(li);
+                }});
+
+            }} catch (err) {{
+                console.error(err);
+                container.classList.remove('scanning');
+                idle.style.display = 'flex';
+                alert("Neural Uplink Failed. Please try again.");
+            }}
+        }});
+
+        function typeWriter(text, element, i, speed) {{
+            if (i < text.length) {{
+                element.innerHTML += text.charAt(i);
+                setTimeout(() => typeWriter(text, element, i + 1, speed), speed);
+            }}
+        }}
+    </script>
+</body></html>
 """
 
+SETTINGS_HTML = f"""
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Security Settings</title>{GLOBAL_STYLES}</head>
+<body>
+    {BACKGROUND_SVG}
+    
+    <nav class="glass-panel sticky top-0 z-50 border-b-0 border-white/5">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-cyan-950/50 border border-cyan-500/30 flex items-center justify-center">
+                    <div class="w-3 h-3 bg-cyan-400 rounded-full"></div>
+                </div>
+                <h1 class="text-xl font-extrabold tracking-tight">AERO<span class="text-cyan-400">LUNG</span></h1>
+            </div>
+            <a href="/dashboard" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-white/10">Return to Matrix</a>
+        </div>
+    </nav>
+
+    <div class="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div class="glass-panel p-10 rounded-2xl w-full max-w-lg shadow-2xl">
+            <div class="border-b border-white/10 pb-6 mb-6">
+                <h2 class="text-2xl font-black text-white uppercase tracking-widest">Security Override</h2>
+                <p class="text-xs text-gray-400 font-mono mt-2">Modify Architect ID and Passkey credentials.</p>
+            </div>
+
+            {{% if get_flashed_messages() %}}
+                <div class="mb-6 p-4 rounded bg-cyan-950/40 border border-cyan-500/50 text-cyan-300 text-xs font-mono uppercase tracking-wide">
+                    {{% for msg in get_flashed_messages() %}} {{ msg }} {{% endfor %}}
+                </div>
+            {{% endif %}}
+
+            <form action="/settings" method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Current Architect ID</label>
+                    <input type="text" value="{{ session.user }}" disabled class="w-full bg-black/50 border border-white/5 text-gray-500 px-4 py-3 rounded-xl font-mono text-sm cursor-not-allowed">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-2 ml-1">New Architect ID (Optional)</label>
+                    <input type="text" name="new_username" class="w-full glass-input px-4 py-3 rounded-xl font-mono text-sm" placeholder="Enter new ID...">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-2 ml-1">New Secure Passkey (Optional)</label>
+                    <input type="password" name="new_password" class="w-full glass-input px-4 py-3 rounded-xl font-mono text-sm" placeholder="Enter new password...">
+                </div>
+                <div class="pt-4">
+                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-[0.2em] transition-all">
+                        Commit Changes to Database
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {COPYRIGHT_FOOTER}
+</body></html>
+"""
+
+
 # ==========================================
-# 4. FLASK ROUTING
+# 5. FLASK ROUTING LOGIC
 # ==========================================
 
 @app.route('/')
 def home():
-    if 'user' in session: return redirect(url_for('dashboard'))
+    """Route to login if not authenticated, else dashboard."""
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
     return render_template_string(LOGIN_HTML)
 
 @app.route('/login', methods=['POST'])
 def login():
-    u, p = request.form.get('username'), request.form.get('password')
-    if u in CLINICAL_DATABASE and CLINICAL_DATABASE[u]['password'] == p:
-        session.update({'user': u, 'role': CLINICAL_DATABASE[u]['role']})
+    """Handles authentication checks against the SYSTEM_USERS dictionary."""
+    username = request.form.get('username')
+    password = request.form.get('password')
+    
+    if username in SYSTEM_USERS and SYSTEM_USERS[username]['password'] == password:
+        session['user'] = username
         return redirect(url_for('dashboard'))
-    flash("ACCESS DENIED: INSUFFICIENT CLEARANCE.")
+    
+    flash("ACCESS DENIED: Invalid credentials detected.")
     return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
+    """Clears the session."""
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/dashboard')
 def dashboard():
-    if 'user' not in session: return redirect(url_for('home'))
-    
-    preset = request.args.get('preset', 'healthy')
-    inputs = PRESETS.get(preset, PRESETS['healthy'])
-    
-    if request.method == 'POST':
-        inputs = {k: RespiratoryEngine.safe_float(request.form.get(k), v) for k, v in inputs.items()}
+    """Main interactive AI interface."""
+    if 'user' not in session:
+        return redirect(url_for('home'))
+    return render_template_string(DASHBOARD_HTML)
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    """Allows user to change their ID and Password."""
+    if 'user' not in session:
+        return redirect(url_for('home'))
         
-    sim_data = None
-    if request.method == 'POST' or request.args.get('preset'):
-        try: sim_data = RespiratoryEngine.calculate_simulation(inputs)
-        except Exception: flash(f"ENGINE CRASH: {traceback.format_exc()}")
+    if request.method == 'POST':
+        current_user = session['user']
+        new_username = request.form.get('new_username').strip()
+        new_password = request.form.get('new_password').strip()
+        
+        # We need to update the in-memory database
+        user_data = SYSTEM_USERS.pop(current_user) # Remove old entry
+        
+        if new_username:
+            target_username = new_username
+        else:
+            target_username = current_user
+            
+        if new_password:
+            user_data['password'] = new_password
+            
+        # Save back to database
+        SYSTEM_USERS[target_username] = user_data
+        session['user'] = target_username # Update session
+        
+        flash("SYSTEM UPDATED: Credentials successfully modified in active matrix.")
+        return redirect(url_for('settings'))
 
-    return render_template_string(DASHBOARD_HTML, inputs=inputs, sim_data=sim_data)
+    return render_template_string(SETTINGS_HTML)
 
+@app.route('/api/ai_analyze', methods=['POST'])
+def api_ai_analyze():
+    """
+    Asynchronous endpoint called by JavaScript to fetch the AI Engine's 
+    medical breakdown without reloading the webpage.
+    """
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    spo2 = request.form.get('spo2')
+    rr = request.form.get('rr')
+    hr = request.form.get('hr')
+    cough = request.form.get('cough')
+    sob = request.form.get('sob')
+    
+    # Process through our class logic
+    result = AILungEngine.analyze_vitals(spo2, rr, hr, cough, sob)
+    
+    return jsonify(result)
+
+# ==========================================
+# 6. APPLICATION ENTRY POINT
+# ==========================================
 if __name__ == '__main__':
+    # Run the server. In production with Gunicorn, this block is bypassed.
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
