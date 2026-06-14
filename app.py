@@ -1,35 +1,30 @@
 import os
-import time
-import random
+import math
 import json
 import sqlite3
-import threading
-from datetime import datetime
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string, Response, jsonify
+import traceback
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_premium_matrix_2026")
-DB_NAME = "aerolung_telemetry.db"
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_clinical_secure_2026")
+DB_NAME = "aerolung_clinical.db"
 
 # ==========================================
-# 1. DATABASE INITIALIZATION (FIXED)
+# 1. DATABASE INITIALIZATION
 # ==========================================
-# By running this outside of the __main__ block, we guarantee the database 
-# is created regardless of how your web server (Gunicorn/Flask) runs the app.
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users 
                  (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS logs 
-                 (id INTEGER PRIMARY KEY, timestamp TEXT, event TEXT, severity TEXT)''')
     
+    # Create default Admin
     c.execute("SELECT * FROM users WHERE username='admin'")
     if not c.fetchone():
         hashed_pw = generate_password_hash('admin2026')
         c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                  ('admin', hashed_pw, 'Chief Architect'))
+                  ('admin', hashed_pw, 'Chief Pulmonologist'))
     
     conn.commit()
     conn.close()
@@ -37,418 +32,294 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. LIVE PATIENT SIMULATION ENGINE
+# 2. CLINICAL CALCULATION ENGINE (Your Original Math)
 # ==========================================
-class QuantumPatientState:
-    def __init__(self):
-        self.hr = 95.0     
-        self.spo2 = 88.0   
-        self.rr = 24.0     
-        self.sys_bp = 100.0 
-        
-        self.target_hr = 75.0
-        self.target_spo2 = 98.0
-        self.target_rr = 14.0
-        self.target_sys_bp = 120.0
-        
-        self.volatility = 1.0 
-        self.lock = threading.Lock()
+class RespiratoryEngine:
+    @staticmethod
+    def safe_float(val, default):
+        try:
+            if val is None or str(val).strip() == '': return float(default)
+            return float(val)
+        except ValueError:
+            return float(default)
 
-    def apply_intervention(self, med_type):
-        with self.lock:
-            if med_type == "oxygen":
-                self.target_spo2 = min(100.0, self.target_spo2 + 8.0)
-                self.target_rr = max(12.0, self.target_rr - 4.0)
-                return "Administered 100% FiO2. Alveolar recruitment initiated."
-            elif med_type == "epinephrine":
-                self.target_hr = min(180.0, self.target_hr + 30.0)
-                self.target_sys_bp = min(180.0, self.target_sys_bp + 40.0)
-                return "Administered 1mg Epinephrine. Sympathetic nervous system stimulated."
-            elif med_type == "bronchodilator":
-                self.target_spo2 = min(100.0, self.target_spo2 + 4.0)
-                self.target_rr = max(12.0, self.target_rr - 6.0)
-                self.volatility = max(0.2, self.volatility - 0.3)
-                return "Administered Albuterol. Airway resistance decreased."
-            elif med_type == "sedative":
-                self.target_hr = max(50.0, self.target_hr - 15.0)
-                self.target_rr = max(8.0, self.target_rr - 5.0)
-                self.target_sys_bp = max(80.0, self.target_sys_bp - 15.0)
-                return "Administered Propofol. Metabolic demand reduced."
-        return "Unknown intervention."
+    @classmethod
+    def calculate_simulation(cls, inputs):
+        """Processes raw physiological inputs into actionable clinical matrices."""
+        vt = max(10.0, inputs['vt_input'])
+        pip = max(1.0, inputs['pip'])
+        pplat = max(1.0, inputs['pplat'])
+        peep = max(0.0, inputs['peep'])
+        flow_lmin = max(5.0, inputs['peak_flow'])
+        peco2 = max(0.1, inputs['peco2'])
+        cao2, cco2, cvo2 = inputs['cao2'], inputs['cco2'], inputs['cvo2']
+        hco3_input = max(0.1, inputs['hco3_input'])
+        rr = max(1.0, inputs['rr'])
+        ie = max(0.1, inputs['ie_ratio'])
+        vco2 = max(10.0, inputs['vco2'])
+        fio2_val = inputs['fio2']
 
-    def tick(self):
-        with self.lock:
-            self.hr += (self.target_hr - self.hr) * 0.05 + (random.uniform(-1, 1) * self.volatility)
-            self.spo2 += (self.target_spo2 - self.spo2) * 0.05 + (random.uniform(-0.5, 0.5) * self.volatility)
-            self.rr += (self.target_rr - self.rr) * 0.05 + (random.uniform(-0.5, 0.5) * self.volatility)
-            self.sys_bp += (self.target_sys_bp - self.sys_bp) * 0.05 + (random.uniform(-1, 1) * self.volatility)
+        # Core Mechanics
+        driving_pressure = max(0.1, pplat - peep)
+        compliance = vt / driving_pressure
+        flow_lsec = flow_lmin / 60.0
+        resistance = max(0.1, (pip - pplat) / flow_lsec)
+        
+        # Ventilation & Gas Exchange
+        min_vent_est = (vt * rr) / 1000.0
+        paco2_derived = max(1.0, (0.863 * vco2) / max(0.1, min_vent_est * 0.75))
+        if peco2 >= paco2_derived: 
+            peco2 = max(0.1, paco2_derived - 4.0)
             
-            self.spo2 = max(0.0, min(100.0, self.spo2))
-            self.hr = max(0.0, self.hr)
-            self.rr = max(0.0, self.rr)
+        vd_vt_ratio = max(0.01, min(0.95, (paco2_derived - peco2) / paco2_derived))
+        shunt_denominator = max(0.1, cco2 - cvo2)
+        shunt_ratio = (cco2 - cao2) / shunt_denominator
+        shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
 
-            return {
-                "hr": round(self.hr, 1),
-                "spo2": round(self.spo2, 1),
-                "rr": round(self.rr, 1),
-                "bp": round(self.sys_bp, 1),
-                "timestamp": datetime.now().strftime("%H:%M:%S")
-            }
+        alv_vent = max(0.1, ((vt * (1 - vd_vt_ratio)) * rr) / 1000.0)
+        paco2 = round((0.863 * vco2) / alv_vent, 1)
+        
+        # Acid-Base Status
+        try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * max(1.0, paco2))), 2)
+        except Exception: ph = 7.40
 
-GLOBAL_PATIENT = QuantumPatientState()
+        ai_condition, ai_intervention = cls._generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph)
+        acid_base_status, acid_base_delta_text = cls._analyze_acid_base(ph, paco2)
+
+        # Oxygenation
+        p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
+        pao2 = round(max(30, p_A_O2 - (shunt_pct * 1.2)), 1)
+
+        # Waveforms
+        t_cycle = 60.0 / rr
+        tau = max(0.001, (resistance / 1000.0) * compliance)
+        waveform_data = cls._generate_waveforms(t_cycle, ie, pip, peep, vt, tau)
+
+        return {
+            'compliance': round(compliance, 1), 
+            'resistance': round(resistance, 1),
+            'vd_vt': round(vd_vt_ratio * 100, 1), 
+            'shunt': shunt_pct,
+            'ai_condition': ai_condition, 
+            'ai_intervention': ai_intervention, 
+            'paco2': paco2, 
+            'pao2': pao2, 
+            'ph': ph, 
+            'hco3': hco3_input, 
+            'acid_base_status': acid_base_status, 
+            'minute_vent': round(min_vent_est, 2),
+            'waveform_data': json.dumps(waveform_data)
+        }
+
+    @staticmethod
+    def _generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph):
+        if compliance < 40:
+            return "Restrictive Lung Defect", "Compliance is critically low. Consider lung protective ventilation (low Vt) and titrating PEEP to recruit alveoli."
+        elif resistance > 15:
+            return "Obstructive Airway Disease", "High airway resistance detected. Risk of Auto-PEEP is high. Administer bronchodilators and prolong expiratory time."
+        elif shunt_pct > 20:
+            return "Severe Hypoxemic Failure", "Significant intrapulmonary shunting. Increase FiO2 and consider prone positioning if ARDS is suspected."
+        else:
+            return "Stable Pulmonary Mechanics", "Ventilatory parameters are within acceptable clinical limits. Maintain current support."
+
+    @staticmethod
+    def _analyze_acid_base(ph, paco2):
+        if ph < 7.35:
+            return ("Respiratory Acidosis", "Hypoventilation causing CO2 retention.") if paco2 > 45 else ("Metabolic Acidosis", "Systemic bicarbonate depletion.")
+        elif ph > 7.45:
+            return ("Respiratory Alkalosis", "Hyperventilation blowing off excessive CO2.") if paco2 < 35 else ("Metabolic Alkalosis", "Accumulation of systemic alkali.")
+        return "Normal Acid-Base Balance", "Blood gas parameters are within normal biological thresholds."
+
+    @staticmethod
+    def _generate_waveforms(t_cycle, ie, pip, peep, vt, tau):
+        t_i = t_cycle * (1 / (1 + ie))
+        t_pts, p_pts, v_pts, f_pts = [], [], [], []
+        res = 60
+        for i in range(res + 1):
+            t = (i / res) * t_cycle
+            t_pts.append(round(t, 3))
+            if t <= t_i:
+                p_pts.append(round(pip, 1))
+                v_pts.append(round(vt * (1 - math.exp(-t / tau)), 1))
+                f_pts.append(round(((vt / tau) * math.exp(-t / tau)), 1) * 0.06)
+            else:
+                t_exp = t - t_i
+                p_pts.append(round(peep, 1))
+                v_pts.append(round(vt * math.exp(-t_exp / tau), 1))
+                f_pts.append(round(-((vt / tau) * math.exp(-t_exp / tau)), 1) * 0.06)
+        return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts}
 
 # ==========================================
-# 3. PREMIUM UI & ASSETS
+# 3. CLEAN PROFESSIONAL UI TEMPLATES
 # ==========================================
 
 GLOBAL_CSS = """
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; height: 100vh; overflow: hidden; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    
-    /* Clean, premium glassmorphism without neon outlines */
-    .premium-panel { 
-        background: rgba(15, 23, 42, 0.6); 
-        backdrop-filter: blur(16px); 
-        border: 1px solid rgba(255, 255, 255, 0.05); 
-        border-radius: 16px;
-        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); 
-    }
-    
-    .clean-input {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: white;
-        transition: all 0.3s ease;
-    }
-    .clean-input:focus { outline: none; border-color: #38bdf8; background: rgba(0, 0, 0, 0.5); }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-    /* Custom Particle Canvas */
-    #particle-lung { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.8; }
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #334155; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #e2e8f0; }
+    .input-field { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; color: #0f172a; transition: border-color 0.2s; }
+    .input-field:focus { outline: none; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
 </style>
 """
 
-PARTICLE_ENGINE_JS = """
-<script>
-    const canvas = document.getElementById('particle-lung');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-
-    let particles = [];
-    let current_rr = 15.0; 
-
-    class LungNode {
-        constructor(x, y, isRightLobe) {
-            this.baseX = x;
-            this.baseY = y;
-            this.x = x;
-            this.y = y;
-            this.size = Math.random() * 1.5 + 0.5;
-            // Clean, sophisticated blue/white particles
-            this.color = Math.random() > 0.5 ? 'rgba(56, 189, 248, 0.6)' : 'rgba(255, 255, 255, 0.4)';
-            this.isRight = isRightLobe;
-            this.expandFactorX = (Math.random() * 12 + 3) * (this.isRight ? 1 : -1);
-            this.expandFactorY = Math.random() * 15 + 3;
-            this.phase = Math.random() * Math.PI;
-        }
-        update(time) {
-            let breathCycle = Math.sin(time * (current_rr / 60) * Math.PI * 2);
-            this.x = this.baseX + (breathCycle * this.expandFactorX);
-            this.y = this.baseY + (breathCycle * this.expandFactorY);
-        }
-        draw() {
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    function initLung() {
-        particles = [];
-        let cx = canvas.width / 2;
-        let cy = canvas.height / 2;
-        
-        for(let i=0; i<80; i++) {
-            particles.push(new LungNode(cx + (Math.random()*20-10), cy - 130 + (Math.random()*80), true));
-        }
-        for(let i=0; i<500; i++) {
-            let r = Math.random() * 70;
-            let angle = Math.random() * Math.PI * 2;
-            let px = cx + 60 + r * Math.cos(angle);
-            let py = cy + 40 + (r * 1.4) * Math.sin(angle);
-            particles.push(new LungNode(px, py, true));
-        }
-        for(let i=0; i<500; i++) {
-            let r = Math.random() * 70;
-            let angle = Math.random() * Math.PI * 2;
-            let px = cx - 60 + r * Math.cos(angle);
-            let py = cy + 40 + (r * 1.4) * Math.sin(angle);
-            particles.push(new LungNode(px, py, false));
-        }
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        let time = Date.now() / 1000;
-        particles.forEach(p => { p.update(time); p.draw(); });
-        
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        for(let i=0; i<particles.length; i+=12) {
-            for(let j=i+1; j<particles.length; j+=12) {
-                let dx = particles[i].x - particles[j].x;
-                let dy = particles[i].y - particles[j].y;
-                if(dx*dx + dy*dy < 1200) {
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                }
-            }
-        }
-        ctx.stroke();
-        requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', () => {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        initLung();
-    });
-
-    initLung();
-    animate();
-</script>
-"""
-
-# ==========================================
-# 4. HTML TEMPLATES
-# ==========================================
-
 LOGIN_HTML = f"""
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Authentication</title>{GLOBAL_CSS}</head>
-<body class="flex items-center justify-center relative">
-    <div class="absolute inset-0 z-0 pointer-events-none"><canvas id="particle-lung" class="w-full h-full"></canvas></div>
-    
-    <div class="premium-panel p-10 w-full max-w-md z-10 text-center relative overflow-hidden">
-        <h1 class="text-4xl font-black text-white tracking-tight mb-1">AERO<span class="text-sky-400">LUNG</span></h1>
-        <p class="text-xs text-slate-400 font-medium uppercase tracking-[0.2em] mb-8">Clinical Telemetry System</p>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Login</title>{GLOBAL_CSS}</head>
+<body class="h-screen flex items-center justify-center bg-slate-100">
+    <div class="card p-8 w-full max-w-sm">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Aero<span class="text-sky-600">Lung</span></h1>
+            <p class="text-sm text-slate-500 mt-1">Clinical Assessment Portal</p>
+        </div>
         
         {{% if get_flashed_messages() %}}
-            <div class="mb-6 p-3 text-xs text-rose-400 bg-rose-950/30 border border-rose-900/50 rounded-lg">
+            <div class="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-md border border-red-200">
                 {{% for msg in get_flashed_messages() %}} {{ msg }} {{% endfor %}}
             </div>
         {{% endif %}}
 
-        <form action="/login" method="POST" class="space-y-5 text-left">
+        <form action="/login" method="POST" class="space-y-4">
             <div>
-                <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">User ID</label>
-                <input type="text" name="username" class="w-full clean-input rounded-xl px-4 py-3 text-sm font-mono" placeholder="Enter ID" required>
+                <label class="block text-sm font-medium text-slate-700 mb-1">User ID</label>
+                <input type="text" name="username" class="input-field" required>
             </div>
             <div>
-                <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Password</label>
-                <input type="password" name="password" class="w-full clean-input rounded-xl px-4 py-3 text-sm font-mono" placeholder="••••••••" required>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input type="password" name="password" class="input-field" required>
             </div>
-            <button type="submit" class="w-full mt-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl font-bold uppercase tracking-wider transition-colors shadow-lg shadow-sky-500/20">
-                Authenticate
+            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2.5 rounded-md transition-colors mt-2">
+                Sign In
             </button>
         </form>
-        
-        <div class="mt-8 text-[10px] text-slate-500 font-medium tracking-wide">
-            &copy; 2026 Shreesh Santoshkumar Rolli
-        </div>
     </div>
-    {PARTICLE_ENGINE_JS}
 </body></html>
 """
 
 DASHBOARD_HTML = f"""
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Master Dashboard</title>{GLOBAL_CSS}</head>
-<body class="flex flex-col relative">
-    <div class="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-950 z-[-2]"></div>
-    <div class="absolute inset-0 z-[-1] pointer-events-none"><canvas id="particle-lung" class="w-full h-full"></canvas></div>
-
-    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex justify-between items-center px-8 py-4 z-10">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AeroLung | Dashboard</title>{GLOBAL_CSS}</head>
+<body class="min-h-screen flex flex-col">
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+        <div class="text-xl font-bold text-slate-800 tracking-tight">Aero<span class="text-sky-600">Lung</span></div>
         <div class="flex items-center gap-4">
-            <div class="text-2xl font-black text-white tracking-tight">AERO<span class="text-sky-400">LUNG</span></div>
-            <div class="border-l border-slate-700 pl-4">
-                <div class="text-xs text-slate-300 font-medium">Dr. {{ session.user }}</div>
-                <div class="text-[10px] text-emerald-400 font-mono tracking-widest uppercase">Live Telemetry Active</div>
-            </div>
-        </div>
-        <div class="flex items-center gap-6">
-            <div id="clock" class="text-sm font-mono text-slate-300"></div>
-            <a href="/logout" class="text-xs font-semibold bg-slate-800 hover:bg-rose-900 hover:text-rose-100 text-slate-300 px-4 py-2 rounded-lg transition-colors border border-slate-700 hover:border-rose-800">Sign Out</a>
+            <span class="text-sm font-medium text-slate-600">Dr. {{ session.user }}</span>
+            <a href="/logout" class="text-sm text-slate-500 hover:text-slate-800 border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50 transition-colors">Sign Out</a>
         </div>
     </header>
 
-    <main class="flex-1 grid grid-cols-12 gap-6 p-6 z-10 overflow-hidden h-full max-w-[1800px] mx-auto w-full">
+    <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4 h-full">
-            <div class="premium-panel p-5 flex-1 flex flex-col relative group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Heart Rate</span>
-                    <span class="text-sky-400 font-mono text-xs">BPM</span>
-                </div>
-                <div class="text-5xl font-light text-white mb-2 tracking-tighter" id="val-hr">--</div>
-                <div class="flex-1 relative"><canvas id="chart-hr"></canvas></div>
-            </div>
-            
-            <div class="premium-panel p-5 flex-1 flex flex-col relative group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">SpO2 Oxygen</span>
-                    <span class="text-emerald-400 font-mono text-xs">%</span>
-                </div>
-                <div class="text-5xl font-light text-white mb-2 tracking-tighter" id="val-spo2">--</div>
-                <div class="flex-1 relative"><canvas id="chart-spo2"></canvas></div>
-            </div>
-            
-            <div class="premium-panel p-5 flex-1 flex flex-col relative group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Resp Rate</span>
-                    <span class="text-amber-400 font-mono text-xs">/MIN</span>
-                </div>
-                <div class="text-5xl font-light text-white mb-2 tracking-tighter" id="val-rr">--</div>
-                <div class="flex-1 relative"><canvas id="chart-rr"></canvas></div>
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="card p-5">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Clinical Inputs</h2>
+                <form method="POST" action="/dashboard" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">Vt (mL)</label><input type="number" name="vt_input" value="500" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">Resp Rate</label><input type="number" name="rr" value="14" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">PIP</label><input type="number" name="pip" value="25" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">Pplat</label><input type="number" name="pplat" value="18" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">PEEP</label><input type="number" name="peep" value="5" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">Flow (L/m)</label><input type="number" name="peak_flow" value="60" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">FiO2 (%)</label><input type="number" name="fio2" value="40" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">I:E Ratio</label><input type="number" step="0.1" name="ie_ratio" value="2.0" class="input-field"></div>
+                        
+                        <div class="col-span-2 pt-2"><h3 class="text-sm font-medium text-slate-700 border-b pb-1">Blood Gas / Labs</h3></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">CaO2</label><input type="number" step="0.1" name="cao2" value="19.8" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" value="14.8" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">CcO2</label><input type="number" step="0.1" name="cco2" value="20.4" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">PECO2</label><input type="number" name="peco2" value="28" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">VCO2</label><input type="number" name="vco2" value="200" class="input-field"></div>
+                        <div><label class="block text-xs font-medium text-slate-500 mb-1">HCO3</label><input type="number" name="hco3_input" value="24" class="input-field"></div>
+                    </div>
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-medium py-2.5 rounded-md transition-colors mt-4">
+                        Calculate Mechanics
+                    </button>
+                </form>
             </div>
         </div>
 
-        <div class="col-span-12 lg:col-span-6 flex flex-col justify-end items-center pb-8">
-            <div class="premium-panel w-full max-w-lg p-8 text-center bg-slate-900/80">
-                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Diagnostic Status</div>
-                <div id="ai-status" class="text-2xl font-bold text-white tracking-tight">Synchronizing...</div>
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            {{% if not sim_data %}}
+            <div class="card flex-1 flex items-center justify-center min-h-[400px] bg-slate-50">
+                <p class="text-slate-500 font-medium">Input clinical parameters to generate assessment.</p>
             </div>
-        </div>
-
-        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4 h-full">
-            <div class="premium-panel p-5">
-                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Interventions</h3>
-                <div class="grid grid-cols-1 gap-2">
-                    <button onclick="inject('oxygen')" class="bg-slate-800/50 hover:bg-sky-900/40 border border-slate-700 hover:border-sky-500/50 text-slate-300 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex justify-between px-4">
-                        <span>Oxygen Therapy</span> <span class="text-sky-400">100% FiO2</span>
-                    </button>
-                    <button onclick="inject('bronchodilator')" class="bg-slate-800/50 hover:bg-emerald-900/40 border border-slate-700 hover:border-emerald-500/50 text-slate-300 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex justify-between px-4">
-                        <span>Albuterol</span> <span class="text-emerald-400">Administer</span>
-                    </button>
-                    <button onclick="inject('epinephrine')" class="bg-slate-800/50 hover:bg-rose-900/40 border border-slate-700 hover:border-rose-500/50 text-slate-300 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex justify-between px-4">
-                        <span>Epinephrine</span> <span class="text-rose-400">1mg IV</span>
-                    </button>
-                    <button onclick="inject('sedative')" class="bg-slate-800/50 hover:bg-purple-900/40 border border-slate-700 hover:border-purple-500/50 text-slate-300 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex justify-between px-4">
-                        <span>Propofol</span> <span class="text-purple-400">Sedate</span>
-                    </button>
+            {{% else %}}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="card p-6 border-l-4 border-sky-500">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Clinical Assessment</h3>
+                    <div class="text-xl font-bold text-slate-800 mb-2">{{ sim_data.ai_condition }}</div>
+                    <p class="text-sm text-slate-600 leading-relaxed">{{ sim_data.ai_intervention }}</p>
+                </div>
+                
+                <div class="card p-6 border-l-4 border-indigo-500">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Acid-Base Balance</h3>
+                    <div class="flex gap-6 mb-2">
+                        <div><span class="block text-xs text-slate-500">pH</span><span class="text-xl font-bold text-slate-800">{{ sim_data.ph }}</span></div>
+                        <div><span class="block text-xs text-slate-500">PaCO2</span><span class="text-xl font-bold text-slate-800">{{ sim_data.paco2 }}</span></div>
+                        <div><span class="block text-xs text-slate-500">HCO3</span><span class="text-xl font-bold text-slate-800">{{ sim_data.hco3 }}</span></div>
+                    </div>
+                    <div class="text-sm font-medium text-slate-800">{{ sim_data.acid_base_status }}</div>
                 </div>
             </div>
 
-            <div class="premium-panel p-5 flex-1 flex flex-col">
-                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">System Event Log</h3>
-                <div id="terminal-output" class="flex-1 overflow-y-auto font-mono text-[11px] text-slate-400 space-y-2 flex flex-col justify-end pb-2">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="card p-4 text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase mb-1">Compliance</div>
+                    <div class="text-2xl font-bold text-sky-600">{{ sim_data.compliance }}</div>
+                    <div class="text-xs text-slate-400">mL/cmH2O</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase mb-1">Resistance</div>
+                    <div class="text-2xl font-bold text-rose-500">{{ sim_data.resistance }}</div>
+                    <div class="text-xs text-slate-400">cmH2O/L/s</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase mb-1">Vd/Vt (Dead Space)</div>
+                    <div class="text-2xl font-bold text-slate-700">{{ sim_data.vd_vt }}%</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase mb-1">Shunt Fraction</div>
+                    <div class="text-2xl font-bold text-slate-700">{{ sim_data.shunt }}%</div>
                 </div>
             </div>
+
+            <div class="card p-5 h-[300px] flex flex-col">
+                <h3 class="text-sm font-bold text-slate-600 mb-4">Ventilator Waveforms</h3>
+                <div class="flex-1 relative"><canvas id="waveChart"></canvas></div>
+            </div>
+
+            <script>
+                const data = {{ sim_data.waveform_data | safe }};
+                new Chart(document.getElementById('waveChart'), {{
+                    type: 'line',
+                    data: {{
+                        labels: data.t,
+                        datasets: [
+                            {{ label: 'Pressure', data: data.p, borderColor: '#0284c7', borderWidth: 2, pointRadius: 0, tension: 0.1 }},
+                            {{ label: 'Volume', data: data.v, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, tension: 0.1 }},
+                            {{ label: 'Flow', data: data.f, borderColor: '#f43f5e', borderWidth: 2, pointRadius: 0, tension: 0.1 }}
+                        ]
+                    }},
+                    options: {{
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: {{ mode: 'index', intersect: false }},
+                        scales: {{ 
+                            x: {{ grid: {{ display: false }} }}, 
+                            y: {{ grid: {{ color: '#f1f5f9' }} }} 
+                        }}
+                    }}
+                }});
+            </script>
+            {{% endif %}}
         </div>
     </main>
-
-    {PARTICLE_ENGINE_JS}
-
-    <script>
-        setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {{hour: '2-digit', minute:'2-digit', second:'2-digit'}}), 1000);
-
-        Chart.defaults.color = '#64748b';
-        Chart.defaults.font.family = "'JetBrains Mono', monospace";
-        const chartOptions = {{
-            responsive: true, maintainAspectRatio: false, animation: false,
-            plugins: {{ legend: {{ display: false }} }},
-            elements: {{ point: {{ radius: 0 }}, line: {{ tension: 0.4, borderWidth: 2 }} }},
-            scales: {{ x: {{ display: false }}, y: {{ grid: {{ color: 'rgba(255,255,255,0.05)', borderDash: [4, 4] }} }} }}
-        }};
-
-        function createChart(ctxId, color) {{
-            return new Chart(document.getElementById(ctxId), {{
-                type: 'line',
-                data: {{ labels: Array(40).fill(''), datasets: [{{ data: Array(40).fill(null), borderColor: color, fill: true, backgroundColor: color+'15' }}] }},
-                options: chartOptions
-            }});
-        }}
-
-        const chartHR = createChart('chart-hr', '#38bdf8');   // Sky blue
-        const chartSpO2 = createChart('chart-spo2', '#34d399'); // Emerald
-        const chartRR = createChart('chart-rr', '#fbbf24');    // Amber
-
-        function logToTerminal(msg) {{
-            const term = document.getElementById('terminal-output');
-            const p = document.createElement('div');
-            p.innerHTML = `<span class="text-slate-500">[${{new Date().toLocaleTimeString()}}]</span> ${{msg}}`;
-            term.appendChild(p);
-            if(term.children.length > 12) term.removeChild(term.firstChild);
-        }}
-
-        const evtSource = new EventSource("/api/stream");
-        
-        evtSource.onmessage = function(event) {{
-            const data = JSON.parse(event.data);
-            
-            document.getElementById('val-hr').innerText = Math.round(data.hr);
-            document.getElementById('val-spo2').innerText = Math.round(data.spo2);
-            document.getElementById('val-rr').innerText = Math.round(data.rr);
-            
-            current_rr = data.rr;
-
-            let status = "Stable Homeostasis";
-            let colorClass = "text-emerald-400";
-            
-            if (data.spo2 < 90 || data.hr > 130 || data.rr > 30) {{ 
-                status = "Critical Instability"; 
-                colorClass = "text-rose-400"; 
-            }}
-            else if (data.spo2 < 95 || data.hr > 100) {{ 
-                status = "Compensatory Distress"; 
-                colorClass = "text-amber-400"; 
-            }}
-            
-            const statusEl = document.getElementById('ai-status');
-            statusEl.className = `text-2xl font-bold tracking-tight ${{colorClass}}`;
-            statusEl.innerText = status;
-
-            function pushData(chart, val) {{
-                let d = chart.data.datasets[0].data;
-                d.push(val);
-                d.shift();
-                chart.update();
-            }}
-            pushData(chartHR, data.hr);
-            pushData(chartSpO2, data.spo2);
-            pushData(chartRR, data.rr);
-        }};
-
-        async function inject(med) {{
-            logToTerminal(`Administering protocol: <span class="text-sky-300">${{med}}</span>`);
-            const formData = new FormData();
-            formData.append('med_type', med);
-            try {{
-                const res = await fetch('/api/intervene', {{ method: 'POST', body: formData }});
-                const json = await res.json();
-                logToTerminal(`<span class="text-emerald-400">Success:</span> ${{json.message}}`);
-            }} catch(e) {{
-                logToTerminal(`<span class="text-rose-400">Error:</span> Uplink failed.`);
-            }}
-        }}
-
-        logToTerminal("System initialized. Awaiting biological telemetry.");
-    </script>
 </body></html>
 """
 
 # ==========================================
-# 5. ROUTES
+# 4. ROUTES
 # ==========================================
 
 @app.route('/')
@@ -471,7 +342,7 @@ def login():
         session['user'] = username
         return redirect(url_for('dashboard'))
     
-    flash("Authentication failed. Invalid credentials.")
+    flash("Invalid credentials.")
     return redirect(url_for('home'))
 
 @app.route('/logout')
@@ -479,38 +350,19 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if 'user' not in session: return redirect(url_for('home'))
-    return render_template_string(DASHBOARD_HTML)
-
-@app.route('/api/stream')
-def stream():
-    if 'user' not in session: return "Unauthorized", 401
-
-    def generate_telemetry():
-        while True:
-            data = GLOBAL_PATIENT.tick() 
-            yield f"data: {json.dumps(data)}\n\n"
-            time.sleep(1) 
-
-    return Response(generate_telemetry(), mimetype='text/event-stream')
-
-@app.route('/api/intervene', methods=['POST'])
-def intervene():
-    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
     
-    med_type = request.form.get('med_type')
-    message = GLOBAL_PATIENT.apply_intervention(med_type)
-    
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("INSERT INTO logs (timestamp, event, severity) VALUES (?, ?, ?)", 
-              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), f"{session['user']} deployed {med_type}", "ACTION"))
-    conn.commit()
-    conn.close()
+    sim_data = None
+    if request.method == 'POST':
+        inputs = {k: RespiratoryEngine.safe_float(request.form.get(k), 0) for k in request.form}
+        try:
+            sim_data = RespiratoryEngine.calculate_simulation(inputs)
+        except Exception:
+            flash(f"Error calculating metrics: {traceback.format_exc()}")
 
-    return jsonify({"status": "success", "message": message})
+    return render_template_string(DASHBOARD_HTML, sim_data=sim_data)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
