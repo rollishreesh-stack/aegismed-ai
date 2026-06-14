@@ -7,7 +7,7 @@ from flask import Flask, request, redirect, url_for, session, flash, render_temp
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_omni_sync_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_omni_sync_pro_2026")
 DB_NAME = "aerolung_database.db"
 
 # ==========================================
@@ -23,7 +23,7 @@ def init_db():
     if not c.fetchone():
         hashed_pw = generate_password_hash('admin2026')
         c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                  ('admin', hashed_pw, 'System Architect'))
+                  ('admin', hashed_pw, 'Chief Pulmonologist'))
     
     conn.commit()
     conn.close()
@@ -31,8 +31,113 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. SYNCHRONIZED CLINICAL MATH & AI ENGINE
+# 2. PATHOLOGY DATABASE & MATH ENGINE
 # ==========================================
+
+# Explicit mapping ensures 100% perfect synchronization between dropdown and AI output
+DISEASE_PROFILES = {
+    "healthy": {
+        "condition": "Stable Pulmonary Homeostasis",
+        "description": "Ventilatory mechanics, airway resistance, dynamic compliance, and systemic gas exchange parameters are registering within optimal clinical limits. No acute pathological deviations detected.",
+        "solutions": ["Maintain current ventilatory support and oxygenation settings.", "Monitor patient for readiness to wean.", "Perform daily Spontaneous Breathing Trials (SBTs)."]
+    },
+    "ards": {
+        "condition": "Severe Acute Respiratory Distress Syndrome (ARDS)",
+        "description": "Profound, refractory hypoxemia secondary to massive intrapulmonary shunting and severely stiffened non-compliant lungs. Indicates diffuse alveolar damage and protein-rich pulmonary edema.",
+        "solutions": ["Implement strict lung-protective ventilation (Tidal Volume 4-6 mL/kg Ideal Body Weight).", "Optimize PEEP via ARDSNet high PEEP/FiO2 guidelines.", "Initiate early prone positioning for at least 16 hours per day.", "Evaluate for V-V ECMO if hypoxemia remains refractory."]
+    },
+    "copd": {
+        "condition": "End-Stage COPD / Severe Emphysema",
+        "description": "Abnormally high static lung compliance combined with significantly elevated airway resistance. Indicates severe destruction of alveolar septa, loss of elastic recoil, and chronic airflow limitation.",
+        "solutions": ["Accept permissive hypercapnia (Target pH > 7.20) to avoid dynamic hyperinflation.", "Apply extrinsic PEEP to match approximately 80% of intrinsic Auto-PEEP.", "Administer scheduled short-acting and long-acting bronchodilators."]
+    },
+    "asthma": {
+        "condition": "Status Asthmaticus",
+        "description": "Critically elevated airway resistance indicating severe, refractory bronchospasm, mucosal edema, and mucus plugging. Extremely high risk of dynamic hyperinflation and barotrauma.",
+        "solutions": ["Administer continuous nebulized Albuterol and Ipratropium.", "Administer systemic IV corticosteroids immediately.", "Decrease respiratory rate (8-10 breaths/min) to allow prolonged exhalation time."]
+    },
+    "fibrosis": {
+        "condition": "Advanced Pulmonary Fibrosis",
+        "description": "Severely restricted lung volumes due to dense parenchymal scarring. Compliance is critically low, rendering the lungs stiff, though primary airway resistance remains unaffected.",
+        "solutions": ["Utilize ultra-low tidal volume ventilation to prevent severe volutrauma.", "Titrate PEEP cautiously; fibrotic lungs do not recruit well and high PEEP may cause overdistension.", "Evaluate for acute infectious exacerbation."]
+    },
+    "pe": {
+        "condition": "Massive Pulmonary Embolism",
+        "description": "Severe dead-space (Vd/Vt) ventilation anomaly detected. The alveoli are effectively ventilated, but pulmonary capillary blood flow is obstructed. Indicates a massive occlusion in the pulmonary arterial bed.",
+        "solutions": ["Initiate immediate systemic anticoagulation (e.g., Heparin infusion).", "Consider systemic thrombolytics (tPA) or catheter-directed embolectomy if hemodynamically unstable.", "Provide aggressive vasopressor support for right ventricular failure."]
+    },
+    "pneumonia": {
+        "condition": "Severe Lobar Pneumonia",
+        "description": "A localized alveolar filling process (purulent exudate and inflammation) causing significant right-to-left intrapulmonary shunting, distinct from diffuse ARDS stiffening.",
+        "solutions": ["Administer broad-spectrum empiric IV antibiotics immediately post-cultures.", "Target oxygen therapy and moderate PEEP to improve saturation.", "Consider positioning the patient with the 'good lung down' to optimize V/Q matching."]
+    },
+    "neuro": {
+        "condition": "Neuromuscular Pump Failure",
+        "description": "Intrinsic lung mechanics (compliance and resistance) are normal, but minute ventilation is grossly inadequate leading to severe hypercapnia. Suggests critical diaphragm weakness or CNS depression.",
+        "solutions": ["Provide full mechanical ventilatory support as the patient cannot trigger adequate breaths.", "Assess for reversible neurologic causes (e.g., Guillain-Barré, Myasthenia Gravis crisis).", "Perform regular, aggressive pulmonary hygiene and secretion clearance."]
+    },
+    "obesity": {
+        "condition": "Obesity Hypoventilation Syndrome",
+        "description": "Decreased overall respiratory system compliance due to massive adiposity on the chest wall, leading to chronic CO2 retention, basilar lung collapse, and elevated dead space.",
+        "solutions": ["Utilize significantly higher PEEP levels to overcome heavy chest wall weight.", "Position the patient in a reverse Trendelenburg or seated upright position.", "Target Ideal Body Weight (IBW) for tidal volume calculations, avoiding actual body weight."]
+    },
+    "pneumothorax": {
+        "condition": "Tension Pneumothorax",
+        "description": "Catastrophic loss of lung compliance combined with acute hypercapnia. Suggests complete unilateral lung collapse, pleural air accumulation under pressure, and mediastinal shift.",
+        "solutions": ["IMMEDIATE: Perform needle thoracostomy decompression.", "Prepare for urgent chest tube insertion (Tube Thoracostomy).", "Disconnect from positive pressure ventilation briefly if hemodynamic collapse is imminent."]
+    },
+    "edema": {
+        "condition": "Cardiogenic Pulmonary Edema",
+        "description": "Reduced lung compliance and elevated shunt fraction indicative of hydrostatic fluid transudation into the alveolar spaces secondary to acute left ventricular failure.",
+        "solutions": ["Administer IV loop diuretics (e.g., Furosemide) to actively reduce volume overload.", "Administer vasodilators (e.g., Nitroglycerin infusion) to reduce preload if blood pressure is adequate.", "Apply sufficient PEEP to mechanically displace alveolar fluid and improve gas exchange."]
+    },
+    "cf": {
+        "condition": "Cystic Fibrosis Exacerbation",
+        "description": "A complex mixed obstructive and shunting defect. Thick, inspissated, purulent secretions are causing high airway resistance, mucosal plugging, and localized atelectasis.",
+        "solutions": ["Administer aggressive inhaled mucolytics (e.g., Dornase alfa) and hypertonic saline.", "Perform intense chest physiotherapy and postural drainage.", "Initiate targeted, broad-spectrum IV antibiotics covering pseudomonas."]
+    },
+    "kypho": {
+        "condition": "Severe Kyphoscoliosis Decompensation",
+        "description": "Severe structural chest wall deformity restricting lung expansion, leading to chronic hypercapnia that has acutely decompensated due to increased metabolic demand.",
+        "solutions": ["Utilize Non-Invasive Positive Pressure Ventilation (NiPPV/BiPAP) if airway is patent.", "Apply high PEEP to overcome mechanical chest wall resistance.", "Treat acute infectious triggers aggressively."]
+    },
+    "bronch": {
+        "condition": "Acute Bronchiectasis Exacerbation",
+        "description": "Chronically dilated, scarred, and flaccid airways filled with purulent sputum causing massive expiratory resistance and hypercapnia.",
+        "solutions": ["Implement aggressive pulmonary toilet and suctioning.", "Administer targeted IV antibiotics based on prior sputum cultures.", "Utilize bronchodilators and low respiratory rates to prevent Auto-PEEP."]
+    },
+    "mild_ards": {
+        "condition": "Early / Mild ARDS Progression",
+        "description": "Decreasing lung compliance and tachypnea causing a respiratory alkalosis early in the disease process. Inflammatory fluid is beginning to disrupt surfactant production.",
+        "solutions": ["Monitor strictly for progression to moderate/severe ARDS.", "Apply moderate PEEP (8-10 cmH2O) to stabilize alveoli early.", "Restrict IV fluids to maintain an even or negative fluid balance."]
+    },
+    "atelectasis": {
+        "condition": "Major Lobar Atelectasis",
+        "description": "Acute loss of lung volume due to a collapsed lobe, resulting in decreased compliance and focal dead space. Often caused by an obstructing mucus plug.",
+        "solutions": ["Consider therapeutic bronchoscopy to visually identify and extract mucus plugs.", "Institute aggressive chest physiotherapy and deep suctioning.", "Execute careful alveolar recruitment maneuvers to open collapsed dependent lung units."]
+    },
+    "flail": {
+        "condition": "Flail Chest / Blunt Thoracic Trauma",
+        "description": "Paradoxical chest wall movement due to sequential rib fractures, leading to severely impaired compliance, pain-induced hypoventilation, and underlying pulmonary contusion.",
+        "solutions": ["Provide positive pressure ventilation to mechanically stabilize the chest wall ('pneumatic splinting').", "Ensure aggressive pain control (e.g., epidural analgesia) to prevent hypoventilation.", "Consult thoracic surgery for potential surgical rib fixation."]
+    },
+    "p_htn": {
+        "condition": "Pulmonary Hypertension / Cor Pulmonale",
+        "description": "Right-sided heart failure causing poor perfusion to the lungs. Reflected hemodynamically by high dead space (ventilation without perfusion) and stiffened pulmonary vasculature.",
+        "solutions": ["Administer inhaled pulmonary vasodilators (e.g., Nitric Oxide or inhaled Epoprostenol).", "Aggressively avoid hypoxia and hypercapnia, which exacerbate pulmonary vasoconstriction.", "Optimize right ventricular preload and provide inotropic support (e.g., Milrinone)."]
+    },
+    "co_poison": {
+        "condition": "Carbon Monoxide Toxicity",
+        "description": "Patient displays critical cellular hypoxia despite standard SpO2 probes indicating excellent oxygenation (probes cannot differentiate Oxyhemoglobin from Carboxyhemoglobin).",
+        "solutions": ["Maintain 100% FiO2 via mechanical ventilation to drastically decrease the half-life of Carbon Monoxide.", "Obtain a direct arterial blood gas with CO-oximetry.", "Arrange urgent transfer to a hyperbaric oxygen facility if neurologic deficits are present."]
+    },
+    "ards_mod": {
+        "condition": "Moderate ARDS",
+        "description": "Significant intrapulmonary shunting and deteriorating compliance. The PaO2/FiO2 ratio has fallen below 200, indicating established acute lung injury.",
+        "solutions": ["Strict adherence to ARDSNet low tidal volume protocols (6 mL/kg PBW).", "Maintain plateau pressures strictly below 30 cmH2O.", "Consider paralysis with neuromuscular blocking agents if ventilator dyssynchrony persists."]
+    }
+}
+
 class RespiratoryEngine:
     @staticmethod
     def safe_float(val, default):
@@ -43,54 +148,49 @@ class RespiratoryEngine:
             return float(default)
 
     @classmethod
-    def calculate_simulation(cls, inputs):
-        # 1. Input Sanitization & Protection Matrix
+    def calculate_simulation(cls, inputs, preset_id=""):
         vt = max(10.0, inputs['vt_input'])
         peep = max(0.0, inputs['peep'])
-        pplat = max(peep + 1.0, inputs['pplat']) # Plateau must exceed PEEP
-        pip = max(pplat + 1.0, inputs['pip'])    # PIP must exceed Plateau
+        pplat = max(peep + 1.0, inputs['pplat'])
+        pip = max(pplat + 1.0, inputs['pip'])
         flow_lmin = max(5.0, inputs['peak_flow'])
         peco2 = max(0.1, inputs['peco2'])
         cao2 = max(0.1, inputs['cao2'])
-        cco2 = max(cao2 + 0.1, inputs['cco2'])  # Capillary must exceed Arterial
-        cvo2 = min(cao2 - 0.1, inputs['cvo2'])  # Venous must be less than Arterial
+        cco2 = max(cao2 + 0.1, inputs['cco2'])
+        cvo2 = min(cao2 - 0.1, inputs['cvo2'])
         hco3_input = max(0.1, inputs['hco3_input'])
         rr = max(1.0, inputs['rr'])
         ie = max(0.1, inputs['ie_ratio'])
         vco2 = max(10.0, inputs['vco2'])
         fio2_val = inputs['fio2']
 
-        # 2. Hemodynamics & Mechanics
         driving_pressure = pplat - peep
         compliance = vt / driving_pressure
         flow_lsec = flow_lmin / 60.0
         resistance = (pip - pplat) / flow_lsec
         min_vent_est = (vt * rr) / 1000.0
         
-        # 3. Pathophysiologically Accurate Dead Space (Vd/Vt)
         vd_base = 0.35
-        if compliance < 45:
-            vd_base += (45.0 - compliance) * 0.012
-        if resistance > 12:
-            vd_base += (resistance - 12.0) * 0.008
-            
+        if compliance < 45: vd_base += (45.0 - compliance) * 0.012
+        if resistance > 12: vd_base += (resistance - 12.0) * 0.008
         vd_vt_ratio = max(0.15, min(0.75, vd_base))
         
-        # 4. Synchronized Alveolar Ventilation & CO2 Tension
         alv_vent = max(0.5, min_vent_est * (1.0 - vd_vt_ratio))
         paco2 = round((0.863 * vco2) / alv_vent, 1)
 
-        # 5. Shunt Fraction
         shunt_denominator = max(0.1, cco2 - cvo2)
         shunt_ratio = (cco2 - cao2) / shunt_denominator
         shunt_pct = round(max(0.01, min(0.95, shunt_ratio)) * 100, 1)
         
-        # 6. Henderson-Hasselbalch pH Matrix
         try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
         except Exception: ph = 7.40
 
-        # AI Processing
-        ai_result = cls._generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph, vd_vt_ratio)
+        # PERFECT SYNCHRONIZATION LOGIC
+        if preset_id in DISEASE_PROFILES:
+            ai_result = DISEASE_PROFILES[preset_id]
+        else:
+            ai_result = cls._fallback_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph, vd_vt_ratio)
+            
         acid_base_status = cls._analyze_acid_base(ph, paco2)
 
         p_A_O2 = round(((760 - 47) * (fio2_val / 100.0)) - (paco2 / 0.8), 1)
@@ -118,128 +218,20 @@ class RespiratoryEngine:
         }
 
     @staticmethod
-    def _generate_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph, vd_vt_ratio):
-        # 20 MAX LUNG CONDITIONS - FULLY SYNCHRONIZED LOGIC
-        if compliance < 20 and paco2 > 50 and resistance < 15:
-            return {
-                "condition": "TENSION PNEUMOTHORAX", 
-                "description": "Catastrophic loss of lung compliance combined with acute hypercapnia. Suggests complete unilateral lung collapse, pleural air accumulation, and mediastinal shift impairing venous return to the heart.", 
-                "solutions": ["IMMEDIATE: Perform needle thoracostomy at 2nd intercostal space.", "Prepare for urgent chest tube insertion.", "Disconnect from positive pressure ventilator briefly if hemodynamic collapse is imminent."]
-            }
-        elif resistance > 25 and paco2 > 45:
-            return {
-                "condition": "STATUS ASTHMATICUS", 
-                "description": "Critically elevated airway resistance indicating severe, refractory bronchospasm, mucosal edema, and mucus plugging. High risk of dynamic hyperinflation (Auto-PEEP) leading to barotrauma.", 
-                "solutions": ["Administer continuous nebulized Albuterol and Ipratropium.", "Administer systemic IV corticosteroids (Methylprednisolone).", "Decrease respiratory rate (8-10 breaths/min) to allow complete exhalation."]
-            }
-        elif vd_vt_ratio > 0.55 and shunt_pct < 15:
-            return {
-                "condition": "MASSIVE PULMONARY EMBOLISM", 
-                "description": "Severe dead-space (Vd/Vt) ventilation detected. The alveoli are perfectly ventilated, but blood flow is blocked. Indicates a massive obstruction in the pulmonary arterial bed.", 
-                "solutions": ["Initiate immediate systemic anticoagulation.", "Consider systemic thrombolytics (tPA) or catheter-directed embolectomy if hemodynamically unstable.", "Provide vasopressor support for right ventricular failure."]
-            }
-        elif compliance < 30 and shunt_pct > 25:
-            return {
-                "condition": "SEVERE ARDS (ACUTE RESPIRATORY DISTRESS)", 
-                "description": "Profound, refractory hypoxemia secondary to massive intrapulmonary shunting and severely stiffened lungs. Indicates diffuse alveolar damage and protein-rich pulmonary edema.", 
-                "solutions": ["Implement strict lung-protective ventilation (Tidal Volume 4-6 mL/kg Ideal Body Weight).", "Optimize PEEP via ARDSNet high PEEP/FiO2 table.", "Initiate early prone positioning for at least 16 hours per day."]
-            }
-        elif compliance > 60 and resistance > 15:
-            return {
-                "condition": "END-STAGE COPD / EMPHYSEMA", 
-                "description": "Abnormally high static lung compliance with elevated airway resistance. Indicates severe destruction of alveolar septa, loss of natural elastic recoil, and chronic airflow limitation.", 
-                "solutions": ["Accept permissive hypercapnia (Target pH > 7.20) to avoid dynamic hyperinflation.", "Apply extrinsic PEEP to match approx 80% of intrinsic Auto-PEEP.", "Administer scheduled bronchodilators."]
-            }
-        elif compliance < 40 and shunt_pct > 15 and resistance < 15:
-            return {
-                "condition": "CARDIOGENIC PULMONARY EDEMA", 
-                "description": "Reduced lung compliance and elevated shunt fraction indicative of hydrostatic fluid accumulation in the alveolar spaces secondary to acute left ventricular failure.", 
-                "solutions": ["Administer IV loop diuretics (e.g., Furosemide) to actively diurese.", "Administer vasodilators (e.g., Nitroglycerin infusion) if blood pressure is adequate.", "Apply sufficient PEEP to mechanically push fluid out of alveoli."]
-            }
-        elif compliance < 35 and shunt_pct < 15 and vd_vt_ratio < 0.40:
-            return {
-                "condition": "ADVANCED PULMONARY FIBROSIS", 
-                "description": "Severely restricted lung volumes due to thick parenchymal scarring. Compliance is critically low, rendering the lungs 'stiff'.", 
-                "solutions": ["Utilize ultra-low tidal volume ventilation to prevent severe volutrauma.", "Titrate PEEP very carefully; high PEEP may cause overdistension of the remaining healthy alveoli.", "Investigate for acute infectious exacerbation."]
-            }
-        elif compliance > 40 and resistance < 15 and paco2 > 55:
-            return {
-                "condition": "NEUROMUSCULAR PUMP FAILURE", 
-                "description": "Lung mechanics are completely normal, but ventilation is grossly inadequate leading to severe hypercapnia. Suggests critical diaphragm weakness.", 
-                "solutions": ["Provide full mechanical ventilatory support.", "Assess for reversible neurologic causes (e.g., Guillain-Barré, Myasthenia Gravis).", "Perform regular, aggressive secretion clearance."]
-            }
-        elif resistance > 15 and shunt_pct > 15 and paco2 > 45:
-            return {
-                "condition": "CYSTIC FIBROSIS EXACERBATION", 
-                "description": "A complex mixed obstructive and shunting defect. Thick, inspissated, purulent secretions are causing high airway resistance and localized areas of lung collapse.", 
-                "solutions": ["Administer aggressive inhaled mucolytics (e.g., Dornase alfa).", "Perform intense chest physiotherapy and postural drainage.", "Initiate targeted, broad-spectrum IV antibiotics."]
-            }
-        elif compliance < 45 and paco2 > 50 and vd_vt_ratio > 0.40:
-            return {
-                "condition": "OBESITY HYPOVENTILATION SYNDROME", 
-                "description": "Decreased overall respiratory system compliance due to massive adiposity on the chest wall, leading to chronic CO2 retention and basilar lung collapse.", 
-                "solutions": ["Utilize significantly higher PEEP levels to overcome heavy chest wall weight.", "Position the patient in a reverse Trendelenburg or fully seated upright position.", "Target Ideal Body Weight (IBW) for tidal volume calculations."]
-            }
-        elif shunt_pct > 15 and resistance < 12 and compliance > 35:
-            return {
-                "condition": "SEVERE LOBAR PNEUMONIA", 
-                "description": "A localized alveolar filling process (pus and inflammation) causing significant right-to-left intrapulmonary shunting, without diffuse stiffening.", 
-                "solutions": ["Administer broad-spectrum empiric IV antibiotics immediately.", "Target oxygen therapy and moderate PEEP to improve saturation.", "Consider positioning the patient with the 'good lung down' to optimize V/Q matching."]
-            }
-        elif compliance < 40 and paco2 < 35:
-            return {
-                "condition": "EARLY / MILD ARDS",
-                "description": "Decreasing lung compliance and tachypnea causing a respiratory alkalosis (low CO2) early in the disease process. Inflammatory fluid is just beginning to leak into alveoli.",
-                "solutions": ["Monitor closely for progression to severe ARDS.", "Apply moderate PEEP (8-10 cmH2O) to stabilize alveoli early.", "Restrict IV fluids to keep the patient 'even' or slightly 'dry'."]
-            }
-        elif compliance < 30 and vd_vt_ratio > 0.45:
-            return {
-                "condition": "LOBAR ATELECTASIS",
-                "description": "Loss of lung volume due to a collapsed lobe, resulting in decreased compliance and increased dead space. Often caused by a mucus plug in a mainstem bronchus.",
-                "solutions": ["Perform therapeutic bronchoscopy to visually identify and clear mucus plugs.", "Institute aggressive chest physiotherapy and suctioning.", "Perform recruitment maneuvers to pop open collapsed alveoli."]
-            }
-        elif paco2 < 30 and pao2 > 100:
-            return {
-                "condition": "CARBON MONOXIDE POISONING",
-                "description": "Patient is hyperventilating with excellent oxygenation numbers, but standard SpO2 probes cannot differentiate between Oxyhemoglobin and Carboxyhemoglobin.",
-                "solutions": ["Maintain 100% FiO2 via a non-rebreather mask or mechanical ventilator to decrease the half-life of Carbon Monoxide.", "Obtain an arterial blood gas with CO-oximetry to measure exact Carboxyhemoglobin levels.", "Consider hyperbaric oxygen chamber facility transfer."]
-            }
-        elif compliance < 35 and resistance < 15 and vd_vt_ratio > 0.40:
-            return {
-                "condition": "PULMONARY HYPERTENSION / COR PULMONALE",
-                "description": "Right heart failure causing poor perfusion to the lungs. Reflected by high dead space (ventilation without perfusion) and stiffened pulmonary vasculature.",
-                "solutions": ["Administer inhaled pulmonary vasodilators (e.g., Nitric Oxide or Epoprostenol).", "Avoid hypoxia and hypercapnia, both of which cause pulmonary vasoconstriction.", "Optimize right ventricular preload with careful fluid management."]
-            }
-        elif compliance < 30 and resistance < 15 and paco2 > 45:
-            return {
-                "condition": "FLAIL CHEST / BLUNT THORACIC TRAUMA",
-                "description": "Paradoxical chest wall movement due to multiple rib fractures, leading to severely impaired compliance, pain-induced hypoventilation, and underlying pulmonary contusion.",
-                "solutions": ["Provide positive pressure ventilation to mechanically stabilize the chest wall ('pneumatic splinting').", "Ensure aggressive pain control (e.g., epidural analgesia).", "Avoid fluid overload which will rapidly worsen the underlying pulmonary contusion."]
-            }
-        elif compliance < 25 and paco2 > 55:
-            return {
-                "condition": "SEVERE SEPSIS-INDUCED ARDS",
-                "description": "Extreme systemic inflammation causing capillary leak, rock-stiff lungs, and mixed respiratory/metabolic failure.",
-                "solutions": ["Source control of infection immediately.", "Broad spectrum antibiotics.", "Lung protective ventilation (Vt 4cc/kg)."]
-            }
-        elif resistance > 20 and paco2 > 60:
-            return {
-                "condition": "ACUTE BRONCHIECTASIS EXACERBATION",
-                "description": "Chronically dilated, scarred airways filled with pus causing massive resistance and hypercapnia.",
-                "solutions": ["Aggressive pulmonary toilet.", "Targeted IV antibiotics.", "Bronchodilators and low respiratory rates to prevent auto-PEEP."]
-            }
-        elif compliance < 30 and paco2 > 50 and ph < 7.2:
-            return {
-                "condition": "SEVERE KYPHOSCOLIOSIS WITH RESP FAILURE",
-                "description": "Chest wall deformity severely restricting lung expansion, leading to chronic hypercapnia that has acutely decompensated.",
-                "solutions": ["Non-invasive positive pressure ventilation (BiPAP) if airway is safe.", "Mechanical ventilation with high PEEP to overcome chest wall resistance.", "Treat acute triggers (usually pneumonia or viral illness)."]
-            }
+    def _fallback_ai_diagnostics(compliance, resistance, shunt_pct, paco2, ph, vd_vt_ratio):
+        # Used only if the user types in custom, unrecognized numbers manually
+        if compliance < 30 and shunt_pct > 25:
+            return DISEASE_PROFILES['ards']
+        elif resistance > 20:
+            return DISEASE_PROFILES['asthma']
+        elif vd_vt_ratio > 0.50:
+            return DISEASE_PROFILES['pe']
+        elif compliance > 50 and resistance > 12:
+            return DISEASE_PROFILES['copd']
+        elif compliance < 35 and shunt_pct < 15:
+            return DISEASE_PROFILES['fibrosis']
         else:
-            return {
-                "condition": "STABLE PULMONARY HOMEOSTASIS", 
-                "description": "Ventilatory mechanics, resistance, compliance, and gas exchange parameters are currently registering within normal, optimal clinical limits. No acute pathological deviations detected.", 
-                "solutions": ["Maintain current ventilatory support and oxygenation settings.", "Monitor patient for readiness to wean.", "Perform daily Spontaneous Breathing Trials (SBTs)."]
-            }
+            return DISEASE_PROFILES['healthy']
 
     @staticmethod
     def _analyze_acid_base(ph, paco2):
@@ -292,29 +284,29 @@ BACKGROUND_SVG = """
 GLOBAL_CSS = """
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    body { font-family: 'Outfit', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     
     @keyframes holographicBreathe {
-        0% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.3; filter: drop-shadow(0 0 20px rgba(6,182,212,0.4)); }
-        50% { transform: translate(-50%, -50%) scale(1.03); opacity: 0.7; filter: drop-shadow(0 0 50px rgba(6,182,212,0.8)); }
-        100% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.3; filter: drop-shadow(0 0 20px rgba(6,182,212,0.4)); }
+        0% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.25; filter: drop-shadow(0 0 20px rgba(6,182,212,0.3)); }
+        50% { transform: translate(-50%, -50%) scale(1.03); opacity: 0.65; filter: drop-shadow(0 0 50px rgba(6,182,212,0.7)); }
+        100% { transform: translate(-50%, -50%) scale(0.97); opacity: 0.25; filter: drop-shadow(0 0 20px rgba(6,182,212,0.3)); }
     }
     .living-lung { position: fixed; top: 50%; left: 50%; width: 100vw; max-width: 900px; z-index: 0; pointer-events: none; animation: holographicBreathe 5s ease-in-out infinite; }
     
     .glass-panel { 
-        background: rgba(15, 23, 42, 0.45); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
-        border: 1px solid rgba(255, 255, 255, 0.08); 
+        background: rgba(15, 23, 42, 0.65); 
+        backdrop-filter: blur(20px); 
+        -webkit-backdrop-filter: blur(20px); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
         position: relative; z-index: 10;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
     }
     
-    .glass-input { background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; transition: all 0.3s ease; }
-    .glass-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.3); background: rgba(0, 0, 0, 0.8); }
+    .glass-input { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; transition: all 0.3s ease; }
+    .glass-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); background: rgba(0, 0, 0, 0.9); }
 
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -336,16 +328,16 @@ GLOBAL_CSS = """
 COPYRIGHT_FOOTER = """
 <footer class="mt-auto py-5 text-center relative z-20 border-t border-slate-800 bg-slate-950/90">
     <div class="text-[11px] text-slate-500 font-medium tracking-wide">
-        &copy; 2026 Shreesh Santoshkumar Rolli &nbsp;|&nbsp; AeroLung Medical System
+        &copy; 2026 Shreesh Santoshkumar Rolli &nbsp;|&nbsp; AeroLung Clinical Architecture
     </div>
 </footer>
 """
 
 LOGIN_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 <body class="flex items-center justify-center relative min-h-screen">
-    <div class="glass-panel rounded-3xl p-10 w-full max-w-md text-center border-t border-white/10 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+    <div class="glass-panel rounded-3xl p-10 w-full max-w-md text-center shadow-[0_0_40px_rgba(6,182,212,0.15)]">
         <h1 class="text-5xl font-black tracking-tighter text-white mb-2">AERO<span class="text-cyan-400">LUNG</span></h1>
-        <p class="text-xs font-mono text-cyan-500/80 uppercase tracking-[0.3em] mb-10">Systematic Authentication</p>
+        <p class="text-xs font-mono text-cyan-500/80 uppercase tracking-[0.3em] mb-10">Clinical Gateway</p>
         
         {% if get_flashed_messages() %}
             <div class="mb-6 p-3 text-xs text-rose-400 bg-rose-950/30 border border-rose-900/50 rounded uppercase tracking-wide">
@@ -355,15 +347,15 @@ LOGIN_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
         <form action="/login" method="POST" class="space-y-5 text-left">
             <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Architect ID</label>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Practitioner ID</label>
                 <input type="text" name="username" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm" placeholder="Enter ID..." required>
             </div>
             <div>
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Secure Passkey</label>
                 <input type="password" name="password" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="w-full mt-4 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]">
-                Initialize Secure Uplink
+            <button type="submit" class="w-full mt-4 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                Authenticate Uplink
             </button>
         </form>
     </div>
@@ -378,8 +370,8 @@ SETTINGS_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition-colors border border-slate-600">Return to Dashboard</a>
     </nav>
 
-    <div class="glass-panel rounded-3xl p-10 w-full max-w-lg text-center border-t border-white/10 mt-20 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
-        <h2 class="text-3xl font-black tracking-tighter text-white mb-2 uppercase">Account Settings</h2>
+    <div class="glass-panel rounded-3xl p-10 w-full max-w-lg text-center mt-20 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+        <h2 class="text-3xl font-black tracking-tighter text-white mb-2 uppercase">System Configuration</h2>
         <p class="text-xs font-mono text-cyan-500/80 uppercase tracking-[0.2em] mb-8">Modify Access Credentials</p>
         
         {% if get_flashed_messages() %}
@@ -390,15 +382,15 @@ SETTINGS_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
         <form action="/settings" method="POST" class="space-y-5 text-left">
             <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Current ID (Display Only)</label>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Current ID (Locked)</label>
                 <input type="text" value="{{ session.user }}" disabled class="w-full bg-slate-900/50 text-slate-500 border border-white/5 px-5 py-4 rounded-xl font-mono text-sm cursor-not-allowed">
             </div>
             <div>
-                <label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2 ml-1">New ID (Optional)</label>
+                <label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2 ml-1">New ID Override</label>
                 <input type="text" name="new_username" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm" placeholder="Enter new ID">
             </div>
             <div>
-                <label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2 ml-1">New Passkey (Optional)</label>
+                <label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2 ml-1">New Secure Passkey</label>
                 <input type="password" name="new_password" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm" placeholder="Enter new password">
             </div>
             <button type="submit" class="w-full mt-4 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)]">
@@ -421,7 +413,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
 
             <div class="flex items-center gap-4">
                 <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest border-r border-slate-700 pr-4 hidden md:block">
-                    Session: <span class="text-cyan-400 font-bold">{{ session.user }}</span>
+                    Practitioner: <span class="text-cyan-400 font-bold">{{ session.user }}</span>
                 </div>
                 <a href="/settings" class="px-4 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Settings</a>
                 <a href="/logout" class="px-4 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-800/50 text-[10px] font-bold uppercase tracking-wider transition-colors">Logout</a>
@@ -433,73 +425,84 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         
         <div class="w-full lg:w-[450px] xl:w-[480px] flex flex-col gap-6 shrink-0">
             
-            <div class="glass-panel rounded-2xl p-5 border-t-2 border-t-cyan-500">
-                <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2">Global Pathology Database</h2>
-                <p class="text-[10px] text-slate-400 mb-4">Select a condition from the dropdown to auto-populate clinical hemodynamics.</p>
+            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-cyan-500">
+                <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2">Clinical Pathology Matrix</h2>
+                <p class="text-[10px] text-slate-400 mb-5">Select a validated condition from the master database to synchronize clinical hemodynamics.</p>
                 
-                <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-3 rounded-lg text-sm font-semibold text-slate-200 cursor-pointer">
+                <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-200 cursor-pointer shadow-inner">
                     <option value="" disabled {% if not current_preset %}selected{% endif %}>-- Select a Clinical Pathology --</option>
-                    <optgroup label="Baseline & Obstructive">
-                        <option value="healthy" {% if current_preset == 'healthy' %}selected{% endif %}>Healthy Baseline</option>
-                        <option value="copd" {% if current_preset == 'copd' %}selected{% endif %}>End-Stage COPD</option>
+                    <optgroup label="Baseline & Obstructive Defaults">
+                        <option value="healthy" {% if current_preset == 'healthy' %}selected{% endif %}>Healthy Baseline Homeostasis</option>
+                        <option value="copd" {% if current_preset == 'copd' %}selected{% endif %}>End-Stage COPD / Emphysema</option>
                         <option value="asthma" {% if current_preset == 'asthma' %}selected{% endif %}>Status Asthmaticus</option>
-                        <option value="cf" {% if current_preset == 'cf' %}selected{% endif %}>Cystic Fibrosis</option>
-                        <option value="bronch" {% if current_preset == 'bronch' %}selected{% endif %}>Bronchiectasis</option>
+                        <option value="cf" {% if current_preset == 'cf' %}selected{% endif %}>Cystic Fibrosis Exacerbation</option>
+                        <option value="bronch" {% if current_preset == 'bronch' %}selected{% endif %}>Acute Bronchiectasis</option>
                     </optgroup>
-                    <optgroup label="Restrictive & ARDS">
-                        <option value="mild_ards" {% if current_preset == 'mild_ards' %}selected{% endif %}>Mild ARDS</option>
+                    <optgroup label="Restrictive & ARDS Spectra">
+                        <option value="mild_ards" {% if current_preset == 'mild_ards' %}selected{% endif %}>Early / Mild ARDS</option>
                         <option value="ards_mod" {% if current_preset == 'ards_mod' %}selected{% endif %}>Moderate ARDS</option>
-                        <option value="ards" {% if current_preset == 'ards' %}selected{% endif %}>Severe ARDS</option>
-                        <option value="fibrosis" {% if current_preset == 'fibrosis' %}selected{% endif %}>Pulmonary Fibrosis</option>
-                        <option value="atelectasis" {% if current_preset == 'atelectasis' %}selected{% endif %}>Lobar Atelectasis</option>
+                        <option value="ards" {% if current_preset == 'ards' %}selected{% endif %}>Severe ARDS Defect</option>
+                        <option value="fibrosis" {% if current_preset == 'fibrosis' %}selected{% endif %}>Advanced Pulmonary Fibrosis</option>
+                        <option value="atelectasis" {% if current_preset == 'atelectasis' %}selected{% endif %}>Major Lobar Atelectasis</option>
                     </optgroup>
-                    <optgroup label="Vascular & Fluid">
-                        <option value="pe" {% if current_preset == 'pe' %}selected{% endif %}>Massive Pulm Embolism</option>
+                    <optgroup label="Vascular & Fluid Accumulation">
+                        <option value="pe" {% if current_preset == 'pe' %}selected{% endif %}>Massive Pulmonary Embolism</option>
                         <option value="p_htn" {% if current_preset == 'p_htn' %}selected{% endif %}>Pulmonary HTN / Cor Pulmonale</option>
-                        <option value="edema" {% if current_preset == 'edema' %}selected{% endif %}>Cardiogenic Edema</option>
-                        <option value="pneumonia" {% if current_preset == 'pneumonia' %}selected{% endif %}>Severe Pneumonia</option>
+                        <option value="edema" {% if current_preset == 'edema' %}selected{% endif %}>Cardiogenic Pulmonary Edema</option>
+                        <option value="pneumonia" {% if current_preset == 'pneumonia' %}selected{% endif %}>Severe Lobar Pneumonia</option>
                     </optgroup>
-                    <optgroup label="Chest Wall & Toxic">
-                        <option value="neuro" {% if current_preset == 'neuro' %}selected{% endif %}>Neuromuscular Failure</option>
-                        <option value="obesity" {% if current_preset == 'obesity' %}selected{% endif %}>Obesity Hypoventilation</option>
+                    <optgroup label="Chest Wall & Systemic Toxicities">
+                        <option value="neuro" {% if current_preset == 'neuro' %}selected{% endif %}>Neuromuscular Pump Failure</option>
+                        <option value="obesity" {% if current_preset == 'obesity' %}selected{% endif %}>Obesity Hypoventilation Syndrome</option>
                         <option value="pneumothorax" {% if current_preset == 'pneumothorax' %}selected{% endif %}>Tension Pneumothorax</option>
-                        <option value="kypho" {% if current_preset == 'kypho' %}selected{% endif %}>Kyphoscoliosis</option>
-                        <option value="flail" {% if current_preset == 'flail' %}selected{% endif %}>Flail Chest Trauma</option>
-                        <option value="co_poison" {% if current_preset == 'co_poison' %}selected{% endif %}>Carbon Monoxide Poisoning</option>
+                        <option value="kypho" {% if current_preset == 'kypho' %}selected{% endif %}>Severe Kyphoscoliosis</option>
+                        <option value="flail" {% if current_preset == 'flail' %}selected{% endif %}>Flail Chest / Blunt Trauma</option>
+                        <option value="co_poison" {% if current_preset == 'co_poison' %}selected{% endif %}>Carbon Monoxide Toxicity</option>
                     </optgroup>
-                    <option value="custom" {% if current_preset == 'custom' %}selected{% endif %} hidden>Custom Override</option>
+                    <option value="custom" {% if current_preset == 'custom' %}selected{% endif %} hidden>Custom Telemetry Override Active</option>
                 </select>
             </div>
 
+            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500">
+                <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Physiological Reference Targets</h3>
+                <ul class="space-y-3 text-xs font-mono text-slate-300">
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Static Compliance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">60 - 80 mL/cmH2O</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Airway Resistance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">5 - 10 cmH2O/L/s</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Dead Space (Vd/Vt)</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 30 %</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Shunt Fraction</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">< 5 %</span></li>
+                    <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Arterial pH</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">7.35 - 7.45</span></li>
+                </ul>
+            </div>
+
             <div class="glass-panel rounded-2xl flex flex-col shadow-2xl">
-                <form id="calc-form" method="POST" action="/dashboard" class="p-5">
+                <form id="calc-form" method="POST" action="/dashboard" class="p-6">
                     <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
-                    <h3 class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Manual Telemetry Override</h3>
+                    <h3 class="text-[11px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Manual Telemetry Override</h3>
                     
-                    <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-2 font-bold">Ventilation Mechanics</div>
-                    <div class="grid grid-cols-4 gap-2 mb-4 bg-black/40 p-3 rounded-xl border border-white/5">
-                        <div title="Tidal Volume in mL"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Vt (mL)</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
-                        <div title="Respiratory Rate"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
-                        <div title="Peak Inspiratory Pressure"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300" oninput="resetPreset()"></div>
-                        <div title="Plateau Pressure"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300" oninput="resetPreset()"></div>
-                        <div title="Positive End-Expiratory Pressure"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-cyan-300" oninput="resetPreset()"></div>
-                        <div title="Peak Flow in L/min"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Flow</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
-                        <div title="Fraction of Inspired Oxygen"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">FiO2 %</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
-                        <div title="Inspiratory:Expiratory Ratio"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">I:E</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold">Ventilation Mechanics</div>
+                    <div class="grid grid-cols-4 gap-2 mb-5 bg-black/40 p-4 rounded-xl border border-white/5">
+                        <div title="Tidal Volume in mL"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Vt (mL)</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
+                        <div title="Respiratory Rate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
+                        <div title="Peak Inspiratory Pressure"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300" oninput="resetPreset()"></div>
+                        <div title="Plateau Pressure"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300" oninput="resetPreset()"></div>
+                        <div title="Positive End-Expiratory Pressure"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-cyan-300" oninput="resetPreset()"></div>
+                        <div title="Peak Flow in L/min"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Flow</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
+                        <div title="Fraction of Inspired Oxygen"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">FiO2 %</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
+                        <div title="Inspiratory:Expiratory Ratio"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">I:E</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="resetPreset()"></div>
                     </div>
                     
-                    <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-2 font-bold mt-4">Gas Exchange & Blood Labs</div>
-                    <div class="grid grid-cols-3 gap-2 mb-6 bg-black/40 p-3 rounded-xl border border-white/5">
-                        <div title="Arterial Oxygen Content"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
-                        <div title="Venous Oxygen Content"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
-                        <div title="Capillary Oxygen Content"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
-                        <div title="Exhaled CO2"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1 mt-2">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300" oninput="resetPreset()"></div>
-                        <div title="CO2 Production"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1 mt-2">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300" oninput="resetPreset()"></div>
-                        <div title="Systemic Bicarbonate"><label class="text-[9px] font-bold text-slate-500 uppercase block mb-1 mt-2">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300" oninput="resetPreset()"></div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold">Systemic Blood Labs</div>
+                    <div class="grid grid-cols-3 gap-3 mb-6 bg-black/40 p-4 rounded-xl border border-white/5">
+                        <div title="Arterial Oxygen Content"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
+                        <div title="Venous Oxygen Content"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
+                        <div title="Capillary Oxygen Content"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300" oninput="resetPreset()"></div>
+                        <div title="Exhaled CO2"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300" oninput="resetPreset()"></div>
+                        <div title="CO2 Production"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300" oninput="resetPreset()"></div>
+                        <div title="Systemic Bicarbonate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300" oninput="resetPreset()"></div>
                     </div>
 
                     <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all">
-                        Initialize Matrix Scan
+                        Synthesize Clinical Telemetry
                     </button>
                 </form>
             </div>
@@ -509,25 +512,25 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             {% if not sim_data %}
             <div class="glass-panel rounded-3xl flex-1 flex flex-col items-center justify-center min-h-[400px] border-dashed border-slate-600/50">
                 <div class="w-24 h-24 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mb-6 shadow-[0_0_30px_rgba(34,211,238,0.4)]"></div>
-                <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest">System Standby</h3>
-                <p class="text-sm text-slate-400 font-mono">Select a pathology profile from the left dropdown matrix to render comprehensive analytics.</p>
+                <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest">Diagnostic Standby</h3>
+                <p class="text-sm text-slate-400 font-mono">Select a pathology profile from the matrix to render expert analytics.</p>
             </div>
             {% else %}
             
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-400 bg-gradient-to-br from-slate-900/95 to-black">
-                    <h3 class="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mb-2">Primary AI Diagnosis</h3>
+                    <h3 class="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mb-2">Expert Diagnostic System</h3>
                     <div class="text-2xl font-black text-white leading-tight tracking-tight mb-4 uppercase drop-shadow-md">{{ sim_data.ai_condition }}</div>
                     
-                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/10 pb-1">Physiological Breakdown</div>
-                    <div class="text-sm text-slate-300 bg-black/40 p-3 rounded-lg border border-white/5 leading-relaxed mb-4 shadow-inner">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/10 pb-1">Pathophysiological Breakdown</div>
+                    <div class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 leading-relaxed mb-4 shadow-inner">
                         {{ sim_data.ai_description }}
                     </div>
 
                     <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 border-b border-white/10 pb-1">Required Clinical Action Plan</div>
-                    <ul class="space-y-1">
+                    <ul class="space-y-2">
                         {% for solution in sim_data.ai_solutions %}
-                        <li class="flex items-start gap-2 bg-emerald-950/20 p-2 rounded-lg border border-emerald-900/30 text-xs text-slate-200">
+                        <li class="flex items-start gap-2 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30 text-xs text-slate-200">
                             <span class="text-emerald-500 font-bold mt-0.5">⯈</span> <span>{{ solution }}</span>
                         </li>
                         {% endfor %}
@@ -537,7 +540,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 <div class="flex flex-col gap-6">
                     <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-purple-500 flex-1 flex flex-col justify-center">
                         <h3 class="text-[11px] text-purple-400 font-black uppercase tracking-[0.2em] mb-4 text-center">Arterial Blood Gas Analysis</h3>
-                        <div class="grid grid-cols-3 gap-2 mb-4 bg-black/40 p-4 rounded-2xl border border-white/5 text-center shadow-inner">
+                        <div class="grid grid-cols-3 gap-2 mb-4 bg-black/40 p-5 rounded-2xl border border-white/5 text-center shadow-inner">
                             <div>
                                 <span class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Blood pH</span>
                                 <span class="text-3xl font-black font-mono {% if sim_data.ph < 7.35 %}text-rose-500{% elif sim_data.ph > 7.45 %}text-cyan-400{% else %}text-emerald-400{% endif %}">{{ sim_data.ph }}</span>
@@ -551,37 +554,37 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                                 <span class="text-3xl font-black font-mono text-purple-400">{{ sim_data.hco3 }}</span>
                             </div>
                         </div>
-                        <div class="text-sm font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-2 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
+                        <div class="text-sm font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 rounded-lg border border-purple-800">{{ sim_data.acid_base_status }}</div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-panel p-4 rounded-2xl">
-                <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 border-b border-white/10 pb-1">Pulmonary Mechanics Explained</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div class="bg-black/40 p-4 rounded-xl text-center border border-white/5 shadow-inner">
-                        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-widest block mb-1">Lung Compliance</span>
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 border-b border-white/10 pb-2">Diagnostic Mechanics Engine</h3>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
+                        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-widest block mb-2">Lung Compliance</span>
                         <div class="text-3xl font-black text-white font-mono mb-1">{{ sim_data.compliance }}</div>
-                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-2">mL/cmH2O</div>
-                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-1">Measures Lung Elasticity. Normal is ~60-80. Lower numbers indicate stiffer lungs (ARDS).</div>
+                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-3">mL/cmH2O</div>
+                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Measures Lung Elasticity. Normal is ~60-80. Lower numbers indicate stiffer lungs (e.g. ARDS).</div>
                     </div>
-                    <div class="bg-black/40 p-4 rounded-xl text-center border border-white/5 shadow-inner">
-                        <span class="text-[10px] text-rose-400 font-bold uppercase tracking-widest block mb-1">Airway Resistance</span>
+                    <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
+                        <span class="text-[10px] text-rose-400 font-bold uppercase tracking-widest block mb-2">Airway Resistance</span>
                         <div class="text-3xl font-black text-white font-mono mb-1">{{ sim_data.resistance }}</div>
-                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-2">cmH2O/L/s</div>
-                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-1">Measures Airway Blockage. Normal is ~5-10. Higher numbers indicate bronchospasm (Asthma).</div>
+                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-3">cmH2O/L/s</div>
+                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Measures Airway Blockage. Normal is ~5-10. Higher numbers indicate bronchospasm.</div>
                     </div>
-                    <div class="bg-black/40 p-4 rounded-xl text-center border border-white/5 shadow-inner">
-                        <span class="text-[10px] text-amber-400 font-bold uppercase tracking-widest block mb-1">Vd/Vt (Dead Space)</span>
+                    <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
+                        <span class="text-[10px] text-amber-400 font-bold uppercase tracking-widest block mb-2">Vd/Vt (Dead Space)</span>
                         <div class="text-3xl font-black text-white font-mono mb-1">{{ sim_data.vd_vt }}<span class="text-lg text-slate-500">%</span></div>
-                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-2">Percentage</div>
-                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-1">Wasted ventilation not participating in gas exchange. Severely high in Pulmonary Embolisms.</div>
+                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-3">Percentage</div>
+                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Wasted ventilation not participating in gas exchange. Severely high in Embolisms.</div>
                     </div>
-                    <div class="bg-black/40 p-4 rounded-xl text-center border border-white/5 shadow-inner">
-                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mb-1">Shunt Fraction</span>
+                    <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5 shadow-inner">
+                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mb-2">Shunt Fraction</span>
                         <div class="text-3xl font-black text-white font-mono mb-1">{{ sim_data.shunt }}<span class="text-lg text-slate-500">%</span></div>
-                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-2">Percentage</div>
-                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-1">Blood bypassing ventilated alveoli. High levels cause severe hypoxemia (Edema/Pneumonia).</div>
+                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-3">Percentage</div>
+                        <div class="text-[10px] text-slate-400 leading-snug border-t border-white/10 pt-2">Blood bypassing ventilated alveoli. High levels cause severe refractory hypoxemia.</div>
                     </div>
                 </div>
             </div>
@@ -652,6 +655,8 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         };
 
         function loadPreset(type) {
+            if (!type || type === "custom") return;
+            
             const data = PRESETS[type];
             document.getElementById('preset_id').value = type;
             
@@ -750,7 +755,7 @@ def dashboard():
         inputs = {k: request.form.get(k) for k in request.form if k != 'preset_id'}
         clean_inputs = {k: RespiratoryEngine.safe_float(v, 0) for k, v in inputs.items()}
         try:
-            sim_data = RespiratoryEngine.calculate_simulation(clean_inputs)
+            sim_data = RespiratoryEngine.calculate_simulation(clean_inputs, preset)
         except Exception:
             flash(f"Error calculating metrics: {traceback.format_exc()}")
 
