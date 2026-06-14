@@ -604,7 +604,7 @@ GLOBAL_CSS_JS = """
         });
     }
 
-  // NLP CLINICAL RECORD ANALYZER
+    // NLP CLINICAL RECORD ANALYZER
 function processClinicalNotes() {
     const text = document.getElementById('patient_record_input').value.toLowerCase();
     if(!text.trim()) return;
@@ -618,14 +618,14 @@ function processClinicalNotes() {
     let presetMap = 'custom';
 
     let vitals = [];
-    const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\\d{2,3})/);
+    const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\d{2,3})/);
     if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
-    const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\\d{2,3})/);
+    const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\d{2,3})/);
     if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
-    const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\\d{2,3})/);
+    const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\d{2,3})/);
     if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
     
-    let vitalsStr = vitals.length > 0 ? `\\n\\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
+    let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
 
     // 1. ORIGINAL CORE PATHOLOGIES
     if (text.includes('effusion') || text.includes('dullness') || text.includes('fluid collection') || text.includes('thoracentesis')) {
@@ -646,21 +646,21 @@ function processClinicalNotes() {
         missing = "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.";
         treatments = ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors if MAP < 65 mmHg."];
     }
-    else if (text.includes('smok') || text.includes('barrel') || text.includes('productive cough')) {
+    else if (/\bsmok|\bbarrel\b|productive cough/i.test(text)) {
         suspicion = 'End-Stage COPD / Emphysema';
         evidence = "Chronic productive cough and heavy smoking history strongly suggest COPD with emphysematous changes, chronic air trapping, and hyperinflation." + vitalsStr;
         missing = "Formal Spirometry showing FEV1/FVC < 0.70, and a baseline ABG for chronic hypercapnia.";
         treatments = ["Administer continuous nebulized bronchodilators.", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92%.", "Utilize NiPPV/BiPAP."];
         presetMap = 'copd';
     } 
-    else if (text.includes('wheez') || text.includes('asthma') || text.includes('albuterol')) {
+    else if (/\bwheez|\basthma\b|albuterol/i.test(text)) {
         suspicion = 'Status Asthmaticus';
         evidence = "Loud, bilateral expiratory wheezing suggests severe reactive airway disease, critical bronchospasm, and profound airway resistance." + vitalsStr;
         missing = "Peak expiratory flow rate (PEFR) and response to continuous nebulization.";
         treatments = ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids.", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."];
         presetMap = 'asthma';
     } 
-    else if (text.includes('crackles') || text.includes('orthopnea') || text.includes('frothy') || text.includes('jvd')) {
+    else if (text.includes('crackles') || text.includes('orthopnea') || text.includes('frothy') || /\bjvd\b/.test(text)) {
         suspicion = 'Cardiogenic Pulmonary Edema';
         evidence = "Bibasilar crackles, orthopnea, and JVD point to left ventricular failure causing massive fluid transudation into the alveoli." + vitalsStr;
         missing = "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.";
@@ -668,66 +668,66 @@ function processClinicalNotes() {
         presetMap = 'edema';
     }
     else {
-        // 2. EXACT DISORDER DICTIONARY (For specific diseases outside the main 6)
+        // 2. EXACT DISORDER DICTIONARY (With STRICT Regex word boundaries to prevent accidental matching)
         const extendedPathologies = [
             {
-                keywords: ['tuberculosis', 'tb', 'hemoptysis', 'night sweats', 'cavitary', 'acid-fast'],
+                regex: /tuberculosis|\btb\b|hemoptysis|night sweats|cavitary|acid-fast/i,
                 name: 'Active Pulmonary Tuberculosis (TB)',
                 evidence: "Clinical signs including potential hemoptysis, night sweats, or cavitary lesions are highly specific for Mycobacterium tuberculosis infection.",
                 missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture, GeneXpert MTB/RIF assay, and isolation protocols.",
                 treatments: ["Place patient in a negative pressure airborne isolation room immediately.", "Initiate RIPE therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) upon confirmation.", "Report to local public health authorities."]
             },
             {
-                keywords: ['pulmonary embolism', 'pe', 'dvt', 'clot', 'thrombosis', 's1q3t3'],
+                regex: /pulmonary embolism|\bpe\b|\bdvt\b|\bclot\b|thrombosis|s1q3t3/i,
                 name: 'Acute Pulmonary Embolism (PE)',
                 evidence: "Signs of vascular obstruction, potential DVT history, or acute right heart strain indicate a thromboembolic event blocking pulmonary arterial circulation.",
                 missing: "CT Pulmonary Angiography (CTPA), D-dimer, and high-sensitivity Troponin.",
                 treatments: ["Initiate prompt systemic anticoagulation (e.g., Heparin) if no contraindications.", "Provide continuous high-flow oxygen.", "Evaluate for thrombolysis if hemodynamically unstable."]
             },
             {
-                keywords: ['cystic fibrosis', 'cf', 'sweat chloride', 'pseudomonas', 'steatorrhea', 'thick mucus'],
+                regex: /cystic fibrosis|\bcf\b|sweat chloride|pseudomonas|steatorrhea|thick mucus/i,
                 name: 'Cystic Fibrosis (CF) Exacerbation',
                 evidence: "History of thick mucopurulent secretions and chronic recurrent infections is hallmark for CFTR gene mutations causing severely impaired mucociliary clearance.",
                 missing: "Sputum culture specific for Pseudomonas aeruginosa/Burkholderia, and baseline PFTs.",
                 treatments: ["Aggressive airway clearance therapy (chest physiotherapy, hypertonic saline).", "Administer targeted IV antibiotics based on previous sputum cultures.", "Provide pancreatic enzyme replacement if indicated."]
             },
             {
-                keywords: ['pneumothorax', 'collapsed lung', 'hyperresonance', 'absent breath', 'tracheal deviation'],
+                regex: /pneumothorax|collapsed lung|hyperresonance|absent breath|tracheal deviation/i,
                 name: 'Pneumothorax / Tension Pneumothorax',
                 evidence: "Absent breath sounds and asymmetric chest expansion indicate a rupture in the pleural space, leading to lung collapse and restricted ventilation.",
                 missing: "Urgent upright portable Chest X-Ray or bedside thoracic ultrasound (eFAST).",
                 treatments: ["Prepare for emergent needle decompression if tension physiology is present.", "Set up for formal thoracostomy (chest tube) insertion.", "Administer 100% oxygen to accelerate pleural air resorption."]
             },
             {
-                keywords: ['cancer', 'tumor', 'malignancy', 'carcinoma', 'nodule', 'mass', 'paraneoplastic'],
+                regex: /cancer|tumor|malignancy|carcinoma|nodule|mass|paraneoplastic/i,
                 name: 'Bronchogenic Carcinoma / Lung Malignancy',
                 evidence: "Mentions of pulmonary masses, nodules, or unexplained constitutional symptoms strongly suggest a primary lung malignancy or metastatic disease.",
                 missing: "PET-CT scan, tissue biopsy via bronchoscopy or CT-guidance, and comprehensive metabolic panel.",
                 treatments: ["Consult pulmonology and oncology for tissue staging.", "Manage acute symptoms (e.g., hemoptysis, pain).", "Evaluate for malignant pleural effusion."]
             },
             {
-                keywords: ['hypertension', 'pah', 'cor pulmonale', 'rvh', 'right heart failure'],
+                regex: /hypertension|\bpah\b|cor pulmonale|\brvh\b|right heart failure/i,
                 name: 'Pulmonary Arterial Hypertension (PAH)',
                 evidence: "Evidence of right-sided heart strain without left-sided failure suggests chronically elevated pressures in the pulmonary vascular bed (Cor Pulmonale).",
                 missing: "Right heart catheterization (gold standard), Echocardiogram to estimate PASP, and V/Q scan.",
                 treatments: ["Administer targeted pulmonary vasodilators (e.g., Sildenafil, Epoprostenol) if prescribed.", "Cautious use of diuretics for right ventricular volume overload.", "Avoid hypoxia, which worsens pulmonary vasoconstriction."]
             },
             {
-                keywords: ['sarcoidosis', 'granuloma', 'hilar', 'erythema nodosum', 'ace level'],
+                regex: /sarcoidosis|granuloma|hilar|erythema nodosum|ace level/i,
                 name: 'Pulmonary Sarcoidosis',
                 evidence: "Bilateral hilar lymphadenopathy and potential non-caseating granulomatous inflammation point directly to Sarcoidosis.",
                 missing: "Serum ACE levels, High-Resolution CT (HRCT), and transbronchial biopsy.",
                 treatments: ["Initiate systemic corticosteroids for acute symptomatic flares.", "Monitor for extrapulmonary involvement (cardiac, ocular).", "Routine pulmonary function testing."]
             },
             {
-                keywords: ['bronchiectasis', 'tram-track', 'foul sputum', 'dilated bronchi'],
+                regex: /bronchiectasis|tram-track|foul sputum|dilated bronchi/i,
                 name: 'Severe Bronchiectasis',
                 evidence: "Chronic daily production of foul-smelling sputum and structural airway dilation indicate irreversible bronchial damage and chronic colonization.",
                 missing: "High-Resolution CT (HRCT) to confirm airway dilation/tram-track opacities, and sputum culture.",
                 treatments: ["Daily airway clearance techniques and mucolytics.", "Targeted oral or inhaled antibiotics for exacerbations.", "Bronchodilator therapy."]
             },
             {
-                keywords: ['pneumonia', 'consolidation', 'infiltrate', 'purulent'],
+                regex: /\bpneumonia\b|consolidation|infiltrate|purulent/i,
                 name: 'Acute Bacterial Pneumonia',
                 evidence: "Focal alveolar consolidations and purulent sputum signify an acute, exudative infectious process within the lung parenchyma.",
                 missing: "Sputum Gram stain/culture, Procalcitonin, and Blood cultures.",
@@ -737,9 +737,8 @@ function processClinicalNotes() {
 
         let foundExactDisease = false;
 
-        // Scan the dictionary for an exact match
         for (let disease of extendedPathologies) {
-            if (disease.keywords.some(kw => text.includes(kw))) {
+            if (disease.regex.test(text)) {
                 suspicion = disease.name;
                 evidence = disease.evidence + vitalsStr;
                 missing = disease.missing;
@@ -749,15 +748,12 @@ function processClinicalNotes() {
             }
         }
 
-        // 3. THE SMART NLP EXTRACTOR (If it's a random disease not in ANY list)
+        // 3. THE SMART NLP EXTRACTOR (Ultimate Fallback for any other disease)
         if (!foundExactDisease) {
-            // This Regex looks for phrases like "diagnosis of X", "suspected X", "evidence of X" 
-            // where X is a disease name ending in syndrome, disease, disorder, itis, oma, osis, etc.
             const regexExtractor = /(?:suspect|suspected|suspicion for|diagnosis of|consistent with|evidence of)\s+([a-z\s\-]+(?:syndrome|disease|disorder|itis|oma|osis|pathy|fibrosis|asthma|edema|failure|carcinoma|malignancy|hypertension|tuberculosis|apnea|pneumoconiosis))/i;
             const extractedMatch = text.match(regexExtractor);
 
             if (extractedMatch && extractedMatch[1]) {
-                // We successfully pulled the exact random disease name out of the text!
                 let exactName = extractedMatch[1].trim().toUpperCase();
                 suspicion = `Specific Pathology Identified: ${exactName}`;
                 evidence = `The clinical notes explicitly reference ${exactName}. The systemic presentation requires diagnostic focus tailored specifically to this named pathology.` + vitalsStr;
@@ -768,7 +764,7 @@ function processClinicalNotes() {
                     "Review specific contraindications related to this exact pathology before administering standard respiratory drugs."
                 ];
             } else {
-                // 4. ULTIMATE FALLBACK
+                // 4. UNDIFFERENTIATED FALLBACK
                 suspicion = 'Atypical / Unspecified Pulmonary Disorder';
                 evidence = "The patient presents with an isolated respiratory condition that does not match common presets and lacks a specifically named diagnosis in the notes. Requires broad diagnostic mapping." + vitalsStr;
                 missing = "High-Resolution CT Chest, comprehensive autoimmune/infectious panels, and full PFTs.";
@@ -781,7 +777,7 @@ function processClinicalNotes() {
         }
     }
 
-    const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\\n\\nCLINICAL EVIDENCE: ${evidence}\\n\\nMISSING DATA: ${missing}`;
+    const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\n\nCLINICAL EVIDENCE: ${evidence}\n\nMISSING DATA: ${missing}`;
     
     document.getElementById('custom_ai_desc').value = formattedOutput;
     const condElem = document.getElementById('custom_ai_cond');
