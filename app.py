@@ -7,7 +7,7 @@ from flask import Flask, request, redirect, url_for, session, flash, render_temp
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aerolung_omni_sync_pro_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "aerolung_lyra_ai_2026")
 DB_NAME = "aerolung_database.db"
 
 # ==========================================
@@ -421,6 +421,40 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
         
         <div class="w-full lg:w-[480px] xl:w-[500px] flex flex-col gap-6 shrink-0 h-full">
             
+            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-purple-500 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[11px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        Lyra AI Voice Assistant
+                    </h3>
+                    <span id="lyra-status-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-600 transition-colors duration-300"></span>
+                </div>
+                
+                <p class="text-[10px] text-slate-400 mb-3 leading-relaxed">Turn Lyra ON and say <span class="text-purple-300 font-mono">"Hey Lyra, load [Pathology Name]"</span> to automatically command the clinical matrix.</p>
+                
+                <div class="flex gap-3 mb-4">
+                    <select id="lyra-lang" class="flex-1 glass-input px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 cursor-pointer shadow-inner focus:border-purple-500">
+                        <option value="en-US" selected>English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="es-ES">Español (Spanish)</option>
+                        <option value="fr-FR">Français (French)</option>
+                        <option value="de-DE">Deutsch (German)</option>
+                        <option value="zh-CN">中文 (Chinese)</option>
+                        <option value="ja-JP">日本語 (Japanese)</option>
+                        <option value="hi-IN">हिन्दी (Hindi)</option>
+                        <option value="ar-SA">العربية (Arabic)</option>
+                        <option value="ru-RU">Русский (Russian)</option>
+                    </select>
+                    <button id="lyra-toggle-btn" onclick="toggleLyra()" class="bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24">
+                        Turn ON
+                    </button>
+                </div>
+                <div class="bg-black/50 border border-white/5 rounded-lg p-2.5 flex items-center justify-center h-8">
+                    <div id="lyra-transcript" class="text-[10px] text-purple-300 font-mono italic truncate w-full text-center">Lyra is currently resting...</div>
+                </div>
+            </div>
+
             <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-cyan-500">
                 <h2 class="text-[11px] font-bold uppercase tracking-widest text-cyan-400 mb-2">Clinical Pathology Matrix</h2>
                 <p class="text-[10px] text-slate-400 mb-5">Select a validated condition from the master database to synchronize clinical hemodynamics.</p>
@@ -459,7 +493,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </select>
             </div>
 
-            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500 shadow-xl">
+            <div class="glass-panel rounded-2xl p-6 border-t-2 border-t-emerald-500 shadow-xl flex-1">
                 <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Physiological Reference Targets</h3>
                 <ul class="space-y-4 text-xs font-mono text-slate-300">
                     <li class="flex justify-between items-center"><span class="font-sans font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Static Compliance</span><span class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50">60 - 80 mL/cmH2O</span></li>
@@ -473,8 +507,8 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                 </ul>
             </div>
 
-            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl flex-1">
-                <form id="calc-form" method="POST" action="/dashboard" class="p-6 flex-1 flex flex-col justify-between">
+            <div class="glass-panel rounded-2xl flex flex-col shadow-2xl">
+                <form id="calc-form" method="POST" action="/dashboard" class="p-6">
                     <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
                     <h3 class="text-[11px] font-bold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Manual Telemetry Override</h3>
                     
@@ -500,7 +534,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
                         <div title="Systemic Bicarbonate"><label class="text-[9px] font-bold text-slate-400 uppercase block mb-1 mt-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300" oninput="resetPreset()"></div>
                     </div>
 
-                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all mt-auto">
+                    <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all">
                         Synthesize Clinical Telemetry
                     </button>
                 </form>
@@ -512,7 +546,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             <div class="glass-panel rounded-3xl flex-1 flex flex-col items-center justify-center min-h-[600px] border-dashed border-slate-600/50">
                 <div class="w-24 h-24 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mb-6 shadow-[0_0_30px_rgba(34,211,238,0.4)]"></div>
                 <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-widest">Diagnostic Standby</h3>
-                <p class="text-sm text-slate-400 font-mono">Select a pathology profile from the matrix to render expert analytics.</p>
+                <p class="text-sm text-slate-400 font-mono text-center max-w-sm">Select a pathology profile from the matrix, or activate Lyra AI to command parameters via voice.</p>
             </div>
             {% else %}
             
@@ -658,6 +692,7 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             
             const data = PRESETS[type];
             document.getElementById('preset_id').value = type;
+            document.getElementById('preset-dropdown').value = type;
             
             document.getElementById('vt_input').value = data.vt;
             document.getElementById('rr').value = data.rr;
@@ -682,6 +717,116 @@ DASHBOARD_HTML = GLOBAL_CSS + BACKGROUND_SVG + """
             document.getElementById('preset-dropdown').value = "custom";
             document.getElementById('preset_id').value = "custom";
         }
+
+        // ==========================================
+        // LYRA AI VOICE RECOGNITION ENGINE
+        // ==========================================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let lyraActive = false;
+
+        const LYRA_VOICE_MAP = {
+            "healthy": "healthy", "baseline": "healthy", "normal": "healthy",
+            "ards": "ards", "distress syndrome": "ards", "severe ards": "ards",
+            "copd": "copd", "emphysema": "copd",
+            "asthma": "asthma", "status asthmaticus": "asthma",
+            "fibrosis": "fibrosis", "pulmonary fibrosis": "fibrosis",
+            "embolism": "pe", "pulmonary embolism": "pe",
+            "pneumonia": "pneumonia", "lobar pneumonia": "pneumonia",
+            "neuromuscular": "neuro", "pump failure": "neuro",
+            "obesity": "obesity", "obesity hypoventilation": "obesity",
+            "pneumothorax": "pneumothorax", "tension pneumothorax": "pneumothorax",
+            "edema": "edema", "cardiogenic": "edema",
+            "cystic fibrosis": "cf",
+            "kyphoscoliosis": "kypho", "kypho": "kypho",
+            "bronchiectasis": "bronch",
+            "mild ards": "mild_ards", "early ards": "mild_ards",
+            "atelectasis": "atelectasis", "lobar atelectasis": "atelectasis",
+            "flail": "flail", "flail chest": "flail", "chest trauma": "flail",
+            "hypertension": "p_htn", "pulmonary hypertension": "p_htn", "cor pulmonale": "p_htn",
+            "carbon monoxide": "co_poison", "poisoning": "co_poison",
+            "moderate ards": "ards_mod"
+        };
+
+        function initLyra() {
+            if (!SpeechRecognition) {
+                document.getElementById('lyra-transcript').innerText = "Browser not supported. Use Chrome/Edge.";
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = document.getElementById('lyra-lang').value;
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                document.getElementById('lyra-transcript').innerText = "Heard: " + transcript;
+                
+                if (transcript.includes("lyra")) {
+                    let matched = false;
+                    for (let key in LYRA_VOICE_MAP) {
+                        if (transcript.includes(key)) {
+                            const presetKey = LYRA_VOICE_MAP[key];
+                            speakLyra(`Confirmed. Loading clinical matrix for ${key}.`);
+                            loadPreset(presetKey);
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) {
+                        speakLyra("I am listening. Please state a valid pathology name to load the matrix.");
+                    }
+                }
+            };
+
+            recognition.onend = function() {
+                if (lyraActive) recognition.start(); // Auto-restart listening if turned on
+            };
+        }
+
+        function speakLyra(text) {
+            const synth = window.speechSynthesis;
+            const utterThis = new SpeechSynthesisUtterance(text);
+            utterThis.lang = document.getElementById('lyra-lang').value;
+            synth.speak(utterThis);
+        }
+
+        function toggleLyra() {
+            if (!SpeechRecognition) {
+                alert("Your browser does not support the Web Speech API. Please try Google Chrome.");
+                return;
+            }
+            
+            const btn = document.getElementById('lyra-toggle-btn');
+            const indicator = document.getElementById('lyra-status-indicator');
+            const transcript = document.getElementById('lyra-transcript');
+
+            if (!lyraActive) {
+                if(!recognition) initLyra();
+                recognition.lang = document.getElementById('lyra-lang').value;
+                recognition.start();
+                lyraActive = true;
+                btn.innerText = "Turn OFF";
+                btn.className = "bg-rose-600/80 hover:bg-rose-500 border border-rose-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(225,29,72,0.4)] w-24";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,1)]";
+                transcript.innerText = "Lyra is listening... Say 'Hey Lyra'";
+                speakLyra("Lyra AI activated. Awaiting your command.");
+            } else {
+                lyraActive = false;
+                recognition.stop();
+                btn.innerText = "Turn ON";
+                btn.className = "bg-purple-600/80 hover:bg-purple-500 border border-purple-500 text-white font-bold px-5 py-2 rounded-lg text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] w-24";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-slate-600 transition-colors duration-300";
+                transcript.innerText = "Lyra is currently resting...";
+            }
+        }
+
+        document.getElementById('lyra-lang').addEventListener('change', function() {
+            if(recognition && lyraActive) {
+                recognition.stop(); 
+                // onend will automatically restart it with the new language pulled from the select box
+            }
+        });
     </script>
 </body>
 """
