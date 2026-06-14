@@ -412,8 +412,84 @@ class RespiratoryEngine:
                 f_pts.append(round(-((vt / tau) * math.exp(-t_exp / tau)), 1) * 0.06)
         return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts}
 
+
 # ==========================================
-# 3. HTML, CSS & JAVASCRIPT
+# 3. CLINICAL RECORD NLP COGNITIVE PARSER ENGINE
+# ==========================================
+class ClinicalNLPEngine:
+    @staticmethod
+    def parse_text_to_matrices(raw_text):
+        if not raw_text or str(raw_text).strip() == "":
+            return None
+
+        normalized = raw_text.lower()
+        matched_preset = "custom"
+        scores = {k: 0 for k in DISEASE_PROFILES.keys()}
+        
+        keywords = {
+            "ards": ["ards", "distress syndrome", "alveolar damage", "flooding", "shunting", "protective lung", "p/f ratio"],
+            "copd": ["copd", "emphysema", "bronchitis", "hyperinflation", "air trapping", "auto-peep", "retainer"],
+            "asthma": ["asthma", "bronchospasm", "status asthmaticus", "wheezing", "albuterol", "magnesium sulfate"],
+            "fibrosis": ["fibrosis", "interstitial", "scarring", "stiff lung", "ipf", "restrictive defect"],
+            "pe": ["embolism", "pulmonary embolism", "pe", "thrombus", "dead-space", "clot", "rv strain"],
+            "pneumonia": ["pneumonia", "consolidation", "lobar", "purulent", "exudate", "infiltrate", "antibiotics"],
+            "neuro": ["neuromuscular", "guillain", "myasthenia", "pump failure", "diaphragm", "weakness", "nif"],
+            "obesity": ["obesity", "pickwickian", "hypoventilation syndrome", "adiposity", "extrinsic load"],
+            "pneumothorax": ["pneumothorax", "tension", "collapsed lung", "pleural space", "needle decompression", "chest tube"],
+            "edema": ["edema", "cardiogenic", "furosemide", "chf", "heart failure", "hydrostatic", "ventricular"],
+            "cf": ["cystic fibrosis", "cf", "cftr", "mucus plugging", "dornase", "viscous"],
+            "kypho": ["kyphoscoliosis", "scoliosis", "deformity", "thoracic spine", "structural restrictive"],
+            "bronch": ["bronchiectasis", "dilated bronchi", "purulent sputum", "hemoptysis", "airway collapse"],
+            "mild_ards": ["early ards", "mild ards", "leaking capillaries", "prophylactic peep"],
+            "atelectasis": ["atelectasis", "lobar collapse", "resorption", "bronchoscopy", "plugging"],
+            "flail": ["flail chest", "fractured ribs", "trauma", "paradoxical", "contusion"],
+            "p_htn": ["pulmonary hypertension", "cor pulmonale", "nitric oxide", "afterload", "vascular resistance"],
+            "co_poison": ["carbon monoxide", "co toxicity", "carboxyhemoglobin", "smoke inhalation", "hyperbaric"]
+        }
+
+        for preset, terms in keywords.items():
+            for term in terms:
+                if term in normalized:
+                    scores[preset] += 3
+
+        max_score = 0
+        for preset, score in scores.items():
+            if score > max_score:
+                max_score = score
+                matched_preset = preset
+
+        if max_score == 0 and "healthy" in normalized:
+            matched_preset = "healthy"
+
+        extracted_inputs = {}
+        import re
+        
+        patterns = {
+            'vt_input': [r'vt\s*[:=]?\s*(\d+)', r'tidal\s*volume\s*[:=]?\s*(\d+)'],
+            'rr': [r'rr\s*[:=]?\s*(\d+)', r'resp\s*rate\s*[:=]?\s*(\d+)', r'rate\s*[:=]?\s*(\d+)\s*bpm'],
+            'peep': [r'peep\s*[:=]?\s*(\d+)'],
+            'pplat': [r'pplat\s*[:=]?\s*(\d+)', r'plateau\s*[:=]?\s*(\d+)'],
+            'pip': [r'pip\s*[:=]?\s*(\d+)', r'peak\s*pressure\s*[:=]?\s*(\d+)'],
+            'fio2': [r'fio2\s*[:=]?\s*(\d+)', r'oxygen\s*[:=]?\s*(\d+)\s*%'],
+            'hco3_input': [r'hco3\s*[:=]?\s*(\d+)', r'bicarb\s*[:=]?\s*(\d+)']
+        }
+
+        for key, regexes in patterns.items():
+            for reg in regexes:
+                match = re.search(reg, normalized)
+                if match:
+                    extracted_inputs[key] = float(match.group(1))
+                    break
+
+        return {
+            "matched_preset": matched_preset,
+            "extracted_inputs": extracted_inputs,
+            "confidence_score": max_score
+        }
+
+
+# ==========================================
+# 4. HTML, CSS & JAVASCRIPT TEMPLATES
 # ==========================================
 
 BACKGROUND_SVG = """
@@ -467,830 +543,15 @@ GLOBAL_CSS_JS = """
     setInterval(updateClock, 1000);
     window.onload = updateClock;
 
-    const TRANSLATIONS = {
-        en: {
-            brand: "AERO<span class='text-cyan-400'>LUNG</span>",
-            settings: "Settings", logout: "Logout", db_title: "Pathology Matrix",
-            select_preset: "-- Select Pathology --", override: "Manual Override",
-            btn_scan: "Synchronize Data", standby_title: "System Standby", standby_desc: "Select pathology, scan patient record, or activate Lyra.",
-            primary_diag: "Primary Diagnosis", physio: "Physiology", action_plan: "Action Plan",
-            abg: "Arterial Blood Gas", mech_exp: "Mechanics Explained",
-            comp: "Compliance", res: "Resistance", dead: "Dead Space", shunt: "Shunt",
-            graphs: "Waveform Analytics", lyra_btn: "Wake Lyra", lyra_status: "Lyra Sleeping", copy_btn: "Copy Config",
-            
-            "healthy_cond": "Stable Pulmonary Homeostasis", "healthy_desc": "Ventilatory mechanics, airway resistance, and gas exchange are within normal limits.",
-            "ards_cond": "Severe Acute Respiratory Distress Syndrome", "ards_desc": "Profound hypoxemia secondary to intrapulmonary shunting and stiff non-compliant lungs.",
-            "copd_cond": "End-Stage COPD / Emphysema", "copd_desc": "High static compliance with elevated airway resistance and loss of elastic recoil.",
-            "asthma_cond": "Status Asthmaticus", "asthma_desc": "Critically elevated airway resistance indicating severe bronchospasm and mucus plugging.",
-            "fibrosis_cond": "Advanced Pulmonary Fibrosis", "fibrosis_desc": "Restricted lung volumes due to dense parenchymal scarring. Compliance is critically low.",
-            "pe_cond": "Massive Pulmonary Embolism", "pe_desc": "Severe dead-space (Vd/Vt) anomaly. Alveoli are ventilated, but blood flow is obstructed.",
-            "pneumonia_cond": "Severe Lobar Pneumonia", "pneumonia_desc": "Localized alveolar filling causing significant right-to-left intrapulmonary shunting.",
-            "neuro_cond": "Neuromuscular Pump Failure", "neuro_desc": "Lung mechanics are normal, but minute ventilation is grossly inadequate leading to hypercapnia.",
-            "obesity_cond": "Obesity Hypoventilation Syndrome", "obesity_desc": "Decreased compliance due to adiposity on the chest wall, leading to CO2 retention.",
-            "pneumothorax_cond": "Tension Pneumothorax", "pneumothorax_desc": "Catastrophic loss of compliance combined with acute hypercapnia and mediastinal shift.",
-            "edema_cond": "Cardiogenic Pulmonary Edema", "edema_desc": "Reduced compliance and elevated shunt indicative of fluid transudation from LV failure.",
-            "cf_cond": "Cystic Fibrosis Exacerbation", "cf_desc": "Mixed obstructive/shunting defect. Purulent secretions causing high resistance.",
-            "kypho_cond": "Severe Kyphoscoliosis Decompensation", "kypho_desc": "Structural chest wall deformity restricting lung expansion, leading to hypercapnia.",
-            "bronch_cond": "Acute Bronchiectasis Exacerbation", "bronch_desc": "Chronically dilated, scarred airways filled with sputum causing massive resistance.",
-            "mild_ards_cond": "Early / Mild ARDS", "mild_ards_desc": "Decreasing compliance and tachypnea causing respiratory alkalosis early in disease process.",
-            "atelectasis_cond": "Major Lobar Atelectasis", "atelectasis_desc": "Acute loss of lung volume due to collapsed lobe, resulting in decreased compliance.",
-            "flail_cond": "Flail Chest / Blunt Thoracic Trauma", "flail_desc": "Paradoxical chest wall movement due to rib fractures, leading to impaired compliance.",
-            "p_htn_cond": "Pulmonary Hypertension / Cor Pulmonale", "p_htn_desc": "Right-sided heart failure causing poor perfusion. High dead space and stiff vasculature.",
-            "co_poison_cond": "Carbon Monoxide Toxicity", "co_poison_desc": "Critical cellular hypoxia despite standard SpO2 indicating excellent oxygenation.",
-            "ards_mod_cond": "Moderate ARDS", "ards_mod_desc": "Significant intrapulmonary shunting. PaO2/FiO2 ratio below 200."
-        },
-        es: {
-            brand: "AERO<span class='text-cyan-400'>LUNG</span>",
-            settings: "Ajustes", logout: "Salir", db_title: "Matriz de Patología",
-            select_preset: "-- Seleccionar Patología --", override: "Anulación Manual",
-            btn_scan: "Sincronizar Datos", standby_title: "Sistema en Espera", standby_desc: "Seleccione patología, escanee registro o active Lyra.",
-            primary_diag: "Diagnóstico Principal", physio: "Fisiología", action_plan: "Plan de Acción",
-            abg: "Gases Arteriales", mech_exp: "Mecánica Explicada",
-            comp: "Distensibilidad", res: "Resistencia", dead: "Espacio Muerto", shunt: "Cortocircuito",
-            graphs: "Análisis de Ondas", lyra_btn: "Despertar Lyra", lyra_status: "Lyra Durmiendo", copy_btn: "Copiar Config",
-            
-            "healthy_cond": "Homeostasis Pulmonar Estable", "healthy_desc": "La mecánica ventilatoria, la resistencia de las vías respiratorias y el intercambio de gases están dentro de los límites normales.",
-            "ards_cond": "Síndrome de Dificultad Respiratoria Aguda Severa", "ards_desc": "Hipoxemia profunda secundaria a un cortocircuito intrapulmonar y pulmones rígidos no distensibles.",
-            "copd_cond": "EPOC en Etapa Terminal / Enfisema", "copd_desc": "Distensibilidad estática alta con resistencia elevada de las vías respiratorias y pérdida de retroceso elástico.",
-            "asthma_cond": "Estado Asmático", "asthma_desc": "Resistencia de las vías respiratorias críticamente elevada que indica broncoespasmo severo y tapones de moco.",
-            "fibrosis_cond": "Fibrosis Pulmonar Avanzada", "fibrosis_desc": "Volúmenes pulmonares restringidos debido a cicatrices parenchymatosas densas. La distensibilidad es críticamente baja.",
-            "pe_cond": "Embolia Pulmonar Masiva", "pe_desc": "Anomalía severa del espacio muerto (Vd/Vt). Los alvéolos están ventilados, pero el flujo sanguíneo está obstruido.",
-            "pneumonia_cond": "Neumonía Lobar Severa", "pneumonia_desc": "Llenado alveolar localizado que causa un cortocircuito intrapulmonar significativo de derecha a izquierda.",
-            "neuro_cond": "Fallo de la Bomba Neuromuscular", "neuro_desc": "La mecánica pulmonar es normal, pero la ventilación minuto es sumamente inadecuada, lo que lleva a la hipercapnia.",
-            "obesity_cond": "Síndrome de Hipoventilación por Obesidad", "obesity_desc": "Disminución de la distensibilidad debido a la adiposidad en la pared torácica, lo que lleva a la retención de CO2.",
-            "pneumothorax_cond": "Neumotórax a Tensión", "pneumothorax_desc": "Pérdida catastrófica de distensibilidad combinada con hipercapnia aguda y desplazamiento mediastínico.",
-            "edema_cond": "Edema Pulmonar Cardiogénico", "edema_desc": "Reducción de la distensibilidad y cortocircuito elevado indicativo de trasudación de líquidos por insuficiencia del VI.",
-            "cf_cond": "Exacerbación de Fibrosis Quística", "cf_desc": "Defecto mixto obstructivo / de cortocircuito. Secreciones purulentas que causan alta resistencia.",
-            "kypho_cond": "Descompensación Severa de Cifoescoliosis", "kypho_desc": "Deformidad estructural de la pared torácica que restringe la expansión pulmonar, lo que lleva a la hipercapnia.",
-            "bronch_cond": "Exacerbación de Bronquiectasia Aguda", "bronch_desc": "Vías respiratorias crónicamente dilatadas y cicatrizadas llenas de esputo que causan una resistencia masiva.",
-            "mild_ards_cond": "SDRA Temprano / Leve", "mild_ards_desc": "Disminución de la distensibilidad y taquipnea que causan alcalosis respiratoria en las primeras etapas de la enfermedad.",
-            "atelectasis_cond": "Atelectasia Lobar Mayor", "atelectasis_desc": "Pérdida aguda de volumen pulmonar debido al lóbulo colapsado, lo que resulta en una disminución de la distensibilidad.",
-            "flail_cond": "Tórax Inestable / Trauma Torácico Cerrado", "flail_desc": "Movimiento paradójico de la pared torácica debido a fracturas de costillas, lo que lleva a una distensibilidad alterada.",
-            "p_htn_cond": "Hipertensión Pulmonaire / Cor Pulmonale", "p_htn_desc": "Insuficiencia cardíaca derecha que causa mala perfusión. Espacio muerto alto y vasculatura rígida.",
-            "co_poison_cond": "Toxicidad por Monóxido de Carbono", "co_poison_desc": "Hipoxia celular crítica a pesar de que el SpO2 estándar indica una oxigenación excelente.",
-            "ards_mod_cond": "SDRA Moderado", "ards_mod_desc": "Cortocircuito intrapulmonar significativo. Relación PaO2/FiO2 por debajo de 200."
-        },
-        fr: {
-            brand: "AERO<span class='text-cyan-400'>LUNG</span>",
-            settings: "Paramètres", logout: "Quitter", db_title: "Matrice Pathologique",
-            select_preset: "-- Choisir Pathologie --", override: "Contrôle Manuel",
-            btn_scan: "Synchroniser", standby_title: "En Veille", standby_desc: "Sélectionnez, analysez un dossier, ou activez Lyra.",
-            primary_diag: "Diagnostic Principal", physio: "Physiologie", action_plan: "Plan d'Action",
-            abg: "Gaz du Sang", mech_exp: "Mécanique Expliquée",
-            comp: "Compliance", res: "Résistance", dead: "Espace Mort", shunt: "Shunt",
-            graphs: "Analyse des Ondes", lyra_btn: "Réveiller Lyra", lyra_status: "Lyra Dort", copy_btn: "Copier Config",
-            
-            "healthy_cond": "Homéostasie Pulmonaire Stable", "healthy_desc": "La mécanique ventilatoire, la résistance et les échanges gazeux sont normaux.",
-            "ards_cond": "Syndrome de Détresse Respiratoire Aiguë Sévère", "ards_desc": "Hypoxémie profonde secondaire à un shunt intrapulmonaire et des poumons rigides.",
-            "copd_cond": "BPCO au Stade Terminal / Emphysème", "copd_desc": "Compliance statique élevée avec résistance des voies aériennes élevée et perte de recul élastique.",
-            "asthma_cond": "État de Mal Asthmatique", "asthma_desc": "Résistance extrêmement élevée indiquant un bronchospasme sévère et des bouchons muqueux.",
-            "fibrosis_cond": "Fibrose Pulmonaire Avancée", "fibrosis_desc": "Volumes pulmonaires restreints dus à de denses cicatrices parenchymateuses. La compliance est très faible.",
-            "pe_cond": "Embolie Pulmonaire Massive", "pe_desc": "Anomalie sévère de l'espace mort (Vd/Vt). Les alvéoles sont ventilées, mais le flux sanguin est obstrué.",
-            "pneumonia_cond": "Pneumonie Lobaire Sévère", "pneumonia_desc": "Remplissage alvéolaire localisé provoquant un important shunt intrapulmonaire droite-gauche.",
-            "neuro_cond": "Défaillance de la Pompe Neuromusculaire", "neuro_desc": "Mécanique pulmonaire normale, mais ventilation minute inadéquate entraînant une hypercapnie.",
-            "obesity_cond": "Syndrome d'Hypoventilation de l'Obésité", "obesity_desc": "Diminution de la compliance due à l'adiposité de la paroi thoracique, entraînant une rétention de CO2.",
-            "pneumothorax_cond": "Pneumothorax sous Tension", "pneumothorax_desc": "Perte catastrophique de compliance combinée à une hypercapnie aiguë et un déplacement médiastinal.",
-            "edema_cond": "Œdème Pulmonaire Cardiogénique", "edema_desc": "Compliance réduite et shunt élevé indiquant une transsudation de liquide due à une insuffisance ventriculaire gauche.",
-            "cf_cond": "Exacerbation de la Mucoviscidose", "cf_desc": "Défaut mixte obstructif/shunt. Sécrétions purulentes provoquant une forte résistance.",
-            "kypho_cond": "Décompensation Sévère de Cyphoscoliose", "kypho_desc": "Déformation structurelle de la paroi thoracique limitant l'expansion pulmonaire.",
-            "bronch_cond": "Exacerbation Aiguë de Bronchectasie", "bronch_desc": "Voies respiratoires chroniquement dilatées et cicatrisées remplies d'expectorations.",
-            "mild_ards_cond": "SDRA Précoce / Léger", "mild_ards_desc": "Diminution de la compliance et tachypnée provoquant une alcalose respiratoire au début de la maladie.",
-            "atelectasis_cond": "Atélectasie Lobaire Majeure", "atelectasis_desc": "Perte aiguë de volume pulmonaire due à l'effondrement du lobe, entraînant une diminution de la compliance.",
-            "flail_cond": "Volet Costal / Traumatisme Thoracique Fermé", "flail_desc": "Mouvement paradoxal de la paroi thoracique dû à des fractures des côtes, entraînant une altération de la compliance.",
-            "p_htn_cond": "Hypertension Pulmonaire / Cœur Pulmonaire", "p_htn_desc": "Insuffisance cardiaque droite entraînant une mauvaise perfusion. Espace mort élevé et vaisseaux rigides.",
-            "co_poison_cond": "Intoxication au Monoxyde de Carbone", "co_poison_desc": "Hypoxie cellulaire critique malgré une SpO2 standard indiquant une excellente oxygénation.",
-            "ards_mod_cond": "SDRA Modéré", "ards_mod_desc": "Shunt intrapulmonaire important. Rapport PaO2/FiO2 inférieur à 200."
-        }
-    };
-
-    function changeLanguage(lang) {
-        localStorage.setItem('selectedLang', lang);
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
-        });
-        
-        const presetId = document.getElementById('current_preset_id')?.value;
-        if(presetId && presetId !== 'custom') {
-            const condEl = document.getElementById('ai-cond');
-            const descEl = document.getElementById('ai-desc');
-            const customVal = document.getElementById('custom_ai_desc')?.value;
-            
-            if (condEl && TRANSLATIONS[lang][presetId + '_cond']) condEl.innerText = TRANSLATIONS[lang][presetId + '_cond'];
-            
-            if (descEl) {
-                if (customVal && customVal.trim() !== '') {
-                    descEl.innerText = customVal; // keep custom NLP description
-                } else if (TRANSLATIONS[lang][presetId + '_desc']) {
-                    descEl.innerText = TRANSLATIONS[lang][presetId + '_desc'];
-                }
-            }
-        }
-
-        const dd = document.getElementById('preset-dropdown');
-        if(dd) dd.options[0].text = TRANSLATIONS[lang]['select_preset'];
-    }
-
     function copyConfiguration() {
         const dd = document.getElementById('preset-dropdown');
         const pathName = dd.options[dd.selectedIndex].text;
-        const configText = `--- AEROLUNG SYNC EXPORT ---\nPathology: ${pathName}\nVt: ${document.getElementById('vt_input').value} mL\nRate: ${document.getElementById('rr').value} bpm\nPIP: ${document.getElementById('pip').value} cmH2O\nPplat: ${document.getElementById('pplat').value} cmH2O\nPEEP: ${document.getElementById('peep').value} cmH2O\nFiO2: ${document.getElementById('fio2').value} %\n-----------------------------`;
+        const configText = `--- AEROLUNG SYNC EXPORT ---\nPathology: ${pathName}\n-----------------------------`;
         navigator.clipboard.writeText(configText).then(() => {
             const btn = document.getElementById('copy-btn');
-            const originalText = btn.innerText;
             btn.innerText = "Copied!";
-            btn.classList.add('bg-emerald-600');
-            setTimeout(() => { btn.innerText = originalText; btn.classList.remove('bg-emerald-600'); }, 2000);
+            setTimeout(() => { btn.innerText = "Copy Config"; }, 2000);
         });
-    }
-
-// ==========================================
-// NLP CLINICAL RECORD ANALYZER (FINAL EXHAUSTIVE EDITION)
-// ==========================================
-function processClinicalNotes() {
-    const origText = document.getElementById('patient_record_input').value;
-    if(!origText.trim()) return;
-    
-    // Normalize text for parsing
-    const text = origText.toLowerCase();
-    
-    document.getElementById('notes-modal').classList.add('hidden');
-    
-    let suspicion = 'Undifferentiated Respiratory Distress';
-    let evidence = "The patient presents with respiratory compromise of mixed or atypical etiology. No single classic pattern dominated the narrative. Clinical presentation warrants broad diagnostic workup.";
-    let missing = "Comprehensive metabolic panel, ABG, and advanced imaging (CT Chest).";
-    let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
-    let presetMap = 'custom';
-
-    // ==========================================
-    // LAYER 1: NEGATION DETECTION ENGINE
-    // ==========================================
-    function isNegated(keyword, fullText) {
-        const negationTriggers = ['no ', 'denies', 'negative for', 'without', 'ruled out', 'r/o', 'absence of', 'free of', 'not experiencing', 'never'];
-        const sentenceBounds = fullText.split(/[.,;\n]/); // Break into clauses
-        
-        for (let clause of sentenceBounds) {
-            if (clause.includes(keyword)) {
-                for (let trigger of negationTriggers) {
-                    if (clause.includes(trigger) && clause.indexOf(trigger) < clause.indexOf(keyword)) {
-                        return true; 
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    // ==========================================
-    // LAYER 2: VITAL EXTRACTION PATTERNS
-    // ==========================================
-    let vitals = [];
-    const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\d{2,3})/);
-    if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
-    const rrMatch = text.match(/(?:rr|respiratory rate|breaths|tachypnea).*?(\d{2,3})/);
-    if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
-    const spo2Match = text.match(/(?:spo2|saturation|sat|oximetry).*?(\d{2,3})/);
-    if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
-    let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
-
-    // ==========================================
-    // LAYER 3: EXHAUSTIVE PULMONARY MATRIX REGISTRY
-    // ==========================================
-    const pathologyProfiles = [
-        // --- CORE CLINICAL PRESETS ---
-        {
-            name: 'End-Stage COPD / Emphysema',
-            keywords: [
-                { word: 'smok', weight: 2.0 }, { word: 'barrel', weight: 5.0 }, { word: 'productive cough', weight: 2.0 },
-                { word: 'hyperinflation', weight: 2.0 }, { word: 'expiratory phase', weight: 2.0 }, { word: 'coalesced bullae', weight: 5.0 },
-                { word: 'gold guidelines', weight: 5.0 }, { word: 'fev1', weight: 5.0 },
-                { word: 'heavy smoker', weight: 2.0 }, { word: 'packs a day', weight: 5.0 }, { word: 'smoked for', weight: 2.0 },
-                { word: 'phlegm cough', weight: 1.0 }, { word: 'always bringing up spit', weight: 2.0 }
-            ],
-            evidence: "Chronic productive cough and heavy smoking history strongly suggest COPD with underlying emphysematous changes, chronic air trapping, and hyperinflation.",
-            missing: "Formal Spirometry showing FEV1/FVC < 0.70 to confirm severe obstruction, and a current baseline ABG to check for chronic hypercapnia.",
-            treatments: ["Administer continuous nebulized bronchodilators (Albuterol/Ipratropium).", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92% to prevent blunting of hypoxic drive.", "Utilize NiPPV/BiPAP to reduce work of breathing."],
-            presetMap: 'copd'
-        },
-        {
-            name: 'Status Asthmaticus',
-            keywords: [
-                { word: 'wheez', weight: 2.0 }, { word: 'asthma', weight: 2.0 }, { word: 'albuterol', weight: 2.0 },
-                { word: 'bronchospasm', weight: 5.0 }, { word: 'fluticasone', weight: 5.0 }, { word: 'montelukast', weight: 5.0 },
-                { word: 'atopic', weight: 2.0 }, { word: 'eosinophilic', weight: 2.0 },
-                { word: 'inhaler didn\'t help', weight: 5.0 }, { word: 'chest tightness', weight: 0.5 }, { word: 'breathing attack', weight: 1.0 }
-            ],
-            evidence: "Auscultation of loud, bilateral expiratory wheezing along with episodic shortness of breath suggests severe reactive airway disease and critical bronchospasm.",
-            missing: "Peak expiratory flow rate (PEFR) and response to continuous nebulization.",
-            treatments: ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids (e.g., Solu-Medrol).", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."],
-            presetMap: 'asthma'
-        },
-        {
-            name: 'Cardiogenic Pulmonary Edema',
-            keywords: [
-                { word: 'orthopnea', weight: 5.0 }, { word: 'frothy', weight: 5.0 }, { word: 'jvd', weight: 5.0 },
-                { word: 'jugular vein', weight: 2.0 }, { word: 'bnp', weight: 5.0 }, { word: 'furosemide', weight: 2.0 },
-                { word: 'chf', weight: 5.0 }, { word: 'cardiomegaly', weight: 5.0 }, { word: 'pcwp', weight: 5.0 },
-                { word: 'cannot lie flat', weight: 5.0 }, { word: 'sleeping on 3 pillows', weight: 5.0 }, { word: 'sleeping in a chair', weight: 5.0 },
-                { word: 'pink sputum', weight: 5.0 }, { word: 'bubbly spit', weight: 5.0 }, { word: 'swollen legs', weight: 2.0 },
-                { word: 'fluid in lungs', weight: 2.0 }, { word: 'lasix', weight: 5.0 }, { word: 'heart failure', weight: 2.0 }
-            ],
-            evidence: "Findings of bibasilar crackles, orthopnea, and hypoxemia strongly point to left ventricular failure causing massive fluid transudation into the alveoli.",
-            missing: "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.",
-            treatments: ["Administer IV loop diuretics (e.g., Furosemide) immediately.", "Apply CPAP or BiPAP to decrease work of breathing and displace alveolar fluid.", "Administer vasodilators (e.g., Nitroglycerin) to reduce cardiac preload."],
-            presetMap: 'edema'
-        },
-        {
-            name: 'Massive Pleural Effusion',
-            keywords: [
-                { word: 'effusion', weight: 2.0 }, { word: 'dullness', weight: 5.0 }, { word: 'fluid collection', weight: 2.0 },
-                { word: 'thoracentesis', weight: 5.0 }, { word: 'pleural fluid', weight: 2.0 }, { word: 'stony dullness', weight: 5.0 },
-                { word: 'loculated', weight: 5.0 }, { word: 'fluid in chest wall', weight: 2.0 }
-            ],
-            evidence: "Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space, compressing underlying lung tissue.",
-            missing: "Diagnostic thoracentesis for pleural fluid analysis (Light's criteria), Cytology, and CT Chest with contrast.",
-            treatments: ["Perform therapeutic and diagnostic thoracentesis.", "Consider pigtail catheter or chest tube placement if fluid reaccumulates rapidly.", "Send pleural fluid for cell count, Gram stain, protein, LDH, and cytology."]
-        },
-        {
-            name: 'Acute Anaphylactic Shock / Airway Edema',
-            keywords: [
-                { word: 'anaphylaxis', weight: 5.0 }, { word: 'hives', weight: 2.0 }, { word: 'allergen', weight: 2.0 },
-                { word: 'stridor', weight: 5.0 }, { word: 'epinephrine', weight: 5.0 }, { word: 'urticaria', weight: 2.0 },
-                { word: 'laryngeal edema', weight: 5.0 }, { word: 'angioedema', weight: 5.0 }, { word: 'throat closing', weight: 5.0 },
-                { word: 'stung by', weight: 2.0 }, { word: 'allergic reaction', weight: 2.0 }
-            ],
-            evidence: "The rapid onset of respiratory distress combined with potential allergic triggers strongly suggests anaphylaxis. Upper airway compromise threatens complete occlusion.",
-            missing: "Serum tryptase levels and a detailed allergen exposure history.",
-            treatments: ["IMMEDIATE Intramuscular Epinephrine (1:1000) 0.3-0.5 mg.", "Secure airway early; prepare for difficult intubation or surgical airway if edema is severe.", "Administer IV H1 and H2 antihistamines and systemic corticosteroids."]
-        },
-        {
-            name: 'Septic Shock with Secondary Pulmonary Compromise',
-            keywords: [
-                { word: 'sepsis', weight: 2.0 }, { word: 'lactic', weight: 5.0 }, { word: 'infection', weight: 1.0 },
-                { word: 'hypotension', weight: 2.0 }, { word: 'septicemia', weight: 5.0 }, { word: 'bacteremia', weight: 5.0 },
-                { word: 'map <', weight: 5.0 }, { word: 'surviving sepsis', weight: 5.0 }, { word: 'blood pressure crashed', weight: 2.0 }
-            ],
-            evidence: "The narrative points to profound systemic inflammation, driven by an underlying infection. Hypotension and metabolic distress suggest distributive shock predisposing to acute lung capillary leaks.",
-            missing: "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.",
-            treatments: ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors (Norepinephrine) if mean arterial pressure (MAP) remains < 65 mmHg."]
-        },
-
-        // --- ACUTE SURGICAL, VASCULAR & CRISIS PATHOLOGIES ---
-        {
-            name: 'Pneumothorax / Tension Pneumothorax',
-            keywords: [
-                { word: 'pneumothorax', weight: 5.0 }, { word: 'collapsed lung', weight: 5.0 }, { word: 'hyperresonance', weight: 5.0 },
-                { word: 'absent breath', weight: 5.0 }, { word: 'tracheal deviation', weight: 5.0 }, { word: 'visceral pleura', weight: 5.0 },
-                { word: 'deep sulcus sign', weight: 5.0 }, { word: 'popped lung', weight: 5.0 }, { word: 'sudden pop in chest', weight: 5.0 },
-                { word: 'tall thin guy', weight: 2.0 }, { word: 'cannot hear breath sounds', weight: 5.0 }, { word: 'windpipe shifted', weight: 5.0 },
-                { word: 'neck veins popping out', weight: 5.0 }
-            ],
-            evidence: "Asymmetric or completely absent breath sounds combined with hyperresonance to percussion indicates a critical air leak into the pleural space.",
-            missing: "Immediate upright chest X-ray or point-of-care thoracic ultrasound (POCUS looking for absence of lung sliding).",
-            treatments: ["Perform urgent needle decompression if tension physiology (hemodynamic collapse, tracheal deviation) is present.", "Prepare for formal tube thoracostomy insertion.", "Administer high-flow 100% oxygen to facilitate pleural gas reabsorption."]
-        },
-        {
-            name: 'Acute Pulmonary Embolism (PE)',
-            keywords: [
-                { word: 'pulmonary embolism', weight: 5.0 }, { word: 'pleuritic chest pain', weight: 2.0 }, { word: 'd-dimer', weight: 5.0 },
-                { word: 'ctpa', weight: 5.0 }, { word: 'hampton', weight: 5.0 }, { word: 'westermark', weight: 5.0 },
-                { word: 'wells score', weight: 5.0 }, { word: 'v/q scan', weight: 5.0 }, { word: 's1q3t3', weight: 5.0 },
-                { word: 'sudden sharp pain when breathing', weight: 5.0 }, { word: 'calf pain', weight: 2.0 }, { word: 'swollen calf', weight: 2.0 },
-                { word: 'just got off a long flight', weight: 5.0 }, { word: 'recent leg cast', weight: 5.0 }
-            ],
-            evidence: "Acute onset of pleuritic chest pain following periods of immobilization, combined with calf asymmetry, indicates a high clinical probability of a thromboembolic vascular occlusion.",
-            missing: "Urgent Computed Tomography Pulmonary Angiography (CTPA) or a Ventilation/Perfusion (V/Q) scan if contrast is contraindicated.",
-            treatments: ["Initiate systemic anticoagulation immediately (e.g., Low Molecular Weight Heparin or Unfractionated Heparin infusion).", "Evaluate for catheter-directed or systemic thrombolysis if hemodynamic instability (massive PE) develops.", "Provide supplemental oxygen support."]
-        },
-        {
-            name: 'Acute Respiratory Distress Syndrome (ARDS)',
-            keywords: [
-                { word: 'ards', weight: 5.0 }, { word: 'p/f ratio', weight: 5.0 }, { word: 'pao2/fio2', weight: 5.0 },
-                { word: 'non-cardiogenic', weight: 5.0 }, { word: 'bilateral opacities', weight: 5.0 }, { word: 'diffuse alveolar damage', weight: 5.0 },
-                { word: 'berlin criteria', weight: 5.0 }, { word: 'gasping for air after drowning', weight: 5.0 },
-                { word: 'white out on xray', weight: 5.0 }, { word: 'lungs filling with fluid completely', weight: 2.0 }
-            ],
-            evidence: "Severe refractory hypoxemia with bilateral infiltrates in the absence of primary left atrial hypertension indicates acute, non-cardiogenic inflammatory alveolar capillary membrane injury.",
-            missing: "Arterial Blood Gas (ABG) to calculate precise PaO2/FiO2 ratio, and echocardiogram to conclusively rule out cardiogenic origins.",
-            treatments: ["Implement low tidal volume lung-protective ventilation mechanics (6 mL/kg of Ideal Body Weight).", "Maintain high PEEP strategies to maximize alveolar recruitment.", "Utilize early prone positioning (16+ hours per day) for severe hypoxemia."]
-        },
-        {
-            name: 'Fat Embolism Syndrome',
-            keywords: [
-                { word: 'fat embolism', weight: 5.0 }, { word: 'long bone fracture', weight: 5.0 }, { word: 'femur fracture', weight: 5.0 },
-                { word: 'petechial rash', weight: 5.0 }, { word: 'confusion', weight: 2.0 }, { word: 'lipiduria', weight: 5.0 },
-                { word: 'broken leg', weight: 2.0 }, { word: 'broken thigh', weight: 5.0 }, { word: 'motorcycle accident', weight: 1.0 },
-                { word: 'acting crazy after surgery', weight: 5.0 }, { word: 'tiny red spots', weight: 5.0 }, { word: 'red spots on armpit', weight: 5.0 },
-                { word: 'pelvic break', weight: 5.0 }
-            ],
-            evidence: "The classic triad of respiratory distress, neurological confusion, and axillary/subconjunctival petechiae following a traumatic long-bone fracture points to fat embolization.",
-            missing: "Funduscopic examination for fat globules, brain MRI, and arterial blood gas metrics.",
-            treatments: ["Provide aggressive supportive respiratory therapy and early mechanical ventilation.", "Enforce early surgical fixation of the causative bone fractures to minimize further marrow leakage.", "Administer systemic hydration logs carefully."]
-        },
-        {
-            name: 'Amniotic Fluid Embolism (AFE)',
-            keywords: [
-                { word: 'amniotic', weight: 5.0 }, { word: 'labor', weight: 5.0 }, { word: 'postpartum', weight: 5.0 },
-                { word: 'dic', weight: 5.0 }, { word: 'consumptive coagulopathy', weight: 5.0 }, { word: 'uterine atony', weight: 5.0 },
-                { word: 'giving birth', weight: 5.0 }, { word: 'during delivery', weight: 5.0 }
-            ],
-            evidence: "Sudden, catastrophic cardiovascular collapse accompanied by profound hypoxia, alterations in consciousness, and acute consumptive coagulopathy (DIC) during labor dictates an AFE crisis.",
-            missing: "Stat coagulation profiles (TEG/ROTEM), echocardiography to evaluate acute right heart failure, and blood gas panels.",
-            treatments: ["Initiate immediate high-quality cardiopulmonary resuscitation if arrest occurs, utilizing the A-O-K protocol (Atropine, Ondansetron, Ketorolac).", "Correct consumptive coagulopathy aggressively via massive transfusion protocols (PRBC, FFP, Cryoprecipitate)."]
-        },
-
-        // --- OCCUPATIONAL & CHEMICAL INHALATION DISEASES ---
-        {
-            name: 'Hypersensitivity Pneumonitis',
-            keywords: [
-                { word: 'hypersensitivity pneumonitis', weight: 5.0 }, { word: 'extrinsic allergic', weight: 5.0 }, { word: 'centrilobular nodules', weight: 5.0 },
-                { word: 'pigeon breeder', weight: 5.0 }, { word: 'farmer\'s lung', weight: 5.0 }, { word: 'thermophilic', weight: 5.0 },
-                { word: 'bird cage', weight: 5.0 }, { word: 'keep pigeons', weight: 5.0 }, { word: 'parrots', weight: 2.0 },
-                { word: 'moldy hay', weight: 5.0 }, { word: 'cleaning out the barn', weight: 5.0 }, { word: 'hot tub lung', weight: 5.0 }
-            ],
-            evidence: "Granulomatous inflammation of the bronchioles and interstitium triggered by repeated inhalation of specific organic or environmental antigens.",
-            missing: "Detailed environmental exposure history, serum IgG precipitating antibodies against suspected antigens, and HRCT chest scan.",
-            treatments: ["Enforce absolute avoidance and removal of the causative environmental antigen.", "Prescribe systemic corticosteroid tapers for acute or subacute presentations.", "Consider immunosuppressants if refractory."]
-        },
-        {
-            name: 'Acute Pulmonary Silicosis',
-            keywords: [
-                { word: 'silicosis', weight: 5.0 }, { word: 'eggshell calcification', weight: 5.0 }, { word: 'sandblast', weight: 5.0 },
-                { word: 'quarry', weight: 5.0 }, { word: 'bifringent particles', weight: 5.0 }, { word: 'progressive massive fibrosis', weight: 5.0 },
-                { word: 'stone cutter', weight: 5.0 }, { word: 'worked in a foundry', weight: 5.0 }, { word: 'hard rock mining', weight: 5.0 },
-                { word: 'quartz dust', weight: 5.0 }
-            ],
-            evidence: "Fibronodular lung disease caused by the inhalation of crystalline silica dust, leading to macrophage activation, lysis, and progressive upper-lobe fibrotic nodules.",
-            missing: "Chest radiograph showing small rounded nodules in the upper lobes with classic eggshell calcifications of the hilar lymph nodes.",
-            treatments: ["Mitigate all future occupational exposures immediately.", "Perform a baseline TST/IGRA screening (silicosis dramatically increases vulnerability to Tuberculosis).", "Utilize supportive oxygen therapy."]
-        },
-        {
-            name: 'Asbestosis',
-            keywords: [
-                { word: 'asbestosis', weight: 5.0 }, { word: 'pleural plaques', weight: 5.0 }, { word: 'ferruginous bodies', weight: 5.0 },
-                { word: 'shipyard', weight: 5.0 }, { word: 'insulation worker', weight: 5.0 }, { word: 'mesothelioma', weight: 5.0 },
-                { word: 'parietal pleura calcification', weight: 5.0 }, { word: 'old brake pads', weight: 2.0 },
-                { word: 'removing old insulation', weight: 5.0 }, { word: 'calcified spots on lungs', weight: 5.0 }
-            ],
-            evidence: "Parenchymal lung fibrosis and characteristic diaphragmatic pleural plaques stemming from historic, occupational inhalation of asbestos fibers.",
-            missing: "Chest X-ray or HRCT displaying bilateral calcified plaques along the parietal pleura, and pulmonary function testing showing restriction.",
-            treatments: ["Provide symptomatic support and close monitoring for malignancy developments.", "Enforce aggressive smoking cessation counseling (due to extreme synergistic bronchogenic carcinoma risk).", "Provide routine vaccinations."]
-        },
-        {
-            name: 'Beryllium Disease (Berylliosis)',
-            keywords: [
-                { word: 'berylliosis', weight: 5.0 }, { word: 'cbd', weight: 5.0 }, { word: 'beryllium', weight: 5.0 },
-                { word: 'aerospace', weight: 5.0 }, { word: 'be-lpt', weight: 5.0 }, { word: 'telecommunications worker', weight: 2.0 },
-                { word: 'defense contractor facility', weight: 2.0 }, { word: 'recycling electronics dust', weight: 5.0 },
-                { word: 'making circuit boards', weight: 2.0 }
-            ],
-            evidence: "Chronic granulomatous lung disease mimicking sarcoidosis, directly mediated by a delayed hypersensitivity response to beryllium metal exposures.",
-            missing: "Beryllium Lymphocyte Proliferation Test (Be-LPT) performed using peripheral blood or bronchoalveolar lavage channels.",
-            treatments: ["Completely terminate all ongoing environmental beryllium exposure matrices.", "Initiate oral Corticosteroid therapies for symptomatic, functional declines.", "Incorporate secondary immunosuppressive protocols if required."]
-        },
-        {
-            name: 'Silo Filler Lung (Nitrogen Dioxide Poisoning)',
-            keywords: [
-                { word: 'silo', weight: 5.0 }, { word: 'nitrogen dioxide', weight: 5.0 }, { word: 'no2', weight: 5.0 },
-                { word: 'fermenting grain', weight: 5.0 }, { word: 'silo-filler', weight: 5.0 }, { word: 'yellow gas', weight: 5.0 }
-            ],
-            evidence: "Inhalation of toxic nitrogen dioxide concentrations arising from freshly fermenting agricultural grain fields, triggering hyper-acute chemical pneumonitis.",
-            missing: "Methemoglobin evaluation, baseline blood gas monitoring, and serial chest imaging maps.",
-            treatments: ["Provide absolute mechanical avoidance of agricultural containment centers.", "Administer early aggressive corticosteroid pulses to arrest chemical bronchiolitis obliterans development."]
-        },
-        {
-            name: 'Popcorn Lung (Bronchiolitis Obliterans via Diacetyl)',
-            keywords: [
-                { word: 'diacetyl', weight: 5.0 }, { word: 'popcorn factory', weight: 5.0 }, { word: 'flavoring agent', weight: 5.0 },
-                { word: 'vaping', weight: 2.0 }, { word: 'e-cigarette', weight: 2.0 }, { word: 'e-cig', weight: 2.0 }, { word: 'fixed obstruction', weight: 5.0 },
-                { word: 'vape pen', weight: 2.0 }, { word: 'juul', weight: 2.0 }, { word: 'flavoring worker', weight: 5.0 },
-                { word: 'chemical fumes', weight: 2.0 }, { word: 'asthma meds did nothing', weight: 5.0 }
-            ],
-            evidence: "Severe chemical-induced injury to the terminal bronchioles via diacetyl exposure, culminating in a profound, fixed non-reversible obstructive profile.",
-            missing: "High-Resolution CT demonstrating widespread air trapping on expiratory imaging, alongside spirometry profiles showing no bronchodilator response.",
-            treatments: ["Strictly eliminate all exposure to artificial flavoring agents or electronic vaping materials.", "Evaluate the candidate for salvage surgical interventions, up to lung transplantation options."]
-        },
-
-        // --- INFECTIONS & IMMUNOCOMPROMISED DISEASES ---
-        {
-            name: 'Active Pulmonary Tuberculosis (TB)',
-            keywords: [
-                { word: 'night sweats', weight: 5.0 }, { word: 'hemoptysis', weight: 5.0 }, { word: 'cavitary', weight: 5.0 },
-                { word: 'acid-fast', weight: 5.0 }, { word: 'weight loss', weight: 2.0 }, { word: 'afb smear', weight: 5.0 },
-                { word: 'granuloma', weight: 2.0 }, { word: 'ghon', weight: 5.0 }, { word: 'caseating', weight: 5.0 },
-                { word: 'coughing blood', weight: 5.0 }, { word: 'bloody spit', weight: 5.0 }, { word: 'waking up drenched', weight: 5.0 },
-                { word: 'waking up sweating', weight: 5.0 }, { word: 'lost 20 pounds', weight: 2.0 }, { word: 'homeless shelter', weight: 2.0 }
-            ],
-            evidence: "Constitutional wasting symptoms combined with bloody sputum and upper lobe cavitations structurally define a chronic mycobacterial destructive parenchymal pattern.",
-            missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture (x3), and molecular GeneXpert MTB/RIF tracking.",
-            treatments: ["Isolate patient immediately in an airborne infection isolation room (AIIR) with negative pressure.", "Initiate empiric four-drug therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) once isolated.", "Notify local department of public health within 24 hours."]
-        },
-        {
-            name: 'Community-Acquired Pneumonia (CAP)',
-            keywords: [
-                { word: 'pneumonia', weight: 2.0 }, { word: 'consolidation', weight: 5.0 }, { word: 'curb-65', weight: 5.0 },
-                { word: 'bronchophony', weight: 5.0 }, { word: 'egophony', weight: 5.0 }, { word: 'tactile fremitus', weight: 5.0 },
-                { word: 'lobar infiltrate', weight: 5.0 }, { word: 'streptococcus pneumoniae', weight: 5.0 },
-                { word: 'coughing up green muck', weight: 2.0 }, { word: 'yellow spit', weight: 2.0 }, { word: 'rusty color phlegm', weight: 5.0 },
-                { word: 'shaking chills', weight: 2.0 }, { word: 'fever and hacking', weight: 2.0 }
-            ],
-            evidence: "Focal signs of pulmonary consolidation (increased tactile fremitus, egophony) paired with purulent sputum production align with an acute infectious alveolar filling pattern.",
-            missing: "Chest X-ray (PA and Lateral views) to confirm focal consolidation, along with blood and sputum cultures.",
-            treatments: ["Initiate empiric antibiotic therapy (e.g., Ceftriaxone combined with Azithromycin, or respiratory Fluoroquinolones).", "Calculate CURB-65 or PSI score to determine appropriate disposition (outpatient vs. floor vs. ICU).", "Provide aggressive fluid resuscitation if sepsis criteria are met."]
-        },
-        {
-            name: 'Pneumocystis Jirovecii Pneumonia (PCP)',
-            keywords: [
-                { word: 'pneumocystis', weight: 5.0 }, { word: 'pcp', weight: 5.0 }, { word: 'jirovecii', weight: 5.0 },
-                { word: 'cd4 count', weight: 2.0 }, { word: 'silver stain', weight: 5.0 }, { word: 'ldh level', weight: 2.0 },
-                { word: 'interstitial infiltrates', weight: 2.0 }, { word: 'batwing', weight: 5.0 },
-                { word: 'hiv positive with dry cough', weight: 5.0 }, { word: 'aids breathing trouble', weight: 5.0 },
-                { word: 'oxygen drops drastically when walking', weight: 5.0 }
-            ],
-            evidence: "Opportunistic fungal infection causing progressive interstitial pneumonia in highly immunocompromised individuals, classically showcasing dramatic exertional desaturation.",
-            missing: "Induced sputum sample or bronchoalveolar lavage (BAL) fluid evaluated via immunofluorescence or methenamine silver staining.",
-            treatments: ["Administer high-dose Trimethoprim-Sulfamethoxazole (TMP-SMX) orally or intravenously.", "Add adjunctive Corticosteroids if the arterial blood gas reveals a PaO2 < 70 mmHg or an A-a gradient >= 35 mmHg."]
-        },
-        {
-            name: 'Aspiration Pneumonitis / Pneumonia',
-            keywords: [
-                { word: 'aspiration', weight: 5.0 }, { word: 'mendelson', weight: 5.0 }, { word: 'chemical pneumonitis', weight: 2.0 },
-                { word: 'dependent segments', weight: 5.0 }, { word: 'right lower lobe', weight: 2.0 }, { word: 'anaerobic', weight: 2.0 },
-                { word: 'choked on vomit', weight: 5.0 }, { word: 'passed out drunk and choked', weight: 5.0 },
-                { word: 'foul smelling spit', weight: 5.0 }, { word: 'stroke patient coughing while eating', weight: 5.0 }
-            ],
-            evidence: "Inhalation of gastric contents or oropharyngeal secretions triggers an acute chemical burn (pneumonitis) or subsequent bacterial infection (pneumonia) in dependent lung zones.",
-            missing: "Chest X-ray identifying infiltrates preferentially localized in the right lower lobe or posterior segments of the upper lobes.",
-            treatments: ["Provide immediate airway suctioning if aspiration is witnessed.", "Avoid immediate antibiotics for early pure sterile chemical pneumonitis unless symptoms fail to resolve after 48 hours.", "Utilize Clindamycin or Ampicillin-Sulbactam if infectious pneumonia develops."]
-        },
-        {
-            name: 'Inhalational Anthrax',
-            keywords: [
-                { word: 'anthrax', weight: 5.0 }, { word: 'bacillus anthracis', weight: 5.0 }, { word: 'mediastinal widening', weight: 5.0 },
-                { word: 'hemorrhagic mediastinitis', weight: 5.0 }, { word: 'wool-sorter', weight: 5.0 },
-                { word: 'sorting imported wools', weight: 5.0 }, { word: 'tanning animal hides', weight: 5.0 },
-                { word: 'white powder threat', weight: 5.0 }, { word: 'sudden massive chest widening on xray', weight: 5.0 }
-            ],
-            evidence: "Severe life-threatening infection initiated by inhaled Bacillus anthracis spores, progressing from generic viral prodromes into devastating hemorrhagic mediastinitis.",
-            missing: "Blood cultures showing gram-positive spore-forming rods, and a chest radiograph documenting classical mediastinal widening without parenchymal infiltrates.",
-            treatments: ["Administer multi-drug IV antibiotic regimens (e.g., Ciprofloxacin paired with Clindamycin or Linezolid).", "Incorporate anti-toxin monoclonal antibodies (e.g., Raxibacumab or Obiltoxaximab).", "Provide aggressive critical care drainage support."]
-        },
-
-        // --- AUTOIMMUNE ALVEOLAR & VASCULITIC DISORDERS ---
-        {
-            name: 'Goodpasture Syndrome (Anti-GBM Disease)',
-            keywords: [
-                { word: 'goodpasture', weight: 5.0 }, { word: 'anti-gbm', weight: 5.0 }, { word: 'basement membrane', weight: 2.0 },
-                { word: 'alveolar hemorrhage', weight: 5.0 }, { word: 'linear igg', weight: 5.0 },
-                { word: 'peeing blood and coughing blood', weight: 5.0 }, { word: 'kidney failure with lung bleeding', weight: 5.0 },
-                { word: 'bleeding from lungs and kidneys', weight: 5.0 }
-            ],
-            evidence: "Autoimmune disorder triggered by autoantibodies against the alpha-3 chain of type IV collagen, inducing a rapid, destructive pulmonary-renal syndrome.",
-            missing: "Serum anti-GBM antibody assay or a renal biopsy displaying pathognomonic linear IgG deposits along the basement membrane.",
-            treatments: ["Initiate urgent Plasmapheresis cycles to clear circulating pathogenetic autoantibodies.", "Prescribe pulse IV Methylprednisolone and concurrent Cyclophosphamide.", "Support with hemodialysis if needed."]
-        },
-        {
-            name: 'Wegener\'s Granulomatosis (Granulomatosis with Polyangiitis)',
-            keywords: [
-                { word: 'gpa', weight: 5.0 }, { word: 'wegener', weight: 5.0 }, { word: 'c-anca', weight: 5.0 },
-                { word: 'pr3-anca', weight: 5.0 }, { word: 'saddle nose', weight: 5.0 }, { word: 'cavitary nodules', weight: 2.0 },
-                { word: 'bloody crusts in nose', weight: 5.0 }, { word: 'coughing blood with kidney failure', weight: 5.0 },
-                { word: 'collapsed nose bridge', weight: 5.0 }, { word: 'sinus pain and coughing blood', weight: 5.0 }
-            ],
-            evidence: "Granulomatous necrotizing vasculitis target-locking the upper respiratory tract, lower respiratory tract, and kidneys (pauci-immune glomerulonephritis).",
-            missing: "Serum c-ANCA (PR3) autoantibody markers and a confirming biopsy from active upper airway lesions or renal tissue.",
-            treatments: ["Induce remission using Rituximab or Cyclophosphamide paired with high-dose pulse Glucocorticoids.", "Transition to maintenance therapies via Azathioprine or Methotrexate.", "Closely track renal indices."]
-        },
-        {
-            name: 'Churg-Strauss Syndrome (Eosinophilic Granulomatosis with Polyangiitis)',
-            keywords: [
-                { word: 'egpa', weight: 5.0 }, { word: 'churg-strauss', weight: 5.0 }, { word: 'p-anca', weight: 5.0 },
-                { word: 'mpo-anca', weight: 5.0 }, { word: 'eosinophilia', weight: 2.0 }, { word: 'transient infiltrates', weight: 5.0 },
-                { word: 'severe asthma with numbness', weight: 5.0 }, { word: 'foot drop', weight: 5.0 }, { word: 'high eosinophils', weight: 2.0 }
-            ],
-            evidence: "Systemic necrotizing small-to-medium vessel vasculitis characterized by prominent tissue eosinophilia, severe asthma, and frequent peripheral neuropathy (mononeuritis multiplex).",
-            missing: "Tissue biopsy showing eosinophilic infiltration/vasculitis and serum p-ANCA (MPO) antibody quantification.",
-            treatments: ["Initiate high-dose systemic Corticosteroid regimens.", "Incorporate cyclophosphamide or biologic therapies (e.g., Mepolizumab) for severe multi-organ or refractory disease phases."]
-        },
-
-        // --- INTERSTITIAL, STRUCTURAL & STORAGE DISEASES ---
-        {
-            name: 'Idiopathic Pulmonary Fibrosis (IPF)',
-            keywords: [
-                { word: 'idiopathic pulmonary fibrosis', weight: 5.0 }, { word: 'honeycombing', weight: 5.0 }, { word: 'fibrosis', weight: 2.0 },
-                { word: 'usual interstitial pneumonia', weight: 5.0 }, { word: 'uip pattern', weight: 5.0 }, { word: 'traction bronchiectasis', weight: 5.0 },
-                { word: 'velcro crackles', weight: 5.0 }, { word: 'nintedanib', weight: 5.0 }, { word: 'pirfenidone', weight: 5.0 },
-                { word: 'dry leathery cough', weight: 2.0 }, { word: 'fingertips look like clubs', weight: 5.0 }, { word: 'clubbing', weight: 5.0 },
-                { word: 'gradual shortness of breath over years', weight: 5.0 }, { word: 'velcro sound in lungs', weight: 5.0 }
-            ],
-            evidence: "Slowly progressive exertional dyspnea, digital clubbing, and bilateral subpleural velcro-like inspiratory crackles point to an underlying chronic fibrosing interstitial lung disease.",
-            missing: "High-Resolution Computed Tomography (HRCT) of the chest to identify telltale subpleural honeycombing and traction bronchiectasis.",
-            treatments: ["Initiate antifibrotic therapy medications (Pirfenidone or Nintedanib) to slow decline.", "Enroll in comprehensive pulmonary rehabilitation.", "Evaluate promptly for lung transplantation eligibility if progression accelerates."]
-        },
-        {
-            name: 'Pulmonary Sarcoidosis',
-            keywords: [
-                { word: 'sarcoidosis', weight: 5.0 }, { word: 'bilateral hilar adenopathy', weight: 5.0 }, { word: 'non-caseating', weight: 5.0 },
-                { word: 'erythema nodosum', weight: 5.0 }, { word: 'lfgren', weight: 5.0 }, { word: 'heerfordt', weight: 5.0 },
-                { word: 'ace level', weight: 5.0 }, { word: 'lupus pernio', weight: 5.0 },
-                { word: 'swollen lymph nodes in chest', weight: 5.0 }, { word: 'painful red bumps on shins', weight: 5.0 },
-                { word: 'purple rash on nose', weight: 5.0 }
-            ],
-            evidence: "Systemic granulomatous disease characterized by non-caseating epithelioid granulomas, primarily dominating the mediastinal lymph nodes and lung parenchyma.",
-            missing: "Bronchoscopy with transbronchial lung biopsy to confirm non-caseating granulomas and exclude fungal/mycobacterial processes.",
-            treatments: ["Initiate systemic oral Corticosteroids (e.g., Prednisone) for symptomatic or progressive stage II/III disease.", "Monitor multi-organ involvement (cardiac, ophthalmic, and renal assessments).", "Utilize steroid-sparing agents like Methotrexate if needed."]
-        },
-        {
-            name: 'Atelectasis',
-            keywords: [
-                { word: 'atelectasis', weight: 5.0 }, { word: 'mucus plugging', weight: 2.0 }, { word: 'linear opacities', weight: 2.0 },
-                { word: 'volume loss', weight: 5.0 }, { word: 'ipsilateral deviation', weight: 5.0 },
-                { word: 'post surgery shallow breathing', weight: 5.0 }, { word: 'hurts to cough after stomach surgery', weight: 5.0 },
-                { word: 'collapsed air sacs', weight: 5.0 }
-            ],
-            evidence: "Loss of lung volume due to collapse of alveoli, frequently seen postoperatively secondary to splinting, shallow breathing, or airway obstructions.",
-            missing: "Chest X-ray showing structural volume loss signs (diaphragmatic elevation or fissural displacement toward the collapse).",
-            treatments: ["Implement aggressive incentive spirometry and chest physiotherapy regimens.", "Encourage early patient mobilization and optimized pain control to mitigate splinting.", "Perform therapeutic bronchoscopy if massive mucus plugging persists."]
-        },
-
-        // --- ADVANCED PULMONARY VASCULAR DISEASES ---
-        {
-            name: 'Pulmonary Veno-Occlusive Disease (PVOD)',
-            keywords: [
-                { word: 'pvod', weight: 5.0 }, { word: 'veno-occlusive', weight: 5.0 }, { word: 'septal lines', weight: 5.0 },
-                { word: 'centrilobular ground glass', weight: 5.0 }, { word: 'pulmonary edema after vasodilators', weight: 5.0 },
-                { word: 'worse after blood pressure medication', weight: 5.0 }, { word: 'worse after vasodilator', weight: 5.0 },
-                { word: 'fluid tracking in lungs', weight: 2.0 }
-            ],
-            evidence: "Extremely rare vascular variant characterized by progressive post-capillary obstruction of small pulmonary veins, often presenting with paradoxical worsening of edema upon initiating standard PAH vasodilators.",
-            missing: "Genetic screening for EIF2AK4 mutations, and HRCT mapping confirming septal lines and centrilobular ground-glass nodules.",
-            treatments: ["Immediately discontinue any pulmonary arterial vasodilators that aggravate the condition.", "Refer urgently for emergency lung transplantation evaluation, as pharmacological management profiles are poor."]
-        },
-        {
-            name: 'Hepatopulmonary Syndrome',
-            keywords: [
-                { word: 'hepatopulmonary', weight: 5.0 }, { word: 'platypnea', weight: 5.0 }, { word: 'orthodeoxia', weight: 5.0 },
-                { word: 'intrapulmonary vascular dilatations', weight: 5.0 }, { word: 'macroaggregated albumin', weight: 5.0 },
-                { word: 'easier to breathe lying down', weight: 5.0 }, { word: 'oxygen drops when I sit up', weight: 5.0 },
-                { word: 'liver cirrhosis with breathing trouble', weight: 5.0 }
-            ],
-            evidence: "Triad of advanced liver disease, intrapulmonary vascular dilations, and abnormal arterial oxygenation that worsens characteristically when moving to an upright posture.",
-            missing: "Contrast-enhanced transthoracic echocardiography (bubble study) showing delayed appearance of microbubbles in the left atrium (frames 4-6).",
-            treatments: ["Provide supplemental oxygen support tailored to postural position variations.", "Evaluate for definitive curative treatment via liver transplantation, as medical interventions provide limited long-term success."]
-        },
-
-        // --- GENETIC, STRUCTURAL & STRUCTURAL AIRWAY DISEASES ---
-        {
-            name: 'Alpha-1 Antitrypsin Deficiency',
-            keywords: [
-                { word: 'alpha-1', weight: 5.0 }, { word: 'aatd', weight: 5.0 }, { word: 'panacinar', weight: 5.0 },
-                { word: 'piwz', weight: 5.0 }, { word: 'pizz', weight: 5.0 }, { word: 'basilar emphysema', weight: 5.0 },
-                { word: 'serpin1', weight: 5.0 }, { word: 'emphysema in my 30s', weight: 5.0 },
-                { word: 'never smoked but have copd', weight: 5.0 }, { word: 'liver problems and lung problems', weight: 5.0 }
-            ],
-            evidence: "Genetic deficiency of the protease inhibitor AAT, unleashing unchecked neutrophil elastase activity that degrades alveolar walls, classically dominating the lower lung zones.",
-            missing: "Quantitative serum Alpha-1 Antitrypsin level measurement and subsequent Pi-typing genotypic validation.",
-            treatments: ["Administer regular IV augmentation therapy with purified human AAT proteins.", "Maintain standard aggressive bronchodilator and vaccination protocols.", "Strictly avoid any form of tobacco or chemical irritant exposures."]
-        },
-        {
-            name: 'Tracheobronchial Foreign Body Aspiration',
-            keywords: [
-                { word: 'foreign body aspiration', weight: 5.0 }, { word: 'focal wheezing', weight: 5.0 }, { word: 'air trapping', weight: 2.0 },
-                { word: 'asymmetric hyperlucency', weight: 5.0 }, { word: 'choked on a peanut', weight: 5.0 },
-                { word: 'swallowed a small toy', weight: 5.0 }, { word: 'sudden coughing fit while eating nuts', weight: 5.0 },
-                { word: 'whistling breath sound on one side', weight: 5.0 }
-            ],
-            evidence: "Acute partial or total mechanical airway obstruction via exogenous materials, presenting with localized unilateral wheezing and focal respiratory phase alterations.",
-            missing: "Inspiratory/Expiratory chest radiographs mapping localized unilateral air trapping, or direct rigid bronchoscopic visualization.",
-            treatments: ["Perform emergent rigid bronchoscopy to safely grasp and extract the foreign material body.", "Avoid blind finger sweeps to prevent driving objects deeper.", "Administer short-term steroids if localized mucosal swelling is severe."]
-        },
-        {
-            name: 'Obstructive Sleep Apnea (OSA)',
-            keywords: [
-                { word: 'osa', weight: 5.0 }, { word: 'ahi index', weight: 5.0 }, { word: 'epworth', weight: 5.0 },
-                { word: 'polysomnography', weight: 5.0 }, { word: 'microarousals', weight: 2.0 }, { word: 'polycythemia', weight: 2.0 },
-                { word: 'snoring loudly', weight: 2.0 }, { word: 'stop breathing in my sleep', weight: 5.0 },
-                { word: 'waking up gasping', weight: 5.0 }, { word: 'morning headaches', weight: 2.0 }, { word: 'husband says I gasp', weight: 5.0 }
-            ],
-            evidence: "Repetitive collapse of the pharyngeal airway during sleep leading to nocturnal hypoxemia, disruptive microarousals, and profound daytime somnolence.",
-            missing: "An attended overnight diagnostic Polysomnography (sleep study) to compute the Apnea-Hypopnea Index (AHI).",
-            treatments: ["Prescribe nocturnal Continuous Positive Airway Pressure (CPAP) therapy.", "Counsel on weight reduction strategies and structural positional sleep adaptations.", "Avoid central nervous system depressants and alcohol before bedtime."]
-        }
-    ];
-
-    // ==========================================
-    // LAYER 4: THE SCORING LOOP EXECUTIVE
-    // ==========================================
-    let highestScore = 0;
-    let matchedProfile = null;
-
-    pathologyProfiles.forEach(profile => {
-        let currentProfileScore = 0;
-        
-        profile.keywords.forEach(keywordObj => {
-            if (text.includes(keywordObj.word)) {
-                // Execute negation filter gatekeeper check
-                if (!isNegated(keywordObj.word, text)) {
-                    currentProfileScore += keywordObj.weight;
-                }
-            }
-        });
-
-        if (currentProfileScore > highestScore) {
-            highestScore = currentProfileScore;
-            matchedProfile = profile;
-        }
-    });
-
-    // ==========================================
-    // LAYER 5: OUTPUT RENDER DISPATCHER
-    // ==========================================
-    // Critical validation threshold: Requires at least a weight of 1.5 to switch baseline criteria
-    if (matchedProfile && highestScore >= 1.5) {
-        suspicion = matchedProfile.name;
-        evidence = matchedProfile.evidence;
-        missing = matchedProfile.missing;
-        treatments = matchedProfile.treatments;
-        presetMap = matchedProfile.presetMap || 'custom';
-    }
-
-    // Dynamic Engine Feedback Metrics
-    console.log(`ANALYSIS LOG: Matched Differential [${suspicion}] with an accrued weight of [${highestScore}]`);
-    
-    // UI Integration Hook mappings:
-    document.getElementById('suspicion_output').innerText = suspicion;
-    document.getElementById('evidence_output').innerText = evidence + vitalsStr;
-    document.getElementById('missing_output').innerText = missing;
-    
-    // Clear and rebuild dynamic treatment lists safely
-    const txContainer = document.getElementById('treatments_output');
-    txContainer.innerHTML = "";
-    treatments.forEach(tx => {
-        let li = document.createElement('li');
-        li.innerText = tx;
-        txContainer.appendChild(li);
-    });
-}
-
-    // LYRA VOICE REPROGRAMMED
-    let recognition;
-    let lyraActive = false;
-
-    function toggleLyra() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert("Speech API not supported. Please use Chrome/Edge/Safari.");
-            return;
-        }
-        
-        const btn = document.getElementById('lyra-btn');
-        const status = document.getElementById('lyra-status');
-        const langCode = localStorage.getItem('selectedLang') || 'en';
-
-        if (!lyraActive) {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRec();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            
-            if (langCode === 'es') recognition.lang = 'es-ES';
-            else if (langCode === 'fr') recognition.lang = 'fr-FR';
-            else recognition.lang = 'en-US';
-
-            recognition.onresult = function(event) {
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-                status.innerText = "Heard: " + transcript;
-                processLyraCommand(transcript, langCode);
-            };
-
-            recognition.onend = function() { if (lyraActive) recognition.start(); };
-            
-            try {
-                recognition.start();
-                lyraActive = true;
-                btn.innerText = "Stop Lyra";
-                btn.className = "w-full py-3 rounded-lg bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
-                status.innerText = "Listening... Just say the pathology (e.g. 'Load COPD')";
-                
-                lyraSpeak("Lyra activated. Awaiting pathology command.", langCode);
-            } catch(e) {
-                console.log(e);
-            }
-        } else {
-            lyraActive = false;
-            recognition.stop();
-            btn.innerText = TRANSLATIONS[langCode]['lyra_btn'];
-            btn.className = "w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)]";
-            status.innerText = TRANSLATIONS[langCode]['lyra_status'];
-        }
-    }
-
-    function processLyraCommand(text, lang) {
-        let matched = null;
-        
-        if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
-        else if (text.includes('mild') && text.includes('ards')) matched = 'mild_ards';
-        else if (text.includes('mod') && text.includes('ards')) matched = 'ards_mod';
-        else if (text.includes('ards') || text.includes('sdra')) matched = 'ards';
-        else if (text.includes('copd') || text.includes('cops') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
-        else if (text.includes('asthma') || text.includes('asma') || text.includes('asthme')) matched = 'asthma';
-        else if (text.includes('fibrosis') || text.includes('fibrose')) matched = 'fibrosis';
-        else if (text.includes('embol') || text.includes('pe') || text.includes('p.e')) matched = 'pe';
-        else if (text.includes('pneumonia') || text.includes('neumonia') || text.includes('pneumonie')) matched = 'pneumonia';
-        else if (text.includes('neuro') || text.includes('muscle')) matched = 'neuro';
-        else if (text.includes('obesity') || text.includes('obesidad') || text.includes('obesite')) matched = 'obesity';
-        else if (text.includes('pneumothorax') || text.includes('neumotorax')) matched = 'pneumothorax';
-        else if (text.includes('edema') || text.includes('oedeme')) matched = 'edema';
-        else if (text.includes('cystic') || text.includes('quistica') || text.includes('cf')) matched = 'cf';
-        else if (text.includes('kypho') || text.includes('cifosis') || text.includes('scoliosis')) matched = 'kypho';
-        else if (text.includes('bronch') || text.includes('bronquiectasias')) matched = 'bronch';
-        else if (text.includes('atelectas')) matched = 'atelectasis';
-        else if (text.includes('flail') || text.includes('trauma') || text.includes('chest')) matched = 'flail';
-        else if (text.includes('hypertension') || text.includes('hipertension') || text.includes('htn')) matched = 'p_htn';
-        else if (text.includes('carbon') || text.includes('monoxide') || text.includes('monoxido') || text.includes('poison')) matched = 'co_poison';
-
-        if (matched) {
-            let msg = "Synchronizing matrix for " + matched;
-            if (lang === 'es') msg = "Sincronizando matriz para " + matched;
-            if (lang === 'fr') msg = "Synchronisation de la matrice pour " + matched;
-            
-            const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
-            const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
-            const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
-            
-            lyraSpeak(msg, lang);
-            document.getElementById('lyra-status').innerText = msg;
-            
-            lyraActive = false;
-            recognition.stop();
-            setTimeout(() => { loadPreset(matched); }, 2500);
-        } else {
-            let msg = "Pathology not found in speech. Please repeat.";
-            document.getElementById('lyra-status').innerText = msg;
-        }
-    }
-
-    function lyraSpeak(text, lang) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            if(lang === 'es') u.lang = 'es-ES';
-            else if(lang === 'fr') u.lang = 'fr-FR';
-            else u.lang = 'en-US';
-            u.pitch = 1.1;
-            u.rate = 1.0;
-            window.speechSynthesis.speak(u);
-        }
-    }
-
-    const PRESETS = {
-        healthy:      {vt: 500, rr: 14, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 30, ie: 2.0, cao2: 19.8, cvo2: 14.8, cco2: 20.4, peco2: 28, vco2: 200, hco3: 24},
-        ards:         {vt: 350, rr: 28, pip: 38, pplat: 32, peep: 14, flow: 50, fio2: 80, ie: 1.5, cao2: 15.2, cvo2: 11.2, cco2: 20.1, peco2: 18, vco2: 240, hco3: 20},
-        copd:         {vt: 520, rr: 10, pip: 32, pplat: 16, peep: 5,  flow: 45, fio2: 35, ie: 4.0, cao2: 18.5, cvo2: 14.2, cco2: 20.2, peco2: 24, vco2: 190, hco3: 31},
-        asthma:       {vt: 450, rr: 12, pip: 45, pplat: 17, peep: 5,  flow: 40, fio2: 40, ie: 5.0, cao2: 19.2, cvo2: 14.1, cco2: 20.3, peco2: 25, vco2: 210, hco3: 24},
-        fibrosis:     {vt: 350, rr: 26, pip: 35, pplat: 33, peep: 8,  flow: 55, fio2: 45, ie: 1.5, cao2: 17.5, cvo2: 13.0, cco2: 20.1, peco2: 22, vco2: 220, hco3: 24},
-        pe:           {vt: 500, rr: 28, pip: 22, pplat: 15, peep: 5,  flow: 60, fio2: 50, ie: 2.0, cao2: 16.0, cvo2: 11.0, cco2: 20.0, peco2: 12, vco2: 200, hco3: 24},
-        pneumonia:    {vt: 400, rr: 22, pip: 28, pplat: 22, peep: 10, flow: 50, fio2: 60, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.2, peco2: 20, vco2: 230, hco3: 22},
-        neuro:        {vt: 250, rr: 10, pip: 15, pplat: 10, peep: 5,  flow: 40, fio2: 21, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 35, vco2: 180, hco3: 26},
-        obesity:      {vt: 400, rr: 18, pip: 30, pplat: 26, peep: 12, flow: 50, fio2: 30, ie: 2.0, cao2: 18.5, cvo2: 14.0, cco2: 20.0, peco2: 35, vco2: 250, hco3: 32},
-        pneumothorax: {vt: 300, rr: 30, pip: 45, pplat: 40, peep: 5,  flow: 60, fio2: 90, ie: 1.0, cao2: 14.0, cvo2: 10.0, cco2: 20.0, peco2: 15, vco2: 220, hco3: 20},
-        edema:        {vt: 400, rr: 24, pip: 30, pplat: 25, peep: 12, flow: 50, fio2: 50, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.0, peco2: 20, vco2: 210, hco3: 24},
-        cf:           {vt: 450, rr: 20, pip: 35, pplat: 20, peep: 8,  flow: 50, fio2: 45, ie: 3.0, cao2: 17.0, cvo2: 12.5, cco2: 20.2, peco2: 22, vco2: 220, hco3: 28},
-        kypho:        {vt: 250, rr: 24, pip: 35, pplat: 32, peep: 5,  flow: 40, fio2: 30, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 32, vco2: 190, hco3: 29},
-        bronch:       {vt: 480, rr: 16, pip: 28, pplat: 18, peep: 5,  flow: 45, fio2: 35, ie: 2.5, cao2: 18.0, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 200, hco3: 26},
-        mild_ards:    {vt: 400, rr: 20, pip: 28, pplat: 24, peep: 10, flow: 55, fio2: 50, ie: 2.0, cao2: 17.5, cvo2: 13.0, cco2: 20.2, peco2: 22, vco2: 210, hco3: 24},
-        atelectasis:  {vt: 380, rr: 20, pip: 26, pplat: 22, peep: 5,  flow: 50, fio2: 40, ie: 2.0, cao2: 18.2, cvo2: 13.8, cco2: 20.3, peco2: 26, vco2: 200, hco3: 24},
-        flail:        {vt: 400, rr: 26, pip: 28, pplat: 20, peep: 8,  flow: 50, fio2: 40, ie: 2.0, cao2: 17.8, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 210, hco3: 23},
-        p_htn:        {vt: 450, rr: 22, pip: 25, pplat: 18, peep: 5,  flow: 55, fio2: 50, ie: 2.0, cao2: 15.0, cvo2: 10.0, cco2: 19.5, peco2: 18, vco2: 180, hco3: 22},
-        co_poison:    {vt: 500, rr: 16, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 100,ie: 2.0, cao2: 12.0, cvo2: 8.0,  cco2: 20.0, peco2: 30, vco2: 200, hco3: 20},
-        ards_mod:     {vt: 380, rr: 24, pip: 32, pplat: 28, peep: 12, flow: 55, fio2: 60, ie: 1.5, cao2: 16.5, cvo2: 12.0, cco2: 20.1, peco2: 20, vco2: 230, hco3: 22}
-    };
-
-    function loadPreset(type) {
-        if (!type || type === "custom") return;
-        const data = PRESETS[type];
-        document.getElementById('preset_id').value = type;
-        document.getElementById('preset-dropdown').value = type;
-        
-        const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
-        const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
-        const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
-        
-        document.getElementById('vt_input').value = data.vt;
-        document.getElementById('rr').value = data.rr;
-        document.getElementById('pip').value = data.pip;
-        document.getElementById('pplat').value = data.pplat;
-        document.getElementById('peep').value = data.peep;
-        document.getElementById('peak_flow').value = data.flow;
-        document.getElementById('fio2').value = data.fio2;
-        document.getElementById('ie_ratio').value = data.ie;
-        document.getElementById('cao2').value = data.cao2;
-        document.getElementById('cvo2').value = data.cvo2;
-        document.getElementById('cco2').value = data.cco2;
-        document.getElementById('peco2').value = data.peco2;
-        document.getElementById('vco2').value = data.vco2;
-        document.getElementById('hco3_input').value = data.hco3;
-        
-        document.getElementById('calc-form').submit();
     }
 </script>
 """
@@ -1298,7 +559,7 @@ function processClinicalNotes() {
 LOGIN_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="flex items-center justify-center min-h-screen">
     <div class="glass-panel p-10 rounded-3xl w-full max-w-md text-center shadow-2xl border-t border-cyan-500/30">
-        <h1 class="text-5xl font-black text-white mb-2" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
+        <h1 class="text-5xl font-black text-white mb-2">AERO<span class="text-cyan-400">LUNG</span></h1>
         <form action="/login" method="POST" class="space-y-4 text-left mt-8">
             <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Architect ID</label><input type="text" name="username" class="w-full glass-input px-4 py-3 rounded-lg text-sm" required></div>
             <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Passkey</label><input type="password" name="password" class="w-full glass-input px-4 py-3 rounded-lg text-sm" required></div>
@@ -1311,11 +572,11 @@ LOGIN_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="flex items-center justify-center relative flex-col min-h-screen">
     <nav class="glass-panel w-full bg-slate-950/90 py-4 px-6 flex justify-between absolute top-0 z-50">
-        <h1 class="text-2xl font-black tracking-tighter text-white" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
-        <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold uppercase" data-i18n="return_dash">Return to Dashboard</a>
+        <h1 class="text-2xl font-black tracking-tighter text-white">AERO<span class="text-cyan-400">LUNG</span></h1>
+        <a href="/dashboard" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold uppercase">Return to Dashboard</a>
     </nav>
     <div class="glass-panel rounded-3xl p-10 w-full max-w-lg mt-20">
-        <h2 class="text-3xl font-black text-white mb-2 uppercase" data-i18n="settings">Settings</h2>
+        <h2 class="text-3xl font-black text-white mb-2 uppercase">Settings</h2>
         <form action="/settings" method="POST" class="space-y-5 text-left">
             <div><label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">New ID</label><input type="text" name="new_username" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm"></div>
             <div><label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">New Passkey</label><input type="password" name="new_password" class="w-full glass-input px-5 py-4 rounded-xl font-mono text-sm"></div>
@@ -1327,276 +588,490 @@ SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 
 DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="min-h-screen flex bg-slate-950/80">
-    
-    <aside class="w-[360px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
+    <aside class="w-[380px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
         <div class="space-y-5">
-            <div>
-                <h1 class="text-3xl font-black text-white tracking-tighter" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
-                <div class="flex items-center gap-3 mt-4">
-                    <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-black/50 border border-slate-700 text-slate-300 text-[10px] font-bold uppercase rounded-lg px-2 py-1.5 cursor-pointer">
-                        <option value="en">EN</option><option value="es">ES</option><option value="fr">FR</option>
-                    </select>
-                    <a href="/settings" class="text-[9px] font-bold text-slate-300 uppercase border border-slate-700 bg-black/50 px-2 py-1.5 rounded" data-i18n="settings">Settings</a>
-                    <a href="/logout" class="text-[9px] font-bold text-rose-400 uppercase border border-rose-900/50 bg-rose-950/30 px-2 py-1.5 rounded" data-i18n="logout">Logout</a>
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-black text-white tracking-tighter">AERO<span class="text-cyan-400">LUNG</span></h1>
+                <div class="flex items-center gap-2">
+                    <a href="/settings" class="text-[9px] font-bold text-slate-300 uppercase border border-slate-700 bg-black/50 px-2 py-1.5 rounded">Settings</a>
+                    <a href="/logout" class="text-[9px] font-bold text-rose-400 uppercase border border-rose-900/50 bg-rose-950/30 px-2 py-1.5 rounded">Logout</a>
                 </div>
             </div>
 
             <div class="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
-                <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl"></div>
+                <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl tracking-widest"></div>
                 <div id="clock-day" class="text-slate-300 text-xs font-bold uppercase tracking-widest mt-1"></div>
                 <div id="clock-date" class="text-slate-500 text-[10px] font-mono mt-0.5"></div>
             </div>
 
-            <div class="bg-purple-950/20 border border-purple-500/30 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(147,51,234,0.1)]">
-                <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
-                <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-3" data-i18n="lyra_status">Lyra Sleeping</div>
-                
-                <button type="button" onclick="document.getElementById('notes-modal').classList.remove('hidden')" class="w-full py-2 mt-3 rounded border border-emerald-600/50 bg-emerald-900/30 text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all hover:bg-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]">Analyze Patient Record</button>
+            <div class="bg-slate-900/90 border border-purple-500/30 p-4 rounded-2xl space-y-3 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest">NLP Clinical Analyzer (Exhaustive)</span>
+                    <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                </div>
+                <form action="/nlp_parse" method="POST" class="space-y-2">
+                    <textarea name="nlp_text" rows="4" placeholder="Paste unstructured clinical dictation, physician notes... (e.g., 'ARDS patient found, VT=420, PEEP=12...')" class="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-xs font-sans text-slate-200 focus:outline-none focus:border-purple-400 leading-normal">{% if last_nlp %}{{ last_nlp }}{% endif %}</textarea>
+                    <button type="submit" class="w-full py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 rounded-xl text-[11px] font-bold uppercase tracking-wider text-white transition">Execute NLP Parsing Extraction</button>
+                </form>
+                {% if nlp_meta %}
+                <div class="bg-black/40 border border-purple-900/50 rounded-lg p-2 text-[10px] font-mono space-y-1 text-purple-300">
+                    <div><strong>Matched Presets:</strong> {{ nlp_meta.matched_preset.upper() }}</div>
+                    <div><strong>Score Weight:</strong> {{ nlp_meta.confidence_score }} pts</div>
+                    <div><strong>Extracted Variables:</strong> {{ nlp_meta.extracted_inputs | string }}</div>
+                </div>
+                {% endif %}
             </div>
 
             <div>
-                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2" data-i18n="db_title">Pathology Matrix</label>
-                <select id="preset-dropdown" onchange="document.getElementById('custom_ai_desc').value=''; if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-2 rounded-lg text-xs font-semibold">
-                    <option value="" disabled {% if not current_preset %}selected{% endif %} data-i18n="select_preset">-- Select Pathology --</option>
-                    <option value="healthy" {% if current_preset == 'healthy' %}selected{% endif %}>Healthy Baseline</option>
-                    <option value="mild_ards" {% if current_preset == 'mild_ards' %}selected{% endif %}>Mild ARDS</option>
-                    <option value="ards_mod" {% if current_preset == 'ards_mod' %}selected{% endif %}>Moderate ARDS</option>
-                    <option value="ards" {% if current_preset == 'ards' %}selected{% endif %}>Severe ARDS</option>
-                    <option value="copd" {% if current_preset == 'copd' %}selected{% endif %}>End-Stage COPD</option>
-                    <option value="asthma" {% if current_preset == 'asthma' %}selected{% endif %}>Status Asthmaticus</option>
-                    <option value="fibrosis" {% if current_preset == 'fibrosis' %}selected{% endif %}>Pulmonary Fibrosis</option>
-                    <option value="pe" {% if current_preset == 'pe' %}selected{% endif %}>Massive Pulm Embolism</option>
-                    <option value="pneumonia" {% if current_preset == 'pneumonia' %}selected{% endif %}>Severe Pneumonia</option>
-                    <option value="neuro" {% if current_preset == 'neuro' %}selected{% endif %}>Neuromuscular Failure</option>
-                    <option value="obesity" {% if current_preset == 'obesity' %}selected{% endif %}>Obesity Hypoventilation</option>
-                    <option value="pneumothorax" {% if current_preset == 'pneumothorax' %}selected{% endif %}>Tension Pneumothorax</option>
-                    <option value="edema" {% if current_preset == 'edema' %}selected{% endif %}>Cardiogenic Edema</option>
-                    <option value="cf" {% if current_preset == 'cf' %}selected{% endif %}>Cystic Fibrosis</option>
-                    <option value="kypho" {% if current_preset == 'kypho' %}selected{% endif %}>Kyphoscoliosis</option>
-                    <option value="bronch" {% if current_preset == 'bronch' %}selected{% endif %}>Bronchiectasis</option>
-                    <option value="atelectasis" {% if current_preset == 'atelectasis' %}selected{% endif %}>Lobar Atelectasis</option>
-                    <option value="flail" {% if current_preset == 'flail' %}selected{% endif %}>Flail Chest Trauma</option>
-                    <option value="p_htn" {% if current_preset == 'p_htn' %}selected{% endif %}>Pulmonary HTN</option>
-                    <option value="co_poison" {% if current_preset == 'co_poison' %}selected{% endif %}>Carbon Monoxide Poisoning</option>
-                    <option value="custom" {% if current_preset == 'custom' %}selected{% endif %} hidden>Custom Override</option>
-                </select>
+                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2">Pathology Matrix</label>
+                <form id="calc-form" action="/calculate" method="POST" class="space-y-4">
+                    <input type="hidden" id="preset_id" name="preset_id" value="{{ results.preset_id if results else 'healthy' }}">
+                    
+                    <select id="preset-dropdown" name="dropdown_preset" onchange="document.getElementById('preset_id').value=this.value; if(this.value !== 'custom') { document.getElementById('custom_ai_desc').value=''; document.getElementById('custom_ai_cond').value=''; document.getElementById('custom_ai_plan').value=''; } this.form.submit();" class="w-full glass-input px-4 py-3 rounded-lg text-xs font-semibold">
+                        <option value="healthy" {% if results and results.preset_id == 'healthy' %}selected{% endif %}>Healthy Base</option>
+                        <option value="ards" {% if results and results.preset_id == 'ards' %}selected{% endif %}>ARDS (Severe)</option>
+                        <option value="copd" {% if results and results.preset_id == 'copd' %}selected{% endif %}>COPD / Emphysema</option>
+                        <option value="asthma" {% if results and results.preset_id == 'asthma' %}selected{% endif %}>Status Asthmaticus</option>
+                        <option value="fibrosis" {% if results and results.preset_id == 'fibrosis' %}selected{% endif %}>Advanced Fibrosis</option>
+                        <option value="pe" {% if results and results.preset_id == 'pe' %}selected{% endif %}>Pulmonary Embolism</option>
+                        <option value="pneumonia" {% if results and results.preset_id == 'pneumonia' %}selected{% endif %}>Severe Pneumonia</option>
+                        <option value="neuro" {% if results and results.preset_id == 'neuro' %}selected{% endif %}>Neuromuscular Failure</option>
+                        <option value="obesity" {% if results and results.preset_id == 'obesity' %}selected{% endif %}>Obesity Hypoventilation</option>
+                        <option value="pneumothorax" {% if results and results.preset_id == 'pneumothorax' %}selected{% endif %}>Tension Pneumothorax</option>
+                        <option value="edema" {% if results and results.preset_id == 'edema' %}selected{% endif %}>Cardiogenic Edema</option>
+                        <option value="cf" {% if results and results.preset_id == 'cf' %}selected{% endif %}>Cystic Fibrosis Exac.</option>
+                        <option value="kypho" {% if results and results.preset_id == 'kypho' %}selected{% endif %}>Kyphoscoliosis Decomp.</option>
+                        <option value="bronch" {% if results and results.preset_id == 'bronch' %}selected{% endif %}>Bronchiectasis Exac.</option>
+                        <option value="mild_ards" {% if results and results.preset_id == 'mild_ards' %}selected{% endif %}>Early / Mild ARDS</option>
+                        <option value="atelectasis" {% if results and results.preset_id == 'atelectasis' %}selected{% endif %}>Major Atelectasis</option>
+                        <option value="flail" {% if results and results.preset_id == 'flail' %}selected{% endif %}>Flail Chest Segment</option>
+                        <option value="p_htn" {% if results and results.preset_id == 'p_htn' %}selected{% endif %}>Pulmonary HTN / Cor Pulm.</option>
+                        <option value="co_poison" {% if results and results.preset_id == 'co_poison' %}selected{% endif %}>Carbon Monoxide Tox.</option>
+                        <option value="ards_mod" {% if results and results.preset_id == 'ards_mod' %}selected{% endif %}>Moderate ARDS</option>
+                        <option value="custom" {% if results and results.preset_id == 'custom' %}selected{% endif %}>Manual Override</option>
+                    </select>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">Tidal Volume (mL)</label>
+                            <input type="number" id="vt_input" name="vt_input" value="{{ inputs.vt_input if inputs else 500 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">Resp Rate (bpm)</label>
+                            <input type="number" id="rr" name="rr" value="{{ inputs.rr if inputs else 14 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">PEEP (cmH2O)</label>
+                            <input type="number" id="peep" name="peep" value="{{ inputs.peep if inputs else 5 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">Pplat (cmH2O)</label>
+                            <input type="number" id="pplat" name="pplat" value="{{ inputs.pplat if inputs else 14 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">PIP (cmH2O)</label>
+                            <input type="number" id="pip" name="pip" value="{{ inputs.pip if inputs else 20 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">FiO2 (%)</label>
+                            <input type="number" id="fio2" name="fio2" value="{{ inputs.fio2 if inputs else 30 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">Peak Flow (L/m)</label>
+                            <input type="number" name="peak_flow" value="{{ inputs.peak_flow if inputs else 60 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">PeCO2 (mmHg)</label>
+                            <input type="number" name="peco2" value="{{ inputs.peco2 if inputs else 28 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">CaO2 (vol%)</label>
+                            <input type="number" name="cao2" value="{{ inputs.cao2 if inputs else 20 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">CcO2 (vol%)</label>
+                            <input type="number" name="cco2" value="{{ inputs.cco2 if inputs else 21 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">CvO2 (vol%)</label>
+                            <input type="number" name="cvo2" value="{{ inputs.cvo2 if inputs else 15 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">HCO3 (mEq/L)</label>
+                            <input type="number" name="hco3_input" value="{{ inputs.hco3_input if inputs else 24 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">I:E Ratio (1:x)</label>
+                            <input type="number" step="0.1" name="ie_ratio" value="{{ inputs.ie_ratio if inputs else 2 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 uppercase font-bold">VCO2 (mL/min)</label>
+                            <input type="number" name="vco2" value="{{ inputs.vco2 if inputs else 200 }}" class="w-full glass-input p-2 rounded text-xs font-mono">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-white/5 pt-3 mt-2 space-y-2">
+                        <label class="text-[9px] font-bold text-purple-400 uppercase tracking-widest block">Lyra Override Overlays</label>
+                        <input type="text" id="custom_ai_cond" name="custom_ai_cond" placeholder="Condition Headline Override" value="{{ inputs.custom_ai_cond if inputs else '' }}" class="w-full glass-input p-2 rounded text-[11px]">
+                        <textarea id="custom_ai_desc" name="custom_ai_desc" rows="2" placeholder="Full Clinical Analysis Override Body String..." class="w-full glass-input p-2 rounded text-[11px] leading-tight">{{ inputs.custom_ai_desc if inputs else '' }}</textarea>
+                        <input type="text" id="custom_ai_plan" name="custom_ai_plan" placeholder='Action Plan JSON array' value="{{ inputs.custom_ai_plan if inputs else '' }}" class="w-full glass-input p-2 rounded text-[11px] font-mono">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold uppercase tracking-wider text-xs transition duration-200 shadow-lg shadow-cyan-950/50">Synchronize Data</button>
+                </form>
             </div>
-
-            <form id="calc-form" method="POST" action="/dashboard" class="border-t border-white/10 pt-4">
-                <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
-                <input type="hidden" name="custom_ai_desc" id="custom_ai_desc" value="{{ inputs.custom_ai_desc|default('') }}">
-                <input type="hidden" name="custom_ai_cond" id="custom_ai_cond" value="{{ inputs.custom_ai_cond|default('') }}">
-                <input type="hidden" name="custom_ai_plan" id="custom_ai_plan" value="{{ inputs.custom_ai_plan|default('') }}">
-                
-                <div class="flex justify-between items-center mb-4">
-                    <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block" data-i18n="override">Manual Override</label>
-                    <button type="button" id="copy-btn" onclick="copyConfiguration()" class="bg-slate-800 text-cyan-300 text-[8px] uppercase font-bold px-2 py-1 rounded transition-colors" data-i18n="copy_btn">Copy Config</button>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Vt (mL)</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="document.getElementById('preset-dropdown').value='custom'; document.getElementById('preset_id').value='custom';"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Rate (bpm)</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-cyan-300"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Flow (L/m)</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">FiO2 (%)</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">I:E Ratio</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300"></div>
-                    
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300"></div>
-                </div>
-
-                <button type="submit" class="w-full py-3 mt-2 rounded bg-cyan-600 text-white font-bold text-xs uppercase shadow-[0_0_15px_rgba(34,211,238,0.2)]" data-i18n="btn_scan">Synchronize Data</button>
-            </form>
         </div>
         
-        <div class="border-t border-slate-800/80 pt-4 text-center mt-4">
-            <p class="text-[10px] text-slate-500 font-mono tracking-wide">&copy; 2026 Shreesh Santoshkumar Rolli. All Rights Reserved.</p>
+        <div class="text-[10px] text-slate-500 font-mono text-center border-t border-white/5 pt-4">
+            System Operating Normal | Core v4.11
         </div>
     </aside>
 
-    <main class="flex-1 p-6 overflow-y-auto w-full relative z-10">
-        {% if not sim_data %}
-        <div class="glass-panel rounded-3xl h-[600px] flex flex-col items-center justify-center text-center p-8 border-dashed border-white/10 shadow-2xl">
-            <h2 class="text-3xl font-black text-white uppercase tracking-tight mb-2" data-i18n="standby_title">System Standby</h2>
-            <p class="text-sm text-slate-400 font-mono" data-i18n="standby_desc">Select pathology, scan patient record, or activate Lyra.</p>
-        </div>
-        {% else %}
-        
-        <input type="hidden" id="current_preset_id" value="{{ sim_data.preset_id }}">
-        
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-cyan-400 bg-gradient-to-br from-slate-900/90 to-black">
-                <h3 class="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-1" data-i18n="primary_diag">Primary Diagnosis</h3>
-                <div id="ai-cond" class="text-3xl font-black text-white uppercase mb-4">{{ sim_data.ai_condition }}</div>
-                
-                <h4 class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1" data-i18n="physio">Physiology</h4>
-                <p id="ai-desc" class="text-sm text-slate-300 bg-black/40 p-4 rounded-lg border border-white/5 mb-4 whitespace-pre-wrap">{{ sim_data.ai_description }}</p>
-                
-                <h4 class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1" data-i18n="action_plan">Action Plan</h4>
-                <ul class="space-y-2">
-                    {% for sol in sim_data.ai_solutions %}
-                    <li class="flex items-start gap-2 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30 text-xs text-slate-200">
-                        <span class="text-emerald-500 font-bold mt-0.5">⯈</span> <span>{{ sol }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+    <main class="flex-1 p-8 overflow-y-auto relative z-10 space-y-6">
+        {% if results %}
+        <div class="grid grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-2xl border-l-4 border-cyan-500 flex flex-col justify-between">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Compliance</div>
+                <div class="text-3xl font-black text-cyan-400 mt-1 font-mono">{{ results.compliance }} <span class="text-xs text-slate-500">mL/cmH2O</span></div>
             </div>
+            <div class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500 flex flex-col justify-between">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resistance</div>
+                <div class="text-3xl font-black text-amber-400 mt-1 font-mono">{{ results.resistance }} <span class="text-xs text-slate-500">cmH2O/L/s</span></div>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500 flex flex-col justify-between">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dead Space</div>
+                <div class="text-3xl font-black text-emerald-400 mt-1 font-mono">{{ results.vd_vt }}% <span class="text-xs text-slate-500">Vd/Vt</span></div>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl border-l-4 border-rose-500 flex flex-col justify-between">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shunt</div>
+                <div class="text-3xl font-black text-rose-400 mt-1 font-mono">{{ results.shunt }}% <span class="text-xs text-slate-500">Qs/Qt</span></div>
+            </div>
+        </div>
 
-            <div class="glass-panel p-8 rounded-2xl border-t-4 border-t-purple-500 flex flex-col justify-center">
-                <h3 class="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-6 text-center" data-i18n="abg">Arterial Blood Gas</h3>
-                <div class="grid grid-cols-3 gap-2 bg-black/40 p-6 rounded-2xl border border-white/5 text-center mb-6">
-                    <div><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">pH</div><div class="text-3xl font-black font-mono text-emerald-400">{{ sim_data.ph }}</div></div>
-                    <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">PaCO2</div><div class="text-3xl font-black font-mono text-amber-400">{{ sim_data.paco2 }}</div></div>
-                    <div class="border-l border-white/10"><div class="text-[10px] text-slate-500 font-bold uppercase mb-2">HCO3</div><div class="text-3xl font-black font-mono text-purple-400">{{ sim_data.hco3 }}</div></div>
+        <div class="glass-panel rounded-3xl p-6 border-t border-cyan-500/20 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-start justify-between">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded bg-cyan-950/50 border border-cyan-500/30 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">Primary Diagnosis</span>
+                        <span class="px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-400 text-[10px] font-mono">Engine-Match Confirmed</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-white mt-2 tracking-tight">{{ results.ai_condition }}</h2>
                 </div>
-                <div id="abg-status" data-raw="{{ sim_data.acid_base_status }}" class="text-[11px] font-bold text-white uppercase tracking-wider bg-purple-950/50 block text-center py-3 px-2 rounded-lg border border-purple-800 leading-relaxed">{{ sim_data.acid_base_status }}</div>
-            </div>
-        </div>
-
-        <div class="glass-panel p-6 rounded-2xl mb-6">
-            <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 border-b border-white/10 pb-2" data-i18n="mech_exp">Mechanics Explained</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5"><span class="text-[10px] text-cyan-400 font-bold uppercase block mb-2" data-i18n="comp">Compliance</span><div class="text-3xl font-black text-white font-mono">{{ sim_data.compliance }}</div></div>
-                <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5"><span class="text-[10px] text-rose-400 font-bold uppercase block mb-2" data-i18n="res">Resistance</span><div class="text-3xl font-black text-white font-mono">{{ sim_data.resistance }}</div></div>
-                <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5"><span class="text-[10px] text-amber-400 font-bold uppercase block mb-2" data-i18n="dead">Dead Space</span><div class="text-3xl font-black text-white font-mono">{{ sim_data.vd_vt }}%</div></div>
-                <div class="bg-black/40 p-5 rounded-xl text-center border border-white/5"><span class="text-[10px] text-emerald-400 font-bold uppercase block mb-2" data-i18n="shunt">Shunt</span><div class="text-3xl font-black text-white font-mono">{{ sim_data.shunt }}%</div></div>
-            </div>
-        </div>
-
-        <div class="glass-panel p-6 rounded-2xl h-[400px] flex flex-col relative">
-            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400" data-i18n="graphs">Waveform Analytics</h3>
-                
-                <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#22d3ee]"></span><span class="font-bold">Paw</span></div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#10b981]"></span><span class="font-bold">Vol</span></div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#f43f5e]"></span><span class="font-bold">Flow</span></div>
+                <div class="flex gap-2">
+                    <button id="copy-btn" onclick="copyConfiguration()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold uppercase text-slate-300 transition">Copy Config</button>
+                    <button onclick="wakeLyra()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-lg text-xs font-bold uppercase text-white shadow-lg transition">Wake Lyra</button>
                 </div>
             </div>
-            <div class="flex-1 w-full relative"><canvas id="matrixChart"></canvas></div>
+
+            <div class="grid grid-cols-3 gap-6 mt-6">
+                <div class="col-span-2 space-y-4">
+                    <div class="bg-black/30 border border-white/5 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-2">Pathophysiology Analysis</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed font-normal">{{ results.ai_description }}</p>
+                    </div>
+                    
+                    <div class="bg-black/30 border border-white/5 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Architective Action Protocols</h4>
+                        <ul class="space-y-2">
+                            {% for sol in results.ai_solutions %}
+                            <li class="text-xs text-slate-300 flex items-start gap-2">
+                                <span class="text-amber-500 font-bold mt-0.5 shrink-0">■</span>
+                                <span>{{ sol }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-black/40 border border-white/5 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">Arterial Blood Gas</h4>
+                        <div class="space-y-2 font-mono text-xs">
+                            <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-slate-400">pH Index:</span><span class="font-bold text-white">{{ results.ph }}</span></div>
+                            <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-slate-400">PaCO2:</span><span class="font-bold text-white">{{ results.paco2 }} mmHg</span></div>
+                            <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-slate-400">PaO2 Matrix:</span><span class="font-bold text-white">{{ results.pao2 }} mmHg</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">HCO3 Baseline:</span><span class="font-bold text-white">{{ results.hco3 }} mEq/L</span></div>
+                        </div>
+                        <div class="mt-3 text-[10px] text-purple-300 leading-tight bg-purple-950/30 border border-purple-900/50 p-2 rounded">
+                            {{ results.acid_base_status }}
+                        </div>
+                    </div>
+
+                    <div class="bg-black/40 border border-white/5 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">Volumetric Metrics</h4>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex justify-between font-mono"><span class="text-slate-400">Minute Vent:</span><span class="text-white font-bold">{{ results.minute_vent }} L/min</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <h3 class="text-sm font-bold uppercase text-slate-400 tracking-wider mb-4">Synchronous Waveform Analytics Loop</h3>
+            <div class="h-64 w-full">
+                <canvas id="waveformChart"></canvas>
+            </div>
+        </div>
+
+        <div id="lyra-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+            <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border border-cyan-500/30 shadow-2xl space-y-4">
+                <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></div>
+                        <h3 class="text-lg font-black tracking-tight text-white">Lyra Cognitive Clinical Agent</h3>
+                    </div>
+                    <button onclick="sleepLyra()" class="text-xs text-slate-400 hover:text-white uppercase font-bold">Disconnect</button>
+                </div>
+                <div class="h-48 overflow-y-auto bg-black/40 border border-white/5 rounded-xl p-4 font-mono text-xs space-y-3" id="lyra-terminal">
+                    <p class="text-cyan-400">&gt; [LYRA PROTOCOL INITIALIZED]</p>
+                    <p class="text-slate-300">&gt; Analyzing parameters: Comp {{ results.compliance }} | Res {{ results.resistance }} | Shunt {{ results.shunt }}%</p>
+                    <p class="text-emerald-400">&gt; Primary Hypothesis: {{ results.ai_condition }}</p>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="lyra-input" placeholder="Query Lyra on physiology changes..." class="flex-1 glass-input px-4 py-2 text-xs rounded-xl font-mono" onkeydown="if(event.key==='Enter') queryLyra();">
+                    <button onclick="queryLyra()" class="px-4 py-2 bg-cyan-600 rounded-xl font-bold text-xs uppercase text-white">Execute</button>
+                </div>
+            </div>
         </div>
 
         <script>
-            const waveData = {{ sim_data.waveform_data | safe }};
-            Chart.defaults.color = '#64748b';
-            Chart.defaults.font.family = "'JetBrains Mono', monospace";
+            const wavePackets = JSON.parse({{ results.waveform_data | tojson | safe }});
             
-            new Chart(document.getElementById('matrixChart'), {
+            const ctx = document.getElementById('waveformChart').getContext('2d');
+            new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: waveData.t,
+                    labels: wavePackets.t,
                     datasets: [
-                        { label: 'Pressure (cmH2O)', data: waveData.p, borderColor: '#22d3ee', borderWidth: 2, pointRadius: 0, fill: false },
-                        { label: 'Volume (mL)', data: waveData.v, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, fill: false },
-                        { label: 'Flow (L/m)', data: waveData.f, borderColor: '#f43f5e', borderWidth: 2, pointRadius: 0, fill: false }
+                        { label: 'Pressure (cmH2O)', data: wavePackets.p, borderColor: '#22d3ee', borderWidth: 2, pointRadius: 0, fill: false, yAxisID: 'y' },
+                        { label: 'Volume (mL)', data: wavePackets.v, borderColor: '#eab308', borderWidth: 2, pointRadius: 0, fill: false, yAxisID: 'y1' }
                     ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' } }, 
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' } } 
-                    }
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 } } },
+                        y: { type: 'linear', display: true, position: 'left', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#22d3ee' } },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#eab308' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f8fafc', font: { family: 'Outfit', size: 11 } } } }
                 }
             });
+
+            function wakeLyra() { document.getElementById('lyra-modal').classList.remove('hidden'); }
+            function sleepLyra() { document.getElementById('lyra-modal').classList.add('hidden'); }
+            
+            function queryLyra() {
+                const queryInput = document.getElementById('lyra-input');
+                const query = queryInput.value.trim();
+                if (!query) return;
+                
+                const term = document.getElementById('lyra-terminal');
+                term.innerHTML += `<p class="text-slate-400">&gt; User: ${query}</p>`;
+                term.scrollTop = term.scrollHeight;
+                
+                fetch('/lyra_query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        compliance: "{{ results.compliance }}",
+                        resistance: "{{ results.resistance }}",
+                        shunt: "{{ results.shunt }}",
+                        paco2: "{{ results.paco2 }}"
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.response) {
+                        term.innerHTML += `<p class="text-cyan-300">&gt; Lyra: ${data.response}</p>`;
+                    } else if(data.error) {
+                        term.innerHTML += `<p class="text-rose-400">&gt; Lyra Error: ${data.error}</p>`;
+                    }
+                    term.scrollTop = term.scrollHeight;
+                })
+                .catch(err => {
+                    term.innerHTML += `<p class="text-rose-500">&gt; Lyra Intercept Failure.</p>`;
+                });
+                
+                queryInput.value = '';
+            }
         </script>
+
+        {% else %}
+        <div class="glass-panel p-12 rounded-3xl text-center max-w-xl mx-auto mt-20 border border-white/5 shadow-2xl">
+            <div class="w-16 h-16 bg-cyan-950/50 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span class="text-cyan-400 text-2xl">⚡</span>
+            </div>
+            <h2 class="text-2xl font-black text-white uppercase tracking-tight">System Standby</h2>
+            <p class="text-slate-400 text-sm mt-2 leading-relaxed">Select a pathology matrix, execute manual parameter adjustments via the override engine, paste charting narratives into the NLP parser, or synchronize a data profile to populate continuous analytical waveforms.</p>
+        </div>
         {% endif %}
     </main>
-
-    <div id="notes-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="glass-panel p-8 rounded-2xl w-[500px] border border-emerald-500/30 shadow-2xl relative flex flex-col">
-            <button onclick="document.getElementById('notes-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg">✕</button>
-            <h2 class="text-xl font-black text-white uppercase tracking-widest mb-2 text-emerald-400">Clinical Notes Analyzer</h2>
-            <p class="text-[10px] text-slate-400 font-mono mb-4 leading-relaxed">Paste unstructured patient record data below. The AI will scan the text, extract physiological markers, and identify the most probable lung pathology.</p>
-            <textarea id="patient_record_input" class="w-full glass-input px-4 py-3 rounded-lg text-xs h-32 mb-4 font-mono text-slate-300" placeholder="E.g., A 65-year-old male presents with worsening shortness of breath, chronic productive cough, and 40 pack-year smoking history..."></textarea>
-            <button onclick="processClinicalNotes()" class="w-full py-3 rounded-lg bg-emerald-600 font-bold text-white uppercase text-xs tracking-wider transition hover:bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]">Scan & Analyze Record</button>
-        </div>
-    </div>
 </body>
 """
 
+# ==========================================
+# 5. CONTROLLER LAYER / ROUTING
+# ==========================================
+
 @app.route('/')
-def home():
-    if 'user' in session: return redirect(url_for('dashboard'))
+def root():
+    if "user" in session:
+        return redirect(url_for('dashboard'))
     return render_template_string(LOGIN_HTML)
 
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
+    
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("SELECT password FROM users WHERE username=?", (username,))
     row = c.fetchone()
     conn.close()
+    
     if row and check_password_hash(row[0], password):
         session['user'] = username
         return redirect(url_for('dashboard'))
-    return redirect(url_for('home'))
+    
+    return redirect(url_for('root'))
+
+@app.route('/dashboard')
+def dashboard():
+    if "user" not in session:
+        return redirect(url_for('root'))
+    return render_template_string(DASHBOARD_HTML, results=None, inputs=None, last_nlp="", nlp_meta=None)
+
+@app.route('/nlp_parse', methods=['POST'])
+def nlp_parse():
+    if "user" not in session:
+        return redirect(url_for('root'))
+        
+    raw_text = request.form.get('nlp_text', '')
+    nlp_res = ClinicalNLPEngine.parse_text_to_matrices(raw_text)
+    
+    if not nlp_res:
+        return redirect(url_for('dashboard'))
+        
+    preset_id = nlp_res['matched_preset']
+    extracted = nlp_res['extracted_inputs']
+    
+    inputs = {
+        'vt_input': extracted.get('vt_input', 500),
+        'rr': extracted.get('rr', 14),
+        'peep': extracted.get('peep', 5),
+        'pplat': extracted.get('pplat', 14),
+        'pip': extracted.get('pip', 20),
+        'fio2': extracted.get('fio2', 30),
+        'peak_flow': 60, 'peco2': 28, 'cao2': 20, 'cco2': 21, 'cvo2': 15,
+        'hco3_input': extracted.get('hco3_input', 24),
+        'ie_ratio': 2, 'vco2': 200,
+        'custom_ai_cond': '', 'custom_ai_desc': '', 'custom_ai_plan': ''
+    }
+    
+    results = RespiratoryEngine.calculate_simulation(inputs, preset_id=preset_id)
+    return render_template_string(DASHBOARD_HTML, results=results, inputs=inputs, last_nlp=raw_text, nlp_meta=nlp_res)
+
+@app.route('/calculate', methods=['POST'])
+def calculate():
+    if "user" not in session:
+        return redirect(url_for('root'))
+        
+    inputs = {
+        'vt_input': RespiratoryEngine.safe_float(request.form.get('vt_input'), 500),
+        'rr': RespiratoryEngine.safe_float(request.form.get('rr'), 14),
+        'peep': RespiratoryEngine.safe_float(request.form.get('peep'), 5),
+        'pplat': RespiratoryEngine.safe_float(request.form.get('pplat'), 14),
+        'pip': RespiratoryEngine.safe_float(request.form.get('pip'), 20),
+        'fio2': RespiratoryEngine.safe_float(request.form.get('fio2'), 30),
+        'peak_flow': RespiratoryEngine.safe_float(request.form.get('peak_flow'), 60),
+        'peco2': RespiratoryEngine.safe_float(request.form.get('peco2'), 28),
+        'cao2': RespiratoryEngine.safe_float(request.form.get('cao2'), 20),
+        'cco2': RespiratoryEngine.safe_float(request.form.get('cco2'), 21),
+        'cvo2': RespiratoryEngine.safe_float(request.form.get('cvo2'), 15),
+        'hco3_input': RespiratoryEngine.safe_float(request.form.get('hco3_input'), 24),
+        'ie_ratio': RespiratoryEngine.safe_float(request.form.get('ie_ratio'), 2),
+        'vco2': RespiratoryEngine.safe_float(request.form.get('vco2'), 200),
+        'custom_ai_cond': request.form.get('custom_ai_cond', ''),
+        'custom_ai_desc': request.form.get('custom_ai_desc', ''),
+        'custom_ai_plan': request.form.get('custom_ai_plan', '')
+    }
+    
+    preset_id = request.form.get('preset_id', 'custom')
+    results = RespiratoryEngine.calculate_simulation(
+        inputs, 
+        preset_id=preset_id,
+        custom_desc=inputs['custom_ai_desc'],
+        custom_cond=inputs['custom_ai_cond'],
+        custom_plan_str=inputs['custom_ai_plan']
+    )
+    
+    return render_template_string(DASHBOARD_HTML, results=results, inputs=inputs, last_nlp="", nlp_meta=None)
+
+@app.route('/lyra_query', methods=['POST'])
+def lyra_query():
+    if "user" not in session:
+        return json.dumps({"error": "Unauthorized session"}), 401
+        
+    data = request.get_json() or {}
+    user_query = data.get("query", "").lower()
+    
+    try:
+        comp = float(data.get("compliance", 50.0))
+        res = float(data.get("resistance", 4.0))
+        shunt = float(data.get("shunt", 5.0))
+        paco2 = float(data.get("paco2", 40.0))
+    except Exception:
+        comp, res, shunt, paco2 = 50.0, 4.0, 5.0, 40.0
+        
+    if "compliance" in user_query or "stiff" in user_query:
+        if comp < 30:
+            reply = f"Critical lung stiffness detected. Compliance is severely dropped at {comp} mL/cmH2O. This mirrors high elastic recoil common in ARDS variants. Keep tidal volumes protective."
+        else:
+            reply = f"Compliance evaluates at {comp} mL/cmH2O. Intrinsic mechanical tissue elasticity is currently holding its threshold bounds."
+    elif "resistance" in user_query or "airway" in user_query:
+        if res > 15:
+            reply = f"Airway resistance is critically elevated at {res} cmH2O/L/s. This implies high bronchospastic forces or airway obstruction. Investigate for auto-PEEP vectors immediately."
+        else:
+            reply = f"Airway resistance is tracking smoothly at {res} cmH2O/L/s. No severe bronchial choke alerts match this profile."
+    elif "shunt" in user_query or "oxygen" in user_query:
+        if shunt > 20:
+            reply = f"Shunt fraction is calculated at a high risk level of {shunt}%. This confirms substantial unventilated perfusion zones. Recruitment strategies should be prioritized."
+        else:
+            reply = f"Intrapulmonary shunt calculations look stable at {shunt}%. Fluid barriers are tracking within optimal baselines."
+    else:
+        reply = f"Telemetry verified. Current metrics show Compliance: {comp} and Resistance: {res}. Data lines up with the current active rendering configuration loop."
+
+    return json.dumps({"response": reply})
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if "user" not in session:
+        return redirect(url_for('root'))
+    if request.method == 'POST':
+        new_user = request.form.get('new_username')
+        new_pass = request.form.get('new_password')
+        if new_user and new_pass:
+            hashed = generate_password_hash(new_pass)
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("UPDATE users SET username=?, password=? WHERE username=?", (new_user, hashed, session['user']))
+            conn.commit()
+            conn.close()
+            session['user'] = new_user
+        return redirect(url_for('dashboard'))
+    return render_template_string(SETTINGS_HTML)
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('home'))
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    if 'user' not in session: return redirect(url_for('home'))
-    if request.method == 'POST':
-        curr = session['user']
-        nu = request.form.get('new_username').strip()
-        np = request.form.get('new_password').strip()
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        if nu:
-            try:
-                c.execute("UPDATE users SET username=? WHERE username=?", (nu, curr))
-                session['user'] = nu
-                curr = nu
-            except sqlite3.IntegrityError:
-                pass
-        if np:
-            c.execute("UPDATE users SET password=? WHERE username=?", (generate_password_hash(np), curr))
-        conn.commit()
-        conn.close()
-        return redirect(url_for('dashboard'))
-    return render_template_string(SETTINGS_HTML)
-
-@app.route('/dashboard', methods=['GET', 'POST'])
-def dashboard():
-    if 'user' not in session: return redirect(url_for('home'))
-    sim_data = None
-    inputs = {}
-    preset = request.form.get('preset_id', '')
-    custom_desc = request.form.get('custom_ai_desc', '')
-    custom_cond = request.form.get('custom_ai_cond', '')
-    custom_plan = request.form.get('custom_ai_plan', '')
-    
-    if request.method == 'POST':
-        inputs = {k: request.form.get(k) for k in request.form if k not in ['preset_id', 'custom_ai_desc', 'custom_ai_cond', 'custom_ai_plan']}
-        clean_inputs = {k: RespiratoryEngine.safe_float(v, 0) for k, v in inputs.items()}
-        try:
-            sim_data = RespiratoryEngine.calculate_simulation(clean_inputs, preset, custom_desc, custom_cond, custom_plan)
-        except Exception:
-            flash(f"Error calculating metrics: {traceback.format_exc()}")
-            
-        inputs['custom_ai_desc'] = custom_desc
-        inputs['custom_ai_cond'] = custom_cond
-        inputs['custom_ai_plan'] = custom_plan
-
-    return render_template_string(DASHBOARD_HTML, sim_data=sim_data, inputs=inputs, current_preset=preset)
+    return redirect(url_for('root'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
