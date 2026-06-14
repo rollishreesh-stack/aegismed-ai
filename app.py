@@ -103,7 +103,6 @@ class RespiratoryEngine:
         try: ph = round(6.1 + math.log10(hco3_input / (0.0301 * paco2)), 2)
         except Exception: ph = 7.40
 
-        # ABSOLUTE SYNCHRONIZATION LOCK
         if preset_id in DISEASE_PROFILES:
             ai_result = DISEASE_PROFILES[preset_id]
         else:
@@ -206,24 +205,17 @@ GLOBAL_CSS_JS = """
         const dayStr = d.toLocaleDateString(lang, { weekday: 'long' });
         const dateStr = d.toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' });
         
-        // Sidebar Clock
+        // Sidebar Clock Only (Removed from Graph to fix clutter)
         const clockTimeEl = document.getElementById('clock-time');
         if(clockTimeEl) {
             clockTimeEl.innerText = timeStr;
             document.getElementById('clock-day').innerText = dayStr;
             document.getElementById('clock-date').innerText = dateStr;
         }
-
-        // Graph Timestamp
-        const graphTimeEl = document.getElementById('graph-timestamp');
-        if(graphTimeEl) {
-            graphTimeEl.innerText = `${dayStr}, ${dateStr} - ${timeStr}`;
-        }
     }
     setInterval(updateClock, 1000);
     window.onload = updateClock;
 
-    // GLOBAL TRANSLATIONS INCLUDING ALL 20 PATHOLOGIES
     const TRANSLATIONS = {
         en: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -235,7 +227,6 @@ GLOBAL_CSS_JS = """
             comp: "Compliance", res: "Resistance", dead: "Dead Space", shunt: "Shunt",
             graphs: "Waveform Analytics", lyra_btn: "Wake Lyra", lyra_status: "Lyra Sleeping", copy_btn: "Copy Config",
             
-            // Diagnostics
             "healthy_cond": "Stable Pulmonary Homeostasis", "healthy_desc": "Ventilatory mechanics, airway resistance, and gas exchange are within normal limits.",
             "ards_cond": "Severe Acute Respiratory Distress Syndrome", "ards_desc": "Profound hypoxemia secondary to intrapulmonary shunting and stiff non-compliant lungs.",
             "copd_cond": "End-Stage COPD / Emphysema", "copd_desc": "High static compliance with elevated airway resistance and loss of elastic recoil.",
@@ -337,7 +328,6 @@ GLOBAL_CSS_JS = """
             if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
         });
         
-        // Translate dynamic diagnosis text
         const presetId = document.getElementById('current_preset_id')?.value;
         if(presetId && presetId !== 'custom') {
             const condEl = document.getElementById('ai-cond');
@@ -346,7 +336,6 @@ GLOBAL_CSS_JS = """
             if (descEl && TRANSLATIONS[lang][presetId + '_desc']) descEl.innerText = TRANSLATIONS[lang][presetId + '_desc'];
         }
         
-        // Translate ABG Status
         const abgEl = document.getElementById('abg-status');
         if (abgEl) {
             const rawStatus = abgEl.getAttribute('data-raw');
@@ -370,7 +359,7 @@ GLOBAL_CSS_JS = """
         });
     }
 
-    // INTERACTIVE LYRA VOICE ENGINE WITH STRICT PHONETIC LOCKS
+    // LYRA VOICE REPROGRAMMED: NO NEED TO SAY "LYRA" AGAIN ONCE ACTIVATED
     let recognition;
     let lyraActive = false;
 
@@ -395,12 +384,12 @@ GLOBAL_CSS_JS = """
             else recognition.lang = 'en-US';
 
             recognition.onresult = function(event) {
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                // Instantly capture whatever the user said
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 status.innerText = "Heard: " + transcript;
                 
-                if (transcript.includes("lyra") || transcript.includes("lira")) {
-                    processLyraCommand(transcript, langCode);
-                }
+                // Directly process the command since the mic is on!
+                processLyraCommand(transcript, langCode);
             };
 
             recognition.onend = function() { if (lyraActive) recognition.start(); };
@@ -410,9 +399,9 @@ GLOBAL_CSS_JS = """
                 lyraActive = true;
                 btn.innerText = "Stop Lyra";
                 btn.className = "w-full py-3 rounded-lg bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
-                status.innerText = "Listening... Say 'Hey Lyra load COPD'";
+                status.innerText = "Listening... Just say the pathology (e.g. 'COPD')";
                 
-                lyraSpeak("Lyra activated. Ready for synchronization.", langCode);
+                lyraSpeak("Lyra activated. Awaiting pathology command.", langCode);
             } catch(e) {
                 console.log(e);
             }
@@ -428,25 +417,25 @@ GLOBAL_CSS_JS = """
     function processLyraCommand(text, lang) {
         let matched = null;
         
-        // STRICT SYNCHRONIZATION DICTIONARY
+        // Broadened trigger words to ensure Lyra captures the request accurately
         if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
         else if (text.includes('mild') && text.includes('ards')) matched = 'mild_ards';
         else if (text.includes('mod') && text.includes('ards')) matched = 'ards_mod';
         else if (text.includes('ards') || text.includes('sdra')) matched = 'ards';
-        else if (text.includes('copd') || text.includes('cops') || text.includes('c.o.p.d') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
+        else if (text.includes('copd') || text.includes('cops') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
         else if (text.includes('asthma') || text.includes('asma') || text.includes('asthme')) matched = 'asthma';
         else if (text.includes('fibrosis') || text.includes('fibrose')) matched = 'fibrosis';
         else if (text.includes('embol') || text.includes('pe') || text.includes('p.e')) matched = 'pe';
         else if (text.includes('pneumonia') || text.includes('neumonia') || text.includes('pneumonie')) matched = 'pneumonia';
-        else if (text.includes('neuro')) matched = 'neuro';
+        else if (text.includes('neuro') || text.includes('muscle')) matched = 'neuro';
         else if (text.includes('obesity') || text.includes('obesidad') || text.includes('obesite')) matched = 'obesity';
         else if (text.includes('pneumothorax') || text.includes('neumotorax')) matched = 'pneumothorax';
         else if (text.includes('edema') || text.includes('oedeme')) matched = 'edema';
         else if (text.includes('cystic') || text.includes('quistica') || text.includes('cf')) matched = 'cf';
-        else if (text.includes('kypho') || text.includes('cifosis')) matched = 'kypho';
+        else if (text.includes('kypho') || text.includes('cifosis') || text.includes('scoliosis')) matched = 'kypho';
         else if (text.includes('bronch') || text.includes('bronquiectasias')) matched = 'bronch';
         else if (text.includes('atelectas')) matched = 'atelectasis';
-        else if (text.includes('flail') || text.includes('trauma')) matched = 'flail';
+        else if (text.includes('flail') || text.includes('trauma') || text.includes('chest')) matched = 'flail';
         else if (text.includes('hypertension') || text.includes('hipertension') || text.includes('htn')) matched = 'p_htn';
         else if (text.includes('carbon') || text.includes('monoxide') || text.includes('monoxido') || text.includes('poison')) matched = 'co_poison';
 
@@ -457,12 +446,14 @@ GLOBAL_CSS_JS = """
             
             lyraSpeak(msg, lang);
             document.getElementById('lyra-status').innerText = msg;
-            setTimeout(() => { loadPreset(matched); }, 2500); // Give time to speak before reload
+            
+            // Auto stop Lyra and load
+            lyraActive = false;
+            recognition.stop();
+            setTimeout(() => { loadPreset(matched); }, 2500);
         } else {
-            let msg = "Pathology parameter not recognized. Please repeat.";
-            if (lang === 'es') msg = "Parámetro no reconocido. Repita.";
-            if (lang === 'fr') msg = "Paramètre non reconnu. Répétez.";
-            lyraSpeak(msg, lang);
+            let msg = "Pathology not found in speech. Please repeat.";
+            document.getElementById('lyra-status').innerText = msg;
         }
     }
 
@@ -508,7 +499,6 @@ GLOBAL_CSS_JS = """
         document.getElementById('preset_id').value = type;
         document.getElementById('preset-dropdown').value = type;
         
-        // Load all 14 parameters
         document.getElementById('vt_input').value = data.vt;
         document.getElementById('rr').value = data.rr;
         document.getElementById('pip').value = data.pip;
@@ -562,6 +552,7 @@ SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="min-h-screen flex bg-slate-950/80">
     
+    <!-- SIDEBAR -->
     <aside class="w-[360px] shrink-0 glass-panel border-r border-white/5 flex flex-col justify-between sticky top-0 h-screen z-40 p-6 overflow-y-auto">
         <div class="space-y-5">
             <div>
@@ -575,17 +566,20 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </div>
             </div>
 
+            <!-- LIVE CLOCK SIDEBAR (Only location) -->
             <div class="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
                 <div id="clock-time" class="text-cyan-400 font-mono font-bold text-2xl"></div>
                 <div id="clock-day" class="text-slate-300 text-xs font-bold uppercase tracking-widest mt-1"></div>
                 <div id="clock-date" class="text-slate-500 text-[10px] font-mono mt-0.5"></div>
             </div>
 
+            <!-- LYRA VOICE TOGGLE -->
             <div class="bg-purple-950/20 border border-purple-500/30 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(147,51,234,0.1)]">
                 <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
                 <div id="lyra-status" class="text-[9px] text-purple-300 font-mono mt-3" data-i18n="lyra_status">Lyra Sleeping</div>
             </div>
 
+            <!-- PATHOLOGIES DROPDOWN -->
             <div>
                 <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block mb-2" data-i18n="db_title">Pathology Matrix</label>
                 <select id="preset-dropdown" onchange="if(this.value) loadPreset(this.value);" class="w-full glass-input px-3 py-2 rounded-lg text-xs font-semibold">
@@ -614,37 +608,38 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </select>
             </div>
 
+            <!-- ALL 14 INPUTS - RESTRUCTURED TO 2 COLUMNS TO PREVENT MERGING -->
             <form id="calc-form" method="POST" action="/dashboard" class="border-t border-white/10 pt-4">
                 <input type="hidden" name="preset_id" id="preset_id" value="{{ current_preset }}">
-                <div class="flex justify-between items-center mb-2">
+                <div class="flex justify-between items-center mb-4">
                     <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block" data-i18n="override">Manual Override</label>
                     <button type="button" id="copy-btn" onclick="copyConfiguration()" class="bg-slate-800 text-cyan-300 text-[8px] uppercase font-bold px-2 py-1 rounded transition-colors" data-i18n="copy_btn">Copy Config</button>
                 </div>
                 
-                <div class="grid grid-cols-4 gap-1.5 mb-2">
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Vt</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono" oninput="document.getElementById('preset-dropdown').value='custom'; document.getElementById('preset_id').value='custom';"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Rate</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-rose-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-rose-300"></div>
-                </div>
-                <div class="grid grid-cols-4 gap-1.5 mb-2">
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-cyan-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">Flow</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">FiO2</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">I:E</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono"></div>
-                </div>
-                <div class="grid grid-cols-3 gap-1.5 mb-2">
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-emerald-300"></div>
-                </div>
-                <div class="grid grid-cols-3 gap-1.5 mb-4">
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-amber-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-amber-300"></div>
-                    <div><label class="text-[8px] text-slate-400 uppercase font-bold">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-1 py-1 rounded text-[10px] font-mono text-purple-300"></div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Vt (mL)</label><input type="number" name="vt_input" id="vt_input" value="{{ inputs.vt_input|default(500) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono" oninput="document.getElementById('preset-dropdown').value='custom'; document.getElementById('preset_id').value='custom';"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Rate (bpm)</label><input type="number" name="rr" id="rr" value="{{ inputs.rr|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PIP</label><input type="number" name="pip" id="pip" value="{{ inputs.pip|default(20) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Pplat</label><input type="number" name="pplat" id="pplat" value="{{ inputs.pplat|default(14) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-rose-300"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PEEP</label><input type="number" name="peep" id="peep" value="{{ inputs.peep|default(5) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-cyan-300"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Flow (L/m)</label><input type="number" name="peak_flow" id="peak_flow" value="{{ inputs.peak_flow|default(60) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">FiO2 (%)</label><input type="number" name="fio2" id="fio2" value="{{ inputs.fio2|default(30) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">I:E Ratio</label><input type="number" step="0.1" name="ie_ratio" id="ie_ratio" value="{{ inputs.ie_ratio|default(2.0) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CaO2</label><input type="number" step="0.1" name="cao2" id="cao2" value="{{ inputs.cao2|default(19.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CvO2</label><input type="number" step="0.1" name="cvo2" id="cvo2" value="{{ inputs.cvo2|default(14.8) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">CcO2</label><input type="number" step="0.1" name="cco2" id="cco2" value="{{ inputs.cco2|default(20.4) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-emerald-300"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">PECO2</label><input type="number" name="peco2" id="peco2" value="{{ inputs.peco2|default(28) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300"></div>
+                    
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">VCO2</label><input type="number" name="vco2" id="vco2" value="{{ inputs.vco2|default(200) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-amber-300"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold block mb-1">HCO3</label><input type="number" name="hco3_input" id="hco3_input" value="{{ inputs.hco3_input|default(24) }}" class="w-full glass-input px-2 py-1.5 rounded text-xs font-mono text-purple-300"></div>
                 </div>
 
-                <button type="submit" class="w-full py-3 rounded bg-cyan-600 text-white font-bold text-xs uppercase" data-i18n="btn_scan">Synchronize Data</button>
+                <button type="submit" class="w-full py-3 mt-2 rounded bg-cyan-600 text-white font-bold text-xs uppercase shadow-[0_0_15px_rgba(34,211,238,0.2)]" data-i18n="btn_scan">Synchronize Data</button>
             </form>
         </div>
         
@@ -653,6 +648,7 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </div>
     </aside>
 
+    <!-- MAIN DASHBOARD -->
     <main class="flex-1 p-6 overflow-y-auto w-full relative z-10">
         {% if not sim_data %}
         <div class="glass-panel rounded-3xl h-[600px] flex flex-col items-center justify-center text-center p-8 border-dashed border-white/10 shadow-2xl">
@@ -703,10 +699,11 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
         </div>
 
         <div class="glass-panel p-6 rounded-2xl h-[400px] flex flex-col relative">
-            <div id="graph-timestamp" class="absolute top-6 right-6 text-xs text-cyan-400/80 font-mono tracking-wider z-20"></div>
             <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                 <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-400" data-i18n="graphs">Waveform Analytics</h3>
-                <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5 mr-40">
+                
+                <!-- Fixed margin merging here -->
+                <div class="text-[10px] text-slate-300 flex gap-4 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">
                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#22d3ee]"></span><span class="font-bold">Paw</span></div>
                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#10b981]"></span><span class="font-bold">Vol</span></div>
                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#f43f5e]"></span><span class="font-bold">Flow</span></div>
