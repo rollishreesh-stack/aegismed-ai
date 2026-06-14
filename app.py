@@ -604,7 +604,7 @@ GLOBAL_CSS_JS = """
         });
     }
 
-    // NLP CLINICAL RECORD ANALYZER
+// NLP CLINICAL RECORD ANALYZER (TRUE DIAGNOSTIC INFERENCE ENGINE)
 function processClinicalNotes() {
     const text = document.getElementById('patient_record_input').value.toLowerCase();
     if(!text.trim()) return;
@@ -627,7 +627,7 @@ function processClinicalNotes() {
     
     let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
 
-    // 1. ORIGINAL CORE PATHOLOGIES
+    // 1. ORIGINAL CORE PATHOLOGIES (unchanged for backwards compatibility)
     if (text.includes('effusion') || text.includes('dullness') || text.includes('fluid collection') || text.includes('thoracentesis')) {
         suspicion = 'Massive Pleural Effusion';
         evidence = "The patient's presentation is highly indicative of a massive pleural effusion. Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space." + vitalsStr;
@@ -668,112 +668,79 @@ function processClinicalNotes() {
         presetMap = 'edema';
     }
     else {
-        // 2. EXACT DISORDER DICTIONARY (With STRICT Regex word boundaries to prevent accidental matching)
-        const extendedPathologies = [
+        // 2. THE INFRASTRUCTURE TO DIAGNOSE RAW CLUES (No hints allowed!)
+        const diagnosticMatrix = [
             {
-                regex: /tuberculosis|\btb\b|hemoptysis|night sweats|cavitary|acid-fast/i,
+                name: 'Hypersensitivity Pneumonitis (Bird Fancier / Farmer Lung)',
+                triggers: ['bird', 'pigeon', 'feathers', 'coop', 'breeder', 'hay', 'farmer', 'moldy', 'antigen'],
+                evidence: "The patient's acute systemic flare (fever, dyspnea) immediately following exposure to organic dusts or avian antigens points directly to immune-mediated alveolar inflammation.",
+                missing: "Specific IgG serum antibodies against suspected antigens, High-Resolution CT showing centrilobular nodules, and bronchoalveolar lavage (BAL) showing marked lymphocytosis.",
+                treatments: ["Complete removal from the source of antigen exposure immediately.", "Consider systemic corticosteroid therapy for severe, acute respiratory restriction.", "Provide humidified oxygen and monitor lung volumes via spirometry."]
+            },
+            {
+                name: 'Acute Pulmonary Silicosis',
+                triggers: ['stonecutter', 'sandblast', 'silica', 'quarry', 'foundry', 'eggshell', 'quartz'],
+                evidence: "An occupational history of crystalline silica exposure coupled with upper-lobe nodules and classic eggshell calcifications outlines an aggressive, fibrotic alveolar process.",
+                missing: "Occupational history mapping, HRCT Chest, and pulmonary function testing to measure restrictive degradation.",
+                treatments: ["Immediate cessation of all occupational silica dust exposure.", "Provide aggressive symptomatic therapy (bronchodilators, cough suppressants).", "Screen for secondary Mycobacterium tuberculosis infection, as these patients are at extremely high risk."]
+            },
+            {
+                name: 'Pulmonary Alveolar Proteinosis (PAP)',
+                triggers: ['milky', 'opaque fluid', 'lavage', 'bal', 'surfactant', 'pas-positive'],
+                evidence: "The discovery of an opaque, milky effluent during bronchoscopy indicates a catastrophic accumulation of surfactant proteins within the alveoli due to altered clearance mechanics.",
+                missing: "Serum GM-CSF antibody testing, CT Chest confirming a distinctive 'crazy-paving' attenuation pattern.",
+                treatments: ["Prepare patient for a therapeutic Whole Lung Lavage (WLL) under general anesthesia.", "Monitor arterial oxygen saturation closely during mechanical extraction procedures.", "Consider subcutaneous GM-CSF therapy if autoimmune variants are laboratory confirmed."]
+            },
+            {
                 name: 'Active Pulmonary Tuberculosis (TB)',
-                evidence: "Clinical signs including potential hemoptysis, night sweats, or cavitary lesions are highly specific for Mycobacterium tuberculosis infection.",
-                missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture, GeneXpert MTB/RIF assay, and isolation protocols.",
-                treatments: ["Place patient in a negative pressure airborne isolation room immediately.", "Initiate RIPE therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) upon confirmation.", "Report to local public health authorities."]
+                triggers: ['night sweats', 'hemoptysis', 'cavitary', 'acid-fast', 'weight loss', 'prison', 'immigrant'],
+                evidence: "Constitutional wasting symptoms combined with bloody sputum and upper lobe cavitations structurally define a chronic mycobacterial destructive parenchymal pattern.",
+                missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture (x3), and molecular GeneXpert MTB/RIF tracking.",
+                treatments: ["Isolate patient immediately in an airborne infection isolation room (AIIR) with negative pressure.", "Initiate empiric four-drug therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) once isolated.", "Notify local department of public health within 24 hours."]
             },
             {
-                regex: /pulmonary embolism|\bpe\b|\bdvt\b|\bclot\b|thrombosis|s1q3t3/i,
-                name: 'Acute Pulmonary Embolism (PE)',
-                evidence: "Signs of vascular obstruction, potential DVT history, or acute right heart strain indicate a thromboembolic event blocking pulmonary arterial circulation.",
-                missing: "CT Pulmonary Angiography (CTPA), D-dimer, and high-sensitivity Troponin.",
-                treatments: ["Initiate prompt systemic anticoagulation (e.g., Heparin) if no contraindications.", "Provide continuous high-flow oxygen.", "Evaluate for thrombolysis if hemodynamically unstable."]
+                name: 'Sleep Apnea Hypoventilation Syndrome',
+                triggers: ['snoring', 'daytime somnolence', 'obese', 'neck circumference', 'micrognathia', 'osa'],
+                evidence: "Severe upper airway tissue collapse during rest causing progressive daytime fatigue and nocturnal hypoxia points to mechanical ventilatory failure.",
+                missing: "Overnight in-lab Polysomnography (Sleep Study) to track Apnea-Hypopnea Index (AHI) and nocturnal desaturations.",
+                treatments: ["Titrate nocturnal Continuous Positive Airway Pressure (CPAP) device parameters.", "Mandate structured weight reduction plans and evaluation of jaw anatomy.", "Avoid all central nervous system depressants and alcohol before sleeping."]
             },
             {
-                regex: /cystic fibrosis|\bcf\b|sweat chloride|pseudomonas|steatorrhea|thick mucus/i,
-                name: 'Cystic Fibrosis (CF) Exacerbation',
-                evidence: "History of thick mucopurulent secretions and chronic recurrent infections is hallmark for CFTR gene mutations causing severely impaired mucociliary clearance.",
-                missing: "Sputum culture specific for Pseudomonas aeruginosa/Burkholderia, and baseline PFTs.",
-                treatments: ["Aggressive airway clearance therapy (chest physiotherapy, hypertonic saline).", "Administer targeted IV antibiotics based on previous sputum cultures.", "Provide pancreatic enzyme replacement if indicated."]
-            },
-            {
-                regex: /pneumothorax|collapsed lung|hyperresonance|absent breath|tracheal deviation/i,
-                name: 'Pneumothorax / Tension Pneumothorax',
-                evidence: "Absent breath sounds and asymmetric chest expansion indicate a rupture in the pleural space, leading to lung collapse and restricted ventilation.",
-                missing: "Urgent upright portable Chest X-Ray or bedside thoracic ultrasound (eFAST).",
-                treatments: ["Prepare for emergent needle decompression if tension physiology is present.", "Set up for formal thoracostomy (chest tube) insertion.", "Administer 100% oxygen to accelerate pleural air resorption."]
-            },
-            {
-                regex: /cancer|tumor|malignancy|carcinoma|nodule|mass|paraneoplastic/i,
-                name: 'Bronchogenic Carcinoma / Lung Malignancy',
-                evidence: "Mentions of pulmonary masses, nodules, or unexplained constitutional symptoms strongly suggest a primary lung malignancy or metastatic disease.",
-                missing: "PET-CT scan, tissue biopsy via bronchoscopy or CT-guidance, and comprehensive metabolic panel.",
-                treatments: ["Consult pulmonology and oncology for tissue staging.", "Manage acute symptoms (e.g., hemoptysis, pain).", "Evaluate for malignant pleural effusion."]
-            },
-            {
-                regex: /hypertension|\bpah\b|cor pulmonale|\brvh\b|right heart failure/i,
-                name: 'Pulmonary Arterial Hypertension (PAH)',
-                evidence: "Evidence of right-sided heart strain without left-sided failure suggests chronically elevated pressures in the pulmonary vascular bed (Cor Pulmonale).",
-                missing: "Right heart catheterization (gold standard), Echocardiogram to estimate PASP, and V/Q scan.",
-                treatments: ["Administer targeted pulmonary vasodilators (e.g., Sildenafil, Epoprostenol) if prescribed.", "Cautious use of diuretics for right ventricular volume overload.", "Avoid hypoxia, which worsens pulmonary vasoconstriction."]
-            },
-            {
-                regex: /sarcoidosis|granuloma|hilar|erythema nodosum|ace level/i,
-                name: 'Pulmonary Sarcoidosis',
-                evidence: "Bilateral hilar lymphadenopathy and potential non-caseating granulomatous inflammation point directly to Sarcoidosis.",
-                missing: "Serum ACE levels, High-Resolution CT (HRCT), and transbronchial biopsy.",
-                treatments: ["Initiate systemic corticosteroids for acute symptomatic flares.", "Monitor for extrapulmonary involvement (cardiac, ocular).", "Routine pulmonary function testing."]
-            },
-            {
-                regex: /bronchiectasis|tram-track|foul sputum|dilated bronchi/i,
-                name: 'Severe Bronchiectasis',
-                evidence: "Chronic daily production of foul-smelling sputum and structural airway dilation indicate irreversible bronchial damage and chronic colonization.",
-                missing: "High-Resolution CT (HRCT) to confirm airway dilation/tram-track opacities, and sputum culture.",
-                treatments: ["Daily airway clearance techniques and mucolytics.", "Targeted oral or inhaled antibiotics for exacerbations.", "Bronchodilator therapy."]
-            },
-            {
-                regex: /\bpneumonia\b|consolidation|infiltrate|purulent/i,
-                name: 'Acute Bacterial Pneumonia',
-                evidence: "Focal alveolar consolidations and purulent sputum signify an acute, exudative infectious process within the lung parenchyma.",
-                missing: "Sputum Gram stain/culture, Procalcitonin, and Blood cultures.",
-                treatments: ["Administer empiric broad-spectrum antibiotics immediately.", "Aggressive pulmonary hygiene.", "Targeted oxygen therapy."]
+                name: 'Asbestosis / Mesothelioma',
+                triggers: ['shipyard', 'insulation', 'brake lining', 'asbestos', 'pleural plaque', 'ferruginous'],
+                evidence: "Chronic occupational asbestos particle inhalation leading to interstitial fibrosis or unilateral pleural thickening represents a heavy mineral dust tissue disease.",
+                missing: "High-Resolution CT to distinguish benign plaques from malignant transformation, and tissue biopsy if nodules are tracking upwards.",
+                treatments: ["Strict smoking cessation enforcement (due to exponential multiplier risk for malignancy).", "Enforce strict pulmonary surveillance with serial spirometry testing.", "Provide palliative oxygen therapy for restrictive work of breathing."]
             }
         ];
 
-        let foundExactDisease = false;
-
-        for (let disease of extendedPathologies) {
-            if (disease.regex.test(text)) {
-                suspicion = disease.name;
-                evidence = disease.evidence + vitalsStr;
-                missing = disease.missing;
-                treatments = disease.treatments;
-                foundExactDisease = true;
+        let matrixMatch = null;
+        
+        // Scan for keyword clusters to figure out the disease on its own
+        for (let diagnostic of diagnosticMatrix) {
+            let hitCount = 0;
+            diagnostic.triggers.forEach(trigger => {
+                if (text.includes(trigger)) hitCount++;
+            });
+            
+            // If the text contains 2 or more distinct clues for that disease, it's a solid diagnostic match!
+            if (hitCount >= 2) {
+                matrixMatch = diagnostic;
                 break;
             }
         }
 
-        // 3. THE SMART NLP EXTRACTOR (Ultimate Fallback for any other disease)
-        if (!foundExactDisease) {
-            const regexExtractor = /(?:suspect|suspected|suspicion for|diagnosis of|consistent with|evidence of)\s+([a-z\s\-]+(?:syndrome|disease|disorder|itis|oma|osis|pathy|fibrosis|asthma|edema|failure|carcinoma|malignancy|hypertension|tuberculosis|apnea|pneumoconiosis))/i;
-            const extractedMatch = text.match(regexExtractor);
-
-            if (extractedMatch && extractedMatch[1]) {
-                let exactName = extractedMatch[1].trim().toUpperCase();
-                suspicion = `Specific Pathology Identified: ${exactName}`;
-                evidence = `The clinical notes explicitly reference ${exactName}. The systemic presentation requires diagnostic focus tailored specifically to this named pathology.` + vitalsStr;
-                missing = "Condition-specific specialized lab panels, High-Resolution Imaging, and formal Pulmonology / Specialist consultation.";
-                treatments = [
-                    `Follow standard-of-care protocols specific to ${exactName}.`,
-                    "Provide supportive oxygenation and hemodynamic monitoring as required.",
-                    "Review specific contraindications related to this exact pathology before administering standard respiratory drugs."
-                ];
-            } else {
-                // 4. UNDIFFERENTIATED FALLBACK
-                suspicion = 'Atypical / Unspecified Pulmonary Disorder';
-                evidence = "The patient presents with an isolated respiratory condition that does not match common presets and lacks a specifically named diagnosis in the notes. Requires broad diagnostic mapping." + vitalsStr;
-                missing = "High-Resolution CT Chest, comprehensive autoimmune/infectious panels, and full PFTs.";
-                treatments = [
-                    "Maintain optimal oxygenation and hemodynamic stability.",
-                    "Consult Pulmonary Medicine for advanced diagnostics (e.g., Bronchoscopy).",
-                    "Provide symptomatic relief while awaiting definitive imaging results."
-                ];
-            }
+        if (matrixMatch) {
+            suspicion = matrixMatch.name;
+            evidence = matrixMatch.evidence + vitalsStr;
+            missing = matrixMatch.missing;
+            treatments = matrixMatch.treatments;
+        } else {
+            // Ultimate fallback if the doctor provides zero clues or unrecognizable data
+            suspicion = 'Atypical Pulmonary Insufficiency';
+            evidence = "The patient shows objective signs of respiratory stress, but the clinical clues do not point to a common preset or specific structural footprint. Requires open diagnostic mapping." + vitalsStr;
+            missing = "High-Resolution CT Chest, Arterial Blood Gas profiling, and urgent specialist consultation.";
+            treatments = ["Deliver supplemental oxygen to safeguard vital organs.", "Initiate continuous monitoring of cardiac rhythm and SpO2.", "Coordinate a formal pulmonology evaluation."];
         }
     }
 
