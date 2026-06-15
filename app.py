@@ -1028,6 +1028,53 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 """
 
 # ==========================================
+# 4. FLASK SERVER ROUTES
+# ==========================================
+@app.route('/')
+def home():
+    if 'user' in session: 
+        return redirect(url_for('dashboard'))
+    return render_template_string(HOME_HTML)
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=?", (username,))
+    user = c.fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user[2], password):
+        session['user'] = user[1]
+        return redirect(url_for('dashboard'))
+    
+    flash('Invalid credentials')
+    return redirect(url_for('home'))
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    session.pop('last_sim_data', None)
+    return redirect(url_for('home'))
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if 'user' not in session: return redirect(url_for('home'))
+    if request.method == 'POST':
+        np = request.form.get('new_password')
+        curr = session['user']
+        if np:
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("UPDATE users SET password=? WHERE username=?", (generate_password_hash(np), curr))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('dashboard'))
+    return render_template_string(SETTINGS_HTML)
+
+# ==========================================
 # ASYNCHRONOUS API ROUTES FOR AI INTEGRATION
 # ==========================================
 @app.route('/api/analyze-report', methods=['POST'])
