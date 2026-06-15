@@ -1027,77 +1027,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 </body>
 """
 
-@app.route('/')
-def home():
-    if 'user' in session: return redirect(url_for('dashboard'))
-    return render_template_string(LOGIN_HTML)
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT password FROM users WHERE username=?", (username,))
-    row = c.fetchone()
-    conn.close()
-    if row and check_password_hash(row[0], password):
-        session['user'] = username
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('home'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('home'))
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    if 'user' not in session: return redirect(url_for('home'))
-    if request.method == 'POST':
-        curr = session['user']
-        nu = request.form.get('new_username').strip()
-        np = request.form.get('new_password').strip()
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        if nu:
-            try:
-                c.execute("UPDATE users SET username=? WHERE username=?", (nu, curr))
-                session['user'] = nu
-                curr = nu
-            except sqlite3.IntegrityError:
-                pass
-        if np:
-            c.execute("UPDATE users SET password=? WHERE username=?", (generate_password_hash(np), curr))
-        conn.commit()
-        conn.close()
-        return redirect(url_for('dashboard'))
-    return render_template_string(SETTINGS_HTML)
-
-@app.route('/dashboard', methods=['GET', 'POST'])
-def dashboard():
-    if 'user' not in session: return redirect(url_for('home'))
-    sim_data = None
-    inputs = {}
-    preset = request.form.get('preset_id', '')
-    custom_desc = request.form.get('custom_ai_desc', '')
-    custom_cond = request.form.get('custom_ai_cond', '')
-    custom_plan = request.form.get('custom_ai_plan', '')
-    
-    if request.method == 'POST':
-        inputs = {k: request.form.get(k) for k in request.form if k not in ['preset_id', 'custom_ai_desc', 'custom_ai_cond', 'custom_ai_plan']}
-        clean_inputs = {k: RespiratoryEngine.safe_float(v, 0) for k, v in inputs.items()}
-        try:
-            sim_data = RespiratoryEngine.calculate_simulation(clean_inputs, preset, custom_desc, custom_cond, custom_plan)
-        except Exception:
-            flash(f"Error calculating metrics: {traceback.format_exc()}")
-            
-        inputs['custom_ai_desc'] = custom_desc
-        inputs['custom_ai_cond'] = custom_cond
-        inputs['custom_ai_plan'] = custom_plan
-
-    return render_template_string(DASHBOARD_HTML, sim_data=sim_data, inputs=inputs, current_preset=preset) 
-
 # ==========================================
 # ASYNCHRONOUS API ROUTES FOR AI INTEGRATION
 # ==========================================
@@ -1147,4 +1076,5 @@ def dashboard():
     return render_template_string(INDEX_HTML, sim_data=sim_data, inputs=inputs, preset=preset)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
