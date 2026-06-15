@@ -3,12 +3,100 @@ import math
 import json
 import sqlite3
 import traceback
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+import google.generativeai as genai
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "aerolung_absolute_sync_2026")
 DB_NAME = "aerolung_database.db"
+
+# ==========================================
+# GEMINI API INITIALIZATION
+# ==========================================
+if os.environ.get("GEMINI_API_KEY"):
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# ==========================================
+# ADVANCED LLM-POWERED LUNG PATHOLOGY ANALYZER
+# ==========================================
+class NLPAnalyzer:
+    @staticmethod
+    def analyze_report(report_text):
+        if not os.environ.get("GEMINI_API_KEY"):
+            return {"error": "GEMINI_API_KEY environment variable is not configured."}
+        try:
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            prompt = f"""
+            You are an elite expert critical care pulmonologist and medical NLP engine.
+            Analyze the following unstructured patient clinical report or pathology notes. Identify the underlying lung pathology and determine the realistic respiratory parameters, descriptions, and solutions suitable for a lung simulation engine.
+            
+            Patient Report:
+            "{report_text}"
+            
+            Provide your response strictly as a JSON object with the following keys and layout. Do NOT include markdown blocks like ```json.
+            {{
+                "condition": "Specific Diagnosis Name",
+                "description": "A highly detailed pathophysiological breakdown of compliance, airway resistance, and exchange impacts.",
+                "solutions": [
+                    "Action plan item 1",
+                    "Action plan item 2",
+                    "Action plan item 3",
+                    "Action plan item 4"
+                ],
+                "vt_input": 450,
+                "peep": 10,
+                "pplat": 25,
+                "pip": 32,
+                "peak_flow": 60,
+                "fio2": 50,
+                "rr": 16
+            }}
+            """
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json", "temperature": 0.2}
+            )
+            return json.loads(response.text.strip())
+        except Exception as e:
+            return {"error": f"NLP Engine Failure: {str(e)}"}
+
+# ==========================================
+# ADVANCED LIVE CONTEXT-AWARE LYRA ENGINE
+# ==========================================
+class LyraAssistant:
+    @staticmethod
+    def chat_response(user_message, active_patient_context, chat_history):
+        if not os.environ.get("GEMINI_API_KEY"):
+            return "Lyra System Offline: Please configure a GEMINI_API_KEY."
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            formatted_history = []
+            for msg in chat_history:
+                role = "model" if msg.get("sender") == "lyra" else "user"
+                formatted_history.append({"role": role, "parts": [msg.get("text", "")]})
+                
+            system_instruction = f"""
+            You are Lyra, an advanced Respiratory Care AI Assistant with master-level knowledge of mechanical ventilation, ABGs, and pulmonary physiology.
+            You are actively monitoring a patient with the following simulated live parameters:
+            - Pathology Group: {active_patient_context.get('ai_condition', 'Undifferentiated State')}
+            - Pathophysiological Baseline: {active_patient_context.get('ai_description', 'Awaiting sync.')}
+            - Measured Arterial pH: {active_patient_context.get('ph', 7.40)}
+            - PaCO2: {active_patient_context.get('paco2', 40)} mmHg
+            - PaO2: {active_patient_context.get('pao2', 95)} mmHg
+            - Acid-Base Diagnosis: {active_patient_context.get('acid_base_status', 'Normal')}
+            - Lung Compliance: {active_patient_context.get('compliance', 50)} mL/cmH2O
+            - Airway Resistance: {active_patient_context.get('resistance', 5)} cmH2O/L/s
+            - Shunt Fraction: {active_patient_context.get('shunt', 5)}%
+            
+            Guidelines:
+            Act as an expert co-pilot. Be conversational yet professional. Address questions directly using the clinical numbers shown above.
+            """
+            chat = model.start_chat(history=formatted_history)
+            response = chat.send_message(f"System Context: {system_instruction}\n\nUser Message: {user_message}")
+            return response.text
+        except Exception as e:
+            return f"Lyra Connection Error: {str(e)}"
 
 # ==========================================
 # 1. DATABASE INITIALIZATION
@@ -1501,7 +1589,55 @@ def dashboard():
         inputs['custom_ai_cond'] = custom_cond
         inputs['custom_ai_plan'] = custom_plan
 
-    return render_template_string(DASHBOARD_HTML, sim_data=sim_data, inputs=inputs, current_preset=preset)
+    return render_template_string(DASHBOARD_HTML, sim_data=sim_data, inputs=inputs, current_preset=preset) 
+
+# ==========================================
+# ASYNCHRONOUS API ROUTES FOR AI INTEGRATION
+# ==========================================
+@app.route('/api/analyze-report', methods=['POST'])
+def api_analyze_report():
+    data = request.get_json() or {}
+    report_text = data.get("report_text", "")
+    if not report_text.strip():
+        return jsonify({"error": "Report text field cannot be blank."}), 400
+    return jsonify(NLPAnalyzer.analyze_report(report_text))
+
+@app.route('/api/lyra-chat', methods=['POST'])
+def api_lyra_chat():
+    data = request.get_json() or {}
+    user_message = data.get("message", "")
+    chat_history = data.get("history", [])
+    active_context = session.get("last_sim_data", {})
+    reply = LyraAssistant.chat_response(user_message, active_context, chat_history)
+    return jsonify({"reply": reply})
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+def dashboard():
+    if 'user' not in session: return redirect(url_for('home'))
+    sim_data = None
+    inputs = {}
+    preset = request.form.get('preset_id', '')
+    custom_desc = request.form.get('custom_ai_desc', '')
+    custom_cond = request.form.get('custom_ai_cond', '')
+    custom_plan = request.form.get('custom_ai_plan', '')
+    
+    if request.method == 'POST':
+        inputs = {k: request.form.get(k) for k in request.form if k not in ['preset_id', 'custom_ai_desc', 'custom_ai_cond', 'custom_ai_plan']}
+        clean_inputs = {k: RespiratoryEngine.safe_float(v, 0) for k, v in inputs.items()}
+        try:
+            sim_data = RespiratoryEngine.calculate_simulation(clean_inputs, preset, custom_desc, custom_cond, custom_plan)
+            
+            # SAVES COMPUTE STATE SO LYRA CAN RETRIEVE THE CLINICAL CONTEXT REAL-TIME
+            session['last_sim_data'] = sim_data
+            
+        except Exception:
+            flash(f"Error calculating metrics: {traceback.format_exc()}")
+            
+        inputs['custom_ai_desc'] = custom_desc
+        inputs['custom_ai_cond'] = custom_cond
+        inputs['custom_ai_plan'] = custom_plan
+
+    return render_template_string(INDEX_HTML, sim_data=sim_data, inputs=inputs, preset=preset)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
