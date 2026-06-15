@@ -3,100 +3,12 @@ import math
 import json
 import sqlite3
 import traceback
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string, jsonify
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string
 from werkzeug.security import generate_password_hash, check_password_hash
-import google.generativeai as genai
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "aerolung_absolute_sync_2026")
 DB_NAME = "aerolung_database.db"
-
-# ==========================================
-# GEMINI API INITIALIZATION
-# ==========================================
-if os.environ.get("GEMINI_API_KEY"):
-    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-
-# ==========================================
-# ADVANCED LLM-POWERED LUNG PATHOLOGY ANALYZER
-# ==========================================
-class NLPAnalyzer:
-    @staticmethod
-    def analyze_report(report_text):
-        if not os.environ.get("GEMINI_API_KEY"):
-            return {"error": "GEMINI_API_KEY environment variable is not configured."}
-        try:
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            prompt = f"""
-            You are an elite expert critical care pulmonologist and medical NLP engine.
-            Analyze the following unstructured patient clinical report or pathology notes. Identify the underlying lung pathology and determine the realistic respiratory parameters, descriptions, and solutions suitable for a lung simulation engine.
-            
-            Patient Report:
-            "{report_text}"
-            
-            Provide your response strictly as a JSON object with the following keys and layout. Do NOT include markdown blocks like ```json.
-            {{
-                "condition": "Specific Diagnosis Name",
-                "description": "A highly detailed pathophysiological breakdown of compliance, airway resistance, and exchange impacts.",
-                "solutions": [
-                    "Action plan item 1",
-                    "Action plan item 2",
-                    "Action plan item 3",
-                    "Action plan item 4"
-                ],
-                "vt_input": 450,
-                "peep": 10,
-                "pplat": 25,
-                "pip": 32,
-                "peak_flow": 60,
-                "fio2": 50,
-                "rr": 16
-            }}
-            """
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json", "temperature": 0.2}
-            )
-            return json.loads(response.text.strip())
-        except Exception as e:
-            return {"error": f"NLP Engine Failure: {str(e)}"}
-
-# ==========================================
-# ADVANCED LIVE CONTEXT-AWARE LYRA ENGINE
-# ==========================================
-class LyraAssistant:
-    @staticmethod
-    def chat_response(user_message, active_patient_context, chat_history):
-        if not os.environ.get("GEMINI_API_KEY"):
-            return "Lyra System Offline: Please configure a GEMINI_API_KEY."
-        try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            formatted_history = []
-            for msg in chat_history:
-                role = "model" if msg.get("sender") == "lyra" else "user"
-                formatted_history.append({"role": role, "parts": [msg.get("text", "")]})
-                
-            system_instruction = f"""
-            You are Lyra, an advanced Respiratory Care AI Assistant with master-level knowledge of mechanical ventilation, ABGs, and pulmonary physiology.
-            You are actively monitoring a patient with the following simulated live parameters:
-            - Pathology Group: {active_patient_context.get('ai_condition', 'Undifferentiated State')}
-            - Pathophysiological Baseline: {active_patient_context.get('ai_description', 'Awaiting sync.')}
-            - Measured Arterial pH: {active_patient_context.get('ph', 7.40)}
-            - PaCO2: {active_patient_context.get('paco2', 40)} mmHg
-            - PaO2: {active_patient_context.get('pao2', 95)} mmHg
-            - Acid-Base Diagnosis: {active_patient_context.get('acid_base_status', 'Normal')}
-            - Lung Compliance: {active_patient_context.get('compliance', 50)} mL/cmH2O
-            - Airway Resistance: {active_patient_context.get('resistance', 5)} cmH2O/L/s
-            - Shunt Fraction: {active_patient_context.get('shunt', 5)}%
-            
-            Guidelines:
-            Act as an expert co-pilot. Be conversational yet professional. Address questions directly using the clinical numbers shown above.
-            """
-            chat = model.start_chat(history=formatted_history)
-            response = chat.send_message(f"System Context: {system_instruction}\n\nUser Message: {user_message}")
-            return response.text
-        except Exception as e:
-            return f"Lyra Connection Error: {str(e)}"
 
 # ==========================================
 # 1. DATABASE INITIALIZATION
@@ -692,105 +604,598 @@ GLOBAL_CSS_JS = """
         });
     }
 
-// ==========================================
-// 1. NLP REPORT ANALYZER API CALL
-// ==========================================
-    async function analyzeReport() {
-        const reportInput = document.getElementById('report_text_area'); 
-        if (!reportInput || !reportInput.value.trim()) {
-            alert("Please paste a clinical report first.");
+// NLP CLINICAL RECORD ANALYZER (COMPREHENSIVE PULMONARY MAPPING MATRIX)
+function processClinicalNotes() {
+    const text = document.getElementById('patient_record_input').value.toLowerCase();
+    if(!text.trim()) return;
+    
+    document.getElementById('notes-modal').classList.add('hidden');
+    
+    let suspicion = 'Undifferentiated Respiratory Distress';
+    let evidence = "The patient presents with respiratory compromise of mixed or atypical etiology. No single classic pattern dominated the narrative. Clinical presentation warrants broad diagnostic workup.";
+    let missing = "Comprehensive metabolic panel, ABG, and advanced imaging (CT Chest).";
+    let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
+    let presetMap = 'custom';
+
+    // Extract Vitals
+    let vitals = [];
+    const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\d{2,3})/);
+    if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
+    const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\d{2,3})/);
+    if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
+    const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\d{2,3})/);
+    if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
+    let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
+
+    // The Exhaustive Pulmonary Profile Registry
+    const pathologyProfiles = [
+        // ==========================================
+        // SECTION 1: CORE CLINICAL PRESETS
+        // ==========================================
+        {
+            name: 'End-Stage COPD / Emphysema',
+            keywords: ['smok', 'barrel', 'productive cough', 'hyperinflation', 'expiratory phase', 'coalesced bullae', 'gold guidelines', 'fev1'],
+            evidence: "Chronic productive cough and heavy smoking history strongly suggest COPD with underlying emphysematous changes, chronic air trapping, and hyperinflation.",
+            missing: "Formal Spirometry showing FEV1/FVC < 0.70 to confirm severe obstruction, and a current baseline ABG to check for chronic hypercapnia.",
+            treatments: ["Administer continuous nebulized bronchodilators (Albuterol/Ipratropium).", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92% to prevent blunting of hypoxic drive.", "Utilize NiPPV/BiPAP to reduce work of breathing."],
+            presetMap: 'copd'
+        },
+        {
+            name: 'Status Asthmaticus',
+            keywords: ['wheez', 'asthma', 'albuterol', 'bronchospasm', 'fluticasone', 'montelukast', 'atopic', 'eosinophilic'],
+            evidence: "Auscultation of loud, bilateral expiratory wheezing along with episodic shortness of breath suggests severe reactive airway disease and critical bronchospasm.",
+            missing: "Peak expiratory flow rate (PEFR) and response to continuous nebulization.",
+            treatments: ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids (e.g., Solu-Medrol).", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."],
+            presetMap: 'asthma'
+        },
+        {
+            name: 'Cardiogenic Pulmonary Edema',
+            keywords: ['orthopnea', 'frothy', 'jvd', 'jugular vein', 'bnp', 'furosemide', 'chf', 'cardiomegaly', 'pcwp'],
+            evidence: "Findings of bibasilar crackles, orthopnea, and hypoxemia strongly point to left ventricular failure causing massive fluid transudation into the alveoli.",
+            missing: "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.",
+            treatments: ["Administer IV loop diuretics (e.g., Furosemide) immediately.", "Apply CPAP or BiPAP to decrease work of breathing and displace alveolar fluid.", "Administer vasodilators (e.g., Nitroglycerin) to reduce cardiac preload."],
+            presetMap: 'edema'
+        },
+        {
+            name: 'Massive Pleural Effusion',
+            keywords: ['effusion', 'dullness', 'fluid collection', 'thoracentesis', 'pleural fluid', 'stony dullness', 'loculated'],
+            evidence: "Findings such as stony dullness to percussion, significantly decreased air entry, and identified fluid collections suggest marked accumulation in the pleural space, compressing underlying lung tissue.",
+            missing: "Diagnostic thoracentesis for pleural fluid analysis (Light's criteria), Cytology, and CT Chest with contrast.",
+            treatments: ["Perform therapeutic and diagnostic thoracentesis.", "Consider pigtail catheter or chest tube placement if fluid reaccumulates rapidly.", "Send pleural fluid for cell count, Gram stain, protein, LDH, and cytology."]
+        },
+        {
+            name: 'Acute Anaphylactic Shock / Airway Edema',
+            keywords: ['anaphylaxis', 'hives', 'allergen', 'stridor', 'epinephrine', 'urticaria', 'laryngeal edema', 'angioedema'],
+            evidence: "The rapid onset of respiratory distress combined with potential allergic triggers strongly suggests anaphylaxis. Upper airway compromise threatens complete occlusion.",
+            missing: "Serum tryptase levels and a detailed allergen exposure history.",
+            treatments: ["IMMEDIATE Intramuscular Epinephrine (1:1000) 0.3-0.5 mg.", "Secure airway early; prepare for difficult intubation or surgical airway if edema is severe.", "Administer IV H1 and H2 antihistamines and systemic corticosteroids."]
+        },
+        {
+            name: 'Septic Shock with Secondary Pulmonary Compromise',
+            keywords: ['sepsis', 'lactic', 'infection', 'hypotension', 'septicemia', 'bacteremia', 'map <', 'surviving sepsis'],
+            evidence: "The narrative points to profound systemic inflammation, driven by an underlying infection. Hypotension and metabolic distress suggest distributive shock predisposing to acute lung capillary leaks.",
+            missing: "Blood cultures (x2 sets), urine culture, comprehensive metabolic panel, and serum lactate levels.",
+            treatments: ["Initiate surviving sepsis bundle: 30 mL/kg IV crystalloid fluid bolus.", "Administer broad-spectrum IV antibiotics within 1 hour.", "Start vasopressors (Norepinephrine) if mean arterial pressure (MAP) remains < 65 mmHg."]
+        },
+
+        // ==========================================
+        // SECTION 2: ACUTE SURGICAL, VASCULAR & CRISIS PATHOLOGIES
+        // ==========================================
+        {
+            name: 'Pneumothorax / Tension Pneumothorax',
+            keywords: ['pneumothorax', 'collapsed lung', 'hyperresonance', 'absent breath', 'tracheal deviation', 'visceral pleura', 'deep sulcus sign'],
+            evidence: "Asymmetric or completely absent breath sounds combined with hyperresonance to percussion indicates a critical air leak into the pleural space.",
+            missing: "Immediate upright chest X-ray or point-of-care thoracic ultrasound (POCUS looking for absence of lung sliding).",
+            treatments: ["Perform urgent needle decompression if tension physiology (hemodynamic collapse, tracheal deviation) is present.", "Prepare for formal tube thoracostomy insertion.", "Administer high-flow 100% oxygen to facilitate pleural gas reabsorption."]
+        },
+        {
+            name: 'Acute Respiratory Distress Syndrome (ARDS)',
+            keywords: ['ards', 'refractory hypoxemia', 'pao2/fio2', 'p/f ratio', 'non-cardiogenic', 'bilateral infiltrates', 'diffuse alveolar damage', 'berlin criteria'],
+            evidence: "Severe hypoxemia highly refractory to standard high-flow oxygen delivery paired with bilateral pulmonary infiltrates strongly points to a diffuse alveolar capillary leak condition.",
+            missing: "Calculation of the precise PaO2/FiO2 ratio and an echocardiogram to definitively rule out a primary hydrostatic cardiogenic origin.",
+            treatments: ["Initiate low-tidal-volume lung-protective ventilation settings (4-6 mL/kg predicted body weight).", "Titrate high positive end-expiratory pressure (PEEP) tables to preserve recruitment.", "Enforce early prolonged prone positioning cycles (16+ hours per day) for severe cases."]
+        },
+        {
+            name: 'Acute Pulmonary Embolism (PE)',
+            keywords: ['embolism', 'dvt', 'clot', 'thrombosis', 'wells score', 's1q3t3', 'ctpa', 'ventilation-perfusion mismatch', 'hampton', 'westermark'],
+            evidence: "Sudden onset chest pain, profound hypoxia without explicit consolidative parenchymal structural changes, or signs of right ventricular strain suggest macrovascular occlusion.",
+            missing: "CT Pulmonary Angiography (CTPA), high-sensitivity Troponin, and a quantitative D-dimer assay.",
+            treatments: ["Initiate systemic weight-based anticoagulation immediately (e.g., Unfractionated Heparin infusion) if absolute bleeding hazards are absent.", "Maintain strict bedrest and clear advanced systemic fibrinolytic or embolectomy pathways for hemodynamically unstable cases."]
+        },
+        {
+            name: 'Fat Embolism Syndrome',
+            keywords: ['fat embolism', 'long bone fracture', 'femur fracture', 'petechial rash', 'confusion', 'lipiduria'],
+            evidence: "The classic triad of respiratory distress, neurological confusion, and axillary/subconjunctival petechiae following a traumatic long-bone fracture points to fat embolization.",
+            missing: "Funduscopic examination for fat globules, brain MRI, and arterial blood gas metrics.",
+            treatments: ["Provide aggressive supportive respiratory therapy and early mechanical ventilation.", "Enforce early surgical fixation of the causative bone fractures to minimize further marrow leakage.", "Administer systemic hydration logs carefully."]
+        },
+        {
+            name: 'Amniotic Fluid Embolism (AFE)',
+            keywords: ['amniotic', 'labor', 'postpartum', 'dic', 'consumptive coagulopathy', 'uterine atony'],
+            evidence: "Sudden, catastrophic cardiovascular collapse accompanied by profound hypoxia, alterations in consciousness, and acute consumptive coagulopathy (DIC) during labor dictates an AFE crisis.",
+            missing: "Stat coagulation profiles (TEG/ROTEM), echocardiography to evaluate acute right heart failure, and blood gas panels.",
+            treatments: ["Initiate immediate high-quality cardiopulmonary resuscitation if arrest occurs, utilizing the A-O-K protocol (Atropine, Ondansetron, Ketorolac).", "Correct consumptive coagulopathy aggressively via massive transfusion protocols (PRBC, FFP, Cryoprecipitate)."]
+        },
+
+        // ==========================================
+        // SECTION 3: OCCUPATIONAL & CHEMICAL INHALATION DISEASES
+        // ==========================================
+        {
+            name: 'Hypersensitivity Pneumonitis (Bird Fancier / Farmer Lung)',
+            keywords: ['bird', 'pigeon', 'feather', 'coop', 'breeder', 'hay', 'farmer', 'moldy', 'grain dust', 'thermophilic', 'isocyanates'],
+            evidence: "The acute systemic presentation immediately following exposure to organic dusts or avian antigens points directly to immune-mediated alveolar inflammation.",
+            missing: "Specific IgG serum antibodies against suspected antigens, High-Resolution CT showing centrilobular nodules, and bronchoalveolar lavage (BAL) showing marked lymphocytosis.",
+            treatments: ["Complete removal from the source of antigen exposure immediately.", "Consider systemic corticosteroid therapy for severe, acute respiratory restriction.", "Provide humidified oxygen and monitor lung volumes via spirometry."]
+        },
+        {
+            name: 'Acute Pulmonary Silicosis',
+            keywords: ['stonecutter', 'sandblast', 'silica', 'quarry', 'foundry', 'eggshell', 'quartz', 'rock dust', 'pottery'],
+            evidence: "An occupational history of crystalline silica exposure coupled with upper-lobe nodules and classic eggshell calcifications outlines an aggressive, fibrotic alveolar process.",
+            missing: "Occupational history mapping, HRCT Chest, and pulmonary function testing to measure restrictive degradation.",
+            treatments: ["Immediate cessation of all occupational silica dust exposure.", "Provide aggressive symptomatic therapy (bronchodilators, cough suppressants).", "Screen for secondary Mycobacterium tuberculosis infection, as these patients are at extremely high risk."]
+        },
+        {
+            name: 'Asbestosis / Mesothelioma',
+            keywords: ['shipyard', 'insulation', 'brake lining', 'asbestos', 'pleural plaque', 'ferruginous body', 'chrysotile', 'crocidolite', 'mesothelial'],
+            evidence: "Chronic occupational asbestos particle inhalation leading to interstitial fibrosis or unilateral pleural thickening represents a heavy mineral dust tissue disease.",
+            missing: "High-Resolution CT to distinguish benign plaques from malignant transformation, and tissue biopsy if nodules are tracking upwards.",
+            treatments: ["Strict smoking cessation enforcement (due to exponential multiplier risk for malignancy).", "Enforce strict pulmonary surveillance with serial spirometry testing.", "Provide palliative oxygen therapy for restrictive work of breathing."]
+        },
+        {
+            name: 'Coal Workers Pneumoconiosis (Black Lung)',
+            keywords: ['anthracosis', 'coal miner', 'anthracotic', 'black lung', 'progressive massive fibrosis', 'pmf', 'caplan syndrome'],
+            evidence: "Prolonged carbonaceous dust inhalation with structural radiographic confluence of dark, fibrotic masses matches a classic black lung industrial profile.",
+            missing: "Detailed mining timeline collection, baseline spirometry, and high-resolution imaging tracking.",
+            treatments: ["Enforce definitive extraction from high-dust environments.", "Provide optimized supportive pulmonary hygiene and bronchodilator support.", "Track structural transformations to avoid progressive massive fibrosis limits."]
+        },
+        {
+            name: 'Beryllium Disease (Berylliosis)',
+            keywords: ['beryllium', 'aerospace', 'electronics plant', 'non-caseating', 'beryllium lymphocyte proliferation test', 'blpt'],
+            evidence: "Occupational histories spanning advanced electronics fabrication or aerospace manufacturing with secondary systemic sarcoid-like granulomas suggest a delayed hypersensitivity state.",
+            missing: "Beryllium Lymphocyte Proliferation Testing (BLPT) and detailed chemical exposure records.",
+            treatments: ["Initiate high-dose systemic immunosuppressive therapy via corticosteroids.", "Mandate permanent removal from specialized high-tech industrial exposure fields.", "Monitor diffusion metrics closely over multi-year cycles."]
+        },
+        {
+            name: 'Flour Hawk / Baker Asthma',
+            keywords: ['baker', 'flour dust', 'amylase', 'dough', 'mill', 'grain allergen'],
+            evidence: "Occupational IgE-mediated bronchoconstriction occurring secondary to chronic flour or enzyme dust inhalation in commercial baking settings.",
+            missing: "Skin prick testing for grain allergens and serial peak flow tracking both on and off shift.",
+            treatments: ["Implement high-efficiency mask systems and optimized workplace ventilation filters.", "Manage reactive airway updates utilizing standard inhaled corticosteroid pathways."]
+        },
+        {
+            name: 'Silo Filler Lung (Nitrogen Dioxide Poisoning)',
+            keywords: ['silo', 'nitrogen dioxide', 'no2', 'fermenting grain', 'silo-filler', 'yellow gas'],
+            evidence: "Inhalation of toxic nitrogen dioxide concentrations arising from freshly fermenting agricultural grain fields, triggering hyper-acute chemical pneumonitis.",
+            missing: "Methemoglobin evaluation, baseline blood gas monitoring, and serial chest imaging maps.",
+            treatments: ["Provide absolute mechanical avoidance of agricultural containment centers.", "Administer early aggressive corticosteroid pulses to arrest chemical bronchiolitis obliterans development."]
+        },
+        {
+            name: 'Popcorn Lung (Bronchiolitis Obliterans via Diacetyl)',
+            keywords: ['diacetyl', 'popcorn factory', 'flavoring agent', 'vaping', 'e-cigarette', 'e-cig', 'fixed obstruction'],
+            evidence: "Severe chemical-induced injury to the terminal bronchioles via diacetyl exposure, culminating in a profound, fixed non-reversible obstructive profile.",
+            missing: "High-Resolution CT demonstrating widespread air trapping on expiratory imaging, alongside spirometry profiles showing no bronchodilator response.",
+            treatments: ["Strictly eliminate all exposure to artificial flavoring agents or electronic vaping materials.", "Evaluate the candidate for salvage surgical interventions, up to lung transplantation options."]
+        },
+
+        // ==========================================
+        // SECTION 4: INFECTIONS & IMMUNOCOMPROMISED RESPIRATORY DISEASE
+        // ==========================================
+        {
+            name: 'Active Pulmonary Tuberculosis (TB)',
+            keywords: ['night sweats', 'hemoptysis', 'cavitary', 'acid-fast', 'weight loss', 'afb smear', 'granuloma', 'ghon', 'caseating'],
+            evidence: "Constitutional wasting symptoms combined with bloody sputum and upper lobe cavitations structurally define a chronic mycobacterial destructive parenchymal pattern.",
+            missing: "Sputum Acid-Fast Bacilli (AFB) smear and culture (x3), and molecular GeneXpert MTB/RIF tracking.",
+            treatments: ["Isolate patient immediately in an airborne infection isolation room (AIIR) with negative pressure.", "Initiate empiric four-drug therapy (Rifampin, Isoniazid, Pyrazinamide, Ethambutol) once isolated.", "Notify local department of public health within 24 hours."]
+        },
+        {
+            name: 'Acute Bacterial Pneumonia',
+            keywords: ['pneumonia', 'consolidation', 'infiltrate', 'purulent sputum', 'streptococcus pneumoniae', 'lobar consolidation', 'rusty sputum', 'procalcitonin'],
+            evidence: "Focal or multi-lobar alveolar consolidations paired with purulent expectoration and high inflammatory markers indicate an acute, exudative infectious process.",
+            missing: "Sputum Gram stain and culture, urinary antigen tests (Legionella/Pneumococcal), and blood cultures.",
+            treatments: ["Administer empiric broad-spectrum antibiotic therapy matched to community or hospital guidelines within 1 hour.", "Optimize hydration profiles and deliver aggressive airway clearance support."]
+        },
+        {
+            name: 'Pneumocystis Jirovecii Pneumonia (PJP / PCP)',
+            keywords: ['pcp', 'pjp', 'jirovecii', 'hiv', 'cd4 <', 'immunocompromised', 'bat-wing', 'silver stain', 'ldh elevation'],
+            evidence: "Perihilar ground-glass interstitial markings combined with disproportionately severe hypoxemia in an immunocompromised host indicates classic opportunistic fungal filling.",
+            missing: "Induced sputum or bronchoalveolar lavage for silver stain microscopy or PCR validation, alongside a CD4 T-cell count.",
+            treatments: ["Initiate high-dose intravenous or oral Trimethoprim-Sulfamethoxazole (TMP-SMX).", "Concurrently administer adjunctive systemic corticosteroids if PaO2 is less than 70 mmHg or A-a gradient exceeds 35 mmHg."]
+        },
+        {
+            name: 'Lung Abscess',
+            keywords: ['abscess', 'cavitary lesion with fluid level', 'air-fluid level', 'foul breath', 'putrid sputum', 'aspiration risk', 'periodontal disease'],
+            evidence: "The presentation of putrid, foul-smelling sputum paired with a discrete air-fluid level on chest imaging points directly to a necrotizing parenchymal anaerobic collection.",
+            missing: "CT Chest with contrast to define the abscess wall architecture, and sputum or fluid testing to guide antimicrobial choices.",
+            treatments: ["Initiate prolonged courses of tailored antibiotic coverage containing adequate anaerobic coverage (e.g., Ampicillin-Sulbactam or Clindamycin).", "Incentivize aggressive postural drainage regimes while monitoring for sudden empyema transformations."]
+        },
+        {
+            name: 'Allergic Bronchopulmonary Aspergillosis (ABPA)',
+            keywords: ['abpa', 'aspergillus', 'brown plugs', 'central bronchiectasis', 'ige elevation', 'aspergillin'],
+            evidence: "Hypersensitivity immune reactions targeting Aspergillus colonization within structural asthmatic or cystic fibrosis airway loops, indicated by brown mucous plugs.",
+            missing: "Total serum IgE metrics, Aspergillus-specific IgE/IgG testing, and eosinophil validation logs.",
+            treatments: ["Administer systemic oral corticosteroids to reduce hyper-inflammatory responses.", "Incorporate systemic antifungal agents (e.g., Itraconazole) to deplete colonizing fungal loads."]
+        },
+
+        // ==========================================
+        // SECTION 5: AUTOIMMUNE ALVEOLAR & VASCULITIC DISORDERS
+        // ==========================================
+        {
+            name: 'Diffuse Alveolar Hemorrhage / Goodpasture Syndrome',
+            keywords: ['goodpasture', 'anti-gbm', 'glomerulonephritis', 'hemoptysis and hematuria', 'alveolar hemorrhage', 'linear iga', 'linear igg'],
+            evidence: "Concurrent presentation of structural alveolar capillary bleeding and proliferative acute glomerulonephritis secondary to anti-glomerular basement membrane (GBM) antibody attacks.",
+            missing: "Serological anti-GBM antibody screening, urgent renal biopsy evaluating crescentic changes, and serial DLCO testing metrics.",
+            treatments: ["Initiate immediate plasmapheresis cycles to filter pathogenic autoantibodies.", "Prescribe pulse-dose intravenous Methylprednisolone and concurrent Cyclophosphamide protocols."]
+        },
+        {
+            name: 'Granulomatosis with Polyangiitis (GPA / Wegener)',
+            keywords: ['wegener', 'gpa', 'c-anca', 'pr3', 'saddle nose', 'sinusitis', 'cavitary nodules'],
+            evidence: "Necrotizing granulomatous vasculitis involving the upper and lower respiratory tracts paired with focal necrotizing glomerulonephritis.",
+            missing: "Cytoplasmic antineutrophil cytoplasmic antibody (c-ANCA / anti-PR3) testing, sinus imaging, and histological confirmation via biopsy.",
+            treatments: ["Induce remission utilizing high-dose corticosteroids paired with Rituximab or Cyclophosphamide.", "Closely track renal and airway metrics to anticipate critical subglottic stenosis."]
+        },
+        {
+            name: 'Eosinophilic Granulomatosis with Polyangiitis (EGPA / Churg-Strauss)',
+            keywords: ['churg-strauss', 'egpa', 'p-anca', 'eosinophilia', 'peripheral neuropathy', 'asthma exacerbation with systemic vasculitis'],
+            evidence: "Severe corticosteroid-dependent reactive airway changes paired with profound peripheral blood eosinophilia and multi-organ vasculitic profiles imply systemic eosinophilic destruction.",
+            missing: "Perinuclear antineutrophil cytoplasmic antibody (p-ANCA) testing and specific tissue biopsy confirmation.",
+            treatments: ["Initiate high-dose systemic corticosteroid pulse therapies.", "Incorporate secondary steroid-sparing immunosuppressive agents (e.g., Cyclophosphamide or Mepolizumab) for severe configurations."]
+        },
+
+        // ==========================================
+        // SECTION 6: CHRONIC INTERSTITIAL & STORAGE DISEASES
+        // ==========================================
+        {
+            name: 'Idiopathic Pulmonary Fibrosis (IPF)',
+            keywords: ['honeycombing', 'honeycomb', 'velcro crackles', 'restrictive defect', 'traction bronchiectasis', 'uip', 'nintedanib', 'pirfenidone'],
+            evidence: "Progressive, non-productive cough, distinctive basal 'Velcro' crackles, and architectural distortion matching a Usual Interstitial Pneumonia (UIP) pattern suggest progressive parenchymal fibrosing.",
+            missing: "High-Resolution CT (HRCT) displaying subpleural, basal-predominant reticular changes, and complete autoantibody screen to exclude connective tissue disease.",
+            treatments: ["Consider initiation of antifibrotic therapies (e.g., Nintedanib or Pirfenidone) to slow decline.", "Titrate long-term supplemental oxygen therapy to protect oxygen delivery profiles.", "Refer immediately for early lung transplantation evaluation."]
+        },
+        {
+            name: 'Pulmonary Alveolar Proteinosis (PAP)',
+            keywords: ['milky', 'opaque fluid', 'lavage', 'bal', 'surfactant', 'pas-positive', 'crazy-paving', 'gm-csf'],
+            evidence: "The discovery of an opaque, milky effluent during bronchoscopy indicates a catastrophic accumulation of surfactant proteins within the alveoli due to altered clearance mechanics.",
+            missing: "Serum GM-CSF antibody testing, CT Chest confirming a distinctive 'crazy-paving' attenuation pattern.",
+            treatments: ["Prepare patient for a therapeutic Whole Lung Lavage (WLL) under general anesthesia.", "Monitor arterial oxygen saturation closely during mechanical extraction procedures.", "Consider subcutaneous GM-CSF therapy if autoimmune variants are laboratory confirmed."]
+        },
+        {
+            name: 'Pulmonary Sarcoidosis',
+            keywords: ['sarcoidosis', 'granuloma', 'hilar lymphadenopathy', 'erythema nodosum', 'ace level', 'noncaseating', 'lfgren syndrome'],
+            evidence: "Bilateral symmetrical hilar lymphadenopathy and non-caseating granulomatous infiltration indicate a multi-system, immune-mediated epithelioid disease.",
+            missing: "Serum Angiotensin-Converting Enzyme (ACE) levels, High-Resolution CT, and transbronchial lung biopsy.",
+            treatments: ["Initiate systemic corticosteroid regimens if major functional impairment or organ involvement develops.", "Perform baseline ECGs and ophthalmological screenings to evaluate for systemic extrapulmonary tracking."]
+        },
+        {
+            name: 'Lymphangioleiomyomatosis (LAM)',
+            keywords: ['lam', 'cystic lung disease', 'chylothorax', 'tuberous sclerosis', 'vegf-d', 'sirolimus', 'pneumothorax in young female'],
+            evidence: "Widespread thin-walled cystic parenchymal destruction seen almost exclusively in young females, frequently presenting with recurrent pneumothoraces or chylous fluid leaks.",
+            missing: "Serum VEGF-D level testing, and high-resolution imaging verifying symmetric cystic transformations.",
+            treatments: ["Initiate mTOR inhibitor therapy using Sirolimus to slow structural lung degradation.", "Enforce strict avoidance of exogenous estrogen containing pharmaceutical compounds."]
+        },
+
+        // ==========================================
+        // SECTION 7: ADVANCED PULMONARY VASCULAR DISEASES
+        // ==========================================
+        {
+            name: 'Pulmonary Arterial Hypertension (PAH)',
+            keywords: ['pah', 'cor pulmonale', 'rvh', 'right heart failure', 'tricuspid regurgitation', 'p2 loudness', 'sildenafil', 'epoprostenol'],
+            evidence: "Evidence of prominent right-sided heart workload without primary left-sided heart disease suggests structural or idiopathic remodeling of the pulmonary vascular bed.",
+            missing: "Right heart catheterization to calculate mean pulmonary artery pressure, Echocardiogram, and V/Q scan to rule out chronic thromboembolism.",
+            treatments: ["Administer targeted pulmonary vasodilators (e.g., phosphodiesterase-5 inhibitors, endothelin receptor antagonists) as indicated.", "Cautiously manage fluid balance using diuretics.", "Maintain strict avoidance of hypoxic environments."]
+        },
+        {
+            name: 'Pulmonary Veno-Occlusive Disease (PVOD)',
+            keywords: ['pvod', 'veno-occlusive', 'septal lines', 'centrilobular ground glass', 'pulmonary edema after vasodilators'],
+            evidence: "Extremely rare vascular variant characterized by progressive post-capillary obstruction of small pulmonary veins, often presenting with paradoxical worsening of edema upon initiating standard PAH vasodilators.",
+            missing: "Genetic screening for EIF2AK4 mutations, and HRCT mapping confirming septal lines and centrilobular ground-glass nodules.",
+            treatments: ["Immediately discontinue any pulmonary arterial vasodilators that aggravate the condition.", "Refer urgently for emergency lung transplantation evaluation, as pharmacological management profiles are poor."]
+        },
+        {
+            name: 'Hereditary Hemorrhagic Telangiectasia (HHT / Osler-Weber-Rendu)',
+            keywords: ['hht', 'telangiectasia', 'osler-weber-rendu', 'pulmonary avm', 'arteriovenous malformation', 'epistaxis', 'right-to-left shunt'],
+            evidence: "Systemic vascular dysplasia featuring multi-organ arteriovenous malformations (AVMs), precipitating dynamic right-to-left shunting and structural hemoptysis loops.",
+            missing: "Contrast echocardiography (bubble study) showing direct vascular shunting and genetic tracking profiles.",
+            treatments: ["Coordinate with interventional radiology for transcatheter embolization of pulmonary AVMs with a feeding artery > 2-3mm.", "Maintain antibiotic prophylaxis before dental procedures to decrease the incidence of embolic brain abscesses."]
+        },
+
+        // ==========================================
+        // SECTION 8: CONGENITAL, GENETIC & AIRWAY DISEASES
+        // ==========================================
+        {
+            name: 'Severe Bronchiectasis',
+            keywords: ['tram-track', 'foul sputum', 'foul-smelling', 'dilated bronchi', 'cylindrical bronchiectasis', 'mucociliary clearance', 'signet ring sign'],
+            evidence: "Chronic production of high-volume, foul-smelling sputum combined with radiographic evidence of irreversible bronchial dilation suggests structural airway destruction.",
+            missing: "High-Resolution CT (HRCT) of the chest to map airway dimensions, sputum cultures for Pseudomonas aeruginosa, and sweat chloride test to rule out late-onset cystic fibrosis.",
+            treatments: ["Implement high-frequency chest wall oscillation or mechanical airway clearance twice daily.", "Prescribe hypertonic saline nebulization to facilitate mobilization of impacted secretions.", "Initiate targeted antibiotic cycles during acute infectious exacerbations."]
+        },
+        {
+            name: 'Alpha-1 Antitrypsin Deficiency',
+            keywords: ['alpha-1', 'aatd', 'panacinar', 'basal emphysema', 'pizz', 'cirrhosis and emphysema'],
+            evidence: "Early-onset panacinar emphysema displaying a distinct predilection for the lower lung zones, frequently paired with unprovoked hepatic dysfunction.",
+            missing: "Quantitative serum Alpha-1 antitrypsin level testing and definitive AAT proteotype/genotype parsing.",
+            treatments: ["Initiate weekly intravenous augmentation therapy with human alpha-1 antitrypsin concentrates.", "Enforce absolute smoking cessation and optimized bronchodilation schedules."]
+        },
+        {
+            name: 'Cystic Fibrosis (Adult Presentation / Classic)',
+            keywords: ['cystic fibrosis', 'cftr', 'sweat chloride', 'pancreatic insufficiency', 'apical bronchiectasis', 'delta f508'],
+            evidence: "Multisystem exocrine pathway degradation driven by defective chloride ion transport, creating thick, viscous secretions that manifest as chronic apical bronchiectasis.",
+            missing: "Quantitative pilocarpine iontophoresis sweat chloride testing and comprehensive CFTR mutation genetic profiling panels.",
+            treatments: ["Administer regular nebulized dornase alfa (Pulmozyme) and hypertonic saline to cleave inspissated mucus.", "Incorporate CFTR modulators tailored specifically to the patient's verified genetic variations."]
+        },
+        {
+            name: 'Primary Ciliary Dyskinesia / Kartagener Syndrome',
+            keywords: ['kartagener', 'situs inversus', 'dyskinesia', 'dynein arm', 'chronic sinusitis and bronchiectasis', 'sinus inversus'],
+            evidence: "Congenital structural defect involving the ciliary dynein arms, yielding a classic triad of chronic sinusitis, bronchiectasis, and complete visceral transposition (situs inversus).",
+            missing: "Nasal nitric oxide screening measurements, and specialized high-speed video microscopy evaluation of ciliary beat frequency.",
+            treatments: ["Establish lifelong, aggressive mechanical airway clearance routines.", "Treat recurrent sinopulmonary microbial flares early using targeted antibiotic choices."]
+        },
+
+        // ==========================================
+        // SECTION 9: PHYSIOLOGICAL VENTILATORY LOOPS & RESTRUCTURING
+        // ==========================================
+        {
+            name: 'Sleep Apnea Hypoventilation Syndrome',
+            keywords: ['snoring', 'daytime somnolence', 'obese', 'neck circumference', 'micrognathia', 'osa', 'cpap', 'polysomnography', 'ahi index'],
+            evidence: "Severe upper airway tissue collapse during rest causing progressive daytime fatigue and nocturnal hypoxia points to mechanical ventilatory failure.",
+            missing: "Overnight in-lab Polysomnography (Sleep Study) to track Apnea-Hypopnea Index (AHI) and nocturnal desaturations.",
+            treatments: ["Titrate nocturnal Continuous Positive Airway Pressure (CPAP) device parameters.", "Mandate structured weight reduction plans and evaluation of jaw anatomy.", "Avoid all central nervous system depressants and alcohol before sleeping."]
+        },
+        {
+            name: 'Obesity Hypoventilation Syndrome (Pickwickian)',
+            keywords: ['pickwickian', 'bmi >', 'hypercapnic respiratory failure', 'pco2 elevation', 'somnolence', 'bicarbonate elevation'],
+            evidence: "The combination of severe obesity, chronic daytime hypercapnia, and nocturnal hypoventilation without alternative primary lung conditions confirms Pickwickian respiratory physiology.",
+            missing: "Daytime ABG confirming pCO2 > 45 mmHg alongside formal pulmonary function profiling to rule out severe obstructive constraints.",
+            treatments: ["Deploy continuous nocturnal non-invasive positive pressure configurations (BiPAP).", "Enforce specialized dietary interventions and investigate options for bariatric care pathways."]
+        },
+        {
+            name: 'Diaphragmatic Paralysis / Neuromuscular Weakness',
+            keywords: ['diaphragm elevation', 'sniff test', 'als', 'myasthenia', 'paradoxical abdominal', 'guillain-barre', 'negative inspiratory force', 'nif'],
+            evidence: "Paradoxical inward movement of the abdominal wall during inspiration paired with rapidly declining vital capacities suggests paralysis or failure of the ventilatory pump.",
+            missing: "Fluoroscopic sniff testing, vital capacity tracking in both upright and supine positions, and serial Negative Inspiratory Force (NIF) trends.",
+            treatments: ["Establish early non-invasive or invasive mechanical ventilatory configurations before dynamic hypoventilation collapse occurs.", "Minimize systemic muscle-relaxing chemical configurations and avoid aggressive volume loading."]
+        },
+        {
+            name: 'Radiation Pneumonitis',
+            keywords: ['radiation pneumonitis', 'radiotherapy', 'malignancy exposure', 'linear opacity', 'breast cancer radiation'],
+            evidence: "Subacute fibrotic inflammation of the lung parenchyma confined strictly to previous therapeutic chest radiotherapy ports, precipitating restrictive hypoxemia.",
+            missing: "Chest CT confirming consolidation precisely correlating with geometric radiation portals, alongside exclusion of active local infections.",
+            treatments: ["Initiate prolonged systemic corticosteroid tapers (e.g., Prednisone starting at 40-60mg daily).", "Employ supportive cough suppressants and maximize targeted gas exchange parameters."]
+        }
+    ];
+
+    let leadingProfile = null;
+    let highestScore = 0;
+
+    // SCORING ENGINE: Parallel density matrix processing
+    pathologyProfiles.forEach(profile => {
+        let currentScore = 0;
+        profile.keywords.forEach(keyword => {
+            if (text.includes(keyword)) {
+                currentScore++;
+            }
+        });
+
+        if (currentScore > highestScore) {
+            highestScore = currentScore;
+            leadingProfile = profile;
+        }
+    });
+
+    // Validated Match Threshold (Density minimum check to minimize false positives)
+    if (leadingProfile && highestScore >= 2) {
+        suspicion = leadingProfile.name;
+        evidence = leadingProfile.evidence + vitalsStr;
+        missing = leadingProfile.missing;
+        treatments = leadingProfile.treatments;
+        if (leadingProfile.presetMap) presetMap = leadingProfile.presetMap;
+    } else {
+        // ==========================================
+        // SECTION 10: DYNAMIC REGEX NAME EXTRACTION FALLBACK
+        // ==========================================
+        const regexExtractor = /(?:suspect|suspected|suspicion for|diagnosis of|consistent with|evidence of)\s+([a-z\s\-]+(?:syndrome|disease|disorder|itis|oma|osis|pathy|fibrosis|asthma|edema|failure|carcinoma|malignancy|hypertension|tuberculosis|apnea|pneumoconiosis))/i;
+        const extractedMatch = text.match(regexExtractor);
+
+        if (extractedMatch && extractedMatch[1]) {
+            let exactName = extractedMatch[1].trim().toUpperCase();
+            suspicion = `Identified Pathology: ${exactName}`;
+            evidence = `The clinical documentation outlines structural anomalies explicitly matching ${exactName}. Functional diagnostics must build out this specific thoracic baseline.` + vitalsStr;
+            missing = "Targeted radiological scanning, disease-specific serology metrics, and specialized pulmonary tracking.";
+            treatments = [
+                `Follow direct clinical guidelines specific to managing ${exactName}.`,
+                "Stabilize gas-exchange parameters via targeted supplemental oxygen titration.",
+                "Order urgent subspecialty evaluation based on localized tissue impacts."
+            ];
+        } else {
+            // Unmapped Presentation Baseline
+            suspicion = 'Atypical Pulmonary Insufficiency';
+            evidence = "The patient shows objective signs of respiratory stress, but the clinical clues do not isolate a classic preset or specific disease footprint. Requires open diagnostic mapping." + vitalsStr;
+            missing = "High-Resolution CT Chest, Arterial Blood Gas profiling, and urgent specialist consultation.";
+            treatments = ["Deliver supplemental oxygen to safeguard vital organs.", "Initiate continuous monitoring of cardiac rhythm and SpO2.", "Coordinate a formal pulmonology evaluation."];
+        }
+    }
+
+    // Output Data Injection
+    const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\n\nCLINICAL EVIDENCE: ${evidence}\n\nMISSING DATA: ${missing}`;
+    
+    document.getElementById('custom_ai_desc').value = formattedOutput;
+    const condElem = document.getElementById('custom_ai_cond');
+    if(condElem) condElem.value = suspicion;
+    const planElem = document.getElementById('custom_ai_plan');
+    if(planElem) planElem.value = JSON.stringify(treatments);
+    
+    const langCode = localStorage.getItem('selectedLang') || 'en';
+    let msg = "Record analyzed. Generating profile for " + suspicion.toUpperCase();
+    document.getElementById('lyra-status').innerText = msg;
+    lyraSpeak(msg, langCode);
+    
+    if (presetMap !== 'custom') {
+        setTimeout(() => { loadPreset(presetMap); }, 2500);
+    } else {
+        document.getElementById('preset_id').value = 'custom';
+        document.getElementById('preset-dropdown').value = 'custom';
+        setTimeout(() => { document.getElementById('calc-form').submit(); }, 2500);
+    }
+}
+
+    // LYRA VOICE REPROGRAMMED
+    let recognition;
+    let lyraActive = false;
+
+    function toggleLyra() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert("Speech API not supported. Please use Chrome/Edge/Safari.");
             return;
         }
+        
+        const btn = document.getElementById('lyra-btn');
+        const status = document.getElementById('lyra-status');
+        const langCode = localStorage.getItem('selectedLang') || 'en';
 
-        const btn = document.getElementById('analyze_btn');
-        const originalText = btn ? btn.innerText : "Analyze";
-        if(btn) btn.innerText = "Analyzing Pathology...";
-
-        try {
-            const response = await fetch('/api/analyze-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ report_text: reportInput.value })
-            });
-
-            const data = await response.json();
+        if (!lyraActive) {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = false;
             
-            if (data.error) {
-                alert("Analysis Error: " + data.error);
-            } else {
-                document.querySelector('[name="vt_input"]').value = data.vt_input;
-                document.querySelector('[name="peep"]').value = data.peep;
-                document.querySelector('[name="pplat"]').value = data.pplat;
-                document.querySelector('[name="pip"]').value = data.pip;
-                document.querySelector('[name="peak_flow"]').value = data.peak_flow;
-                document.querySelector('[name="fio2"]').value = data.fio2;
-                document.querySelector('[name="rr"]').value = data.rr;
+            if (langCode === 'es') recognition.lang = 'es-ES';
+            else if (langCode === 'fr') recognition.lang = 'fr-FR';
+            else recognition.lang = 'en-US';
 
-                document.querySelector('[name="custom_ai_cond"]').value = data.condition;
-                document.querySelector('[name="custom_ai_desc"]').value = data.description;
-                document.querySelector('[name="custom_ai_plan"]').value = JSON.stringify(data.solutions);
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                status.innerText = "Heard: " + transcript;
+                processLyraCommand(transcript, langCode);
+            };
+
+            recognition.onend = function() { if (lyraActive) recognition.start(); };
+            
+            try {
+                recognition.start();
+                lyraActive = true;
+                btn.innerText = "Stop Lyra";
+                btn.className = "w-full py-3 rounded-lg bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
+                status.innerText = "Listening... Just say the pathology (e.g. 'Load COPD')";
                 
-                document.querySelector('[name="preset_id"]').value = "custom";
-
-                alert(`Analysis Complete: ${data.condition}\nClick 'Synchronize Data' to apply parameters.`);
+                lyraSpeak("Lyra activated. Awaiting pathology command.", langCode);
+            } catch(e) {
+                console.log(e);
             }
-        } catch (err) {
-            alert("API Connection Failed. Check console.");
-            console.error(err);
-        } finally {
-            if(btn) btn.innerText = originalText;
-        }
-    }
-
-    // ==========================================
-    // 2. LYRA CHAT ASSISTANT API CALL
-    // ==========================================
-    let lyraChatHistory = [];
-
-    async function sendToLyra() {
-        const inputEl = document.getElementById('lyra_chat_input'); 
-        if (!inputEl) return;
-        const message = inputEl.value.trim();
-        if (!message) return;
-
-        appendMessageToUI("User", message);
-        lyraChatHistory.push({ sender: "user", text: message });
-        inputEl.value = '';
-
-        try {
-            const response = await fetch('/api/lyra-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: message, 
-                    history: lyraChatHistory 
-                })
-            });
-
-            const data = await response.json();
-            const reply = data.reply || data.error;
-            
-            appendMessageToUI("Lyra", reply);
-            lyraChatHistory.push({ sender: "lyra", text: reply });
-
-        } catch (err) {
-            appendMessageToUI("System", "Error connecting to Lyra's core.");
-            console.error(err);
-        }
-    }
-
-    function appendMessageToUI(sender, text) {
-        const chatBox = document.getElementById('lyra_chat_window'); 
-        if (chatBox) {
-            const msgDiv = document.createElement('div');
-            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            msgDiv.style.marginBottom = "10px";
-            msgDiv.style.color = sender === "Lyra" ? "#22d3ee" : "#fff";
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
         } else {
-            console.log(`${sender}: ${text}`);
+            lyraActive = false;
+            recognition.stop();
+            btn.innerText = TRANSLATIONS[langCode]['lyra_btn'];
+            btn.className = "w-full py-3 rounded-lg bg-purple-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)]";
+            status.innerText = TRANSLATIONS[langCode]['lyra_status'];
         }
+    }
+
+    function processLyraCommand(text, lang) {
+        let matched = null;
+        
+        if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
+        else if (text.includes('mild') && text.includes('ards')) matched = 'mild_ards';
+        else if (text.includes('mod') && text.includes('ards')) matched = 'ards_mod';
+        else if (text.includes('ards') || text.includes('sdra')) matched = 'ards';
+        else if (text.includes('copd') || text.includes('cops') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
+        else if (text.includes('asthma') || text.includes('asma') || text.includes('asthme')) matched = 'asthma';
+        else if (text.includes('fibrosis') || text.includes('fibrose')) matched = 'fibrosis';
+        else if (text.includes('embol') || text.includes('pe') || text.includes('p.e')) matched = 'pe';
+        else if (text.includes('pneumonia') || text.includes('neumonia') || text.includes('pneumonie')) matched = 'pneumonia';
+        else if (text.includes('neuro') || text.includes('muscle')) matched = 'neuro';
+        else if (text.includes('obesity') || text.includes('obesidad') || text.includes('obesite')) matched = 'obesity';
+        else if (text.includes('pneumothorax') || text.includes('neumotorax')) matched = 'pneumothorax';
+        else if (text.includes('edema') || text.includes('oedeme')) matched = 'edema';
+        else if (text.includes('cystic') || text.includes('quistica') || text.includes('cf')) matched = 'cf';
+        else if (text.includes('kypho') || text.includes('cifosis') || text.includes('scoliosis')) matched = 'kypho';
+        else if (text.includes('bronch') || text.includes('bronquiectasias')) matched = 'bronch';
+        else if (text.includes('atelectas')) matched = 'atelectasis';
+        else if (text.includes('flail') || text.includes('trauma') || text.includes('chest')) matched = 'flail';
+        else if (text.includes('hypertension') || text.includes('hipertension') || text.includes('htn')) matched = 'p_htn';
+        else if (text.includes('carbon') || text.includes('monoxide') || text.includes('monoxido') || text.includes('poison')) matched = 'co_poison';
+
+        if (matched) {
+            let msg = "Synchronizing matrix for " + matched;
+            if (lang === 'es') msg = "Sincronizando matriz para " + matched;
+            if (lang === 'fr') msg = "Synchronisation de la matrice pour " + matched;
+            
+            const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
+            const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
+            const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
+            
+            lyraSpeak(msg, lang);
+            document.getElementById('lyra-status').innerText = msg;
+            
+            lyraActive = false;
+            recognition.stop();
+            setTimeout(() => { loadPreset(matched); }, 2500);
+        } else {
+            let msg = "Pathology not found in speech. Please repeat.";
+            document.getElementById('lyra-status').innerText = msg;
+        }
+    }
+
+    function lyraSpeak(text, lang) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            if(lang === 'es') u.lang = 'es-ES';
+            else if(lang === 'fr') u.lang = 'fr-FR';
+            else u.lang = 'en-US';
+            u.pitch = 1.1;
+            u.rate = 1.0;
+            window.speechSynthesis.speak(u);
+        }
+    }
+
+    const PRESETS = {
+        healthy:      {vt: 500, rr: 14, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 30, ie: 2.0, cao2: 19.8, cvo2: 14.8, cco2: 20.4, peco2: 28, vco2: 200, hco3: 24},
+        ards:         {vt: 350, rr: 28, pip: 38, pplat: 32, peep: 14, flow: 50, fio2: 80, ie: 1.5, cao2: 15.2, cvo2: 11.2, cco2: 20.1, peco2: 18, vco2: 240, hco3: 20},
+        copd:         {vt: 520, rr: 10, pip: 32, pplat: 16, peep: 5,  flow: 45, fio2: 35, ie: 4.0, cao2: 18.5, cvo2: 14.2, cco2: 20.2, peco2: 24, vco2: 190, hco3: 31},
+        asthma:       {vt: 450, rr: 12, pip: 45, pplat: 17, peep: 5,  flow: 40, fio2: 40, ie: 5.0, cao2: 19.2, cvo2: 14.1, cco2: 20.3, peco2: 25, vco2: 210, hco3: 24},
+        fibrosis:     {vt: 350, rr: 26, pip: 35, pplat: 33, peep: 8,  flow: 55, fio2: 45, ie: 1.5, cao2: 17.5, cvo2: 13.0, cco2: 20.1, peco2: 22, vco2: 220, hco3: 24},
+        pe:           {vt: 500, rr: 28, pip: 22, pplat: 15, peep: 5,  flow: 60, fio2: 50, ie: 2.0, cao2: 16.0, cvo2: 11.0, cco2: 20.0, peco2: 12, vco2: 200, hco3: 24},
+        pneumonia:    {vt: 400, rr: 22, pip: 28, pplat: 22, peep: 10, flow: 50, fio2: 60, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.2, peco2: 20, vco2: 230, hco3: 22},
+        neuro:        {vt: 250, rr: 10, pip: 15, pplat: 10, peep: 5,  flow: 40, fio2: 21, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 35, vco2: 180, hco3: 26},
+        obesity:      {vt: 400, rr: 18, pip: 30, pplat: 26, peep: 12, flow: 50, fio2: 30, ie: 2.0, cao2: 18.5, cvo2: 14.0, cco2: 20.0, peco2: 35, vco2: 250, hco3: 32},
+        pneumothorax: {vt: 300, rr: 30, pip: 45, pplat: 40, peep: 5,  flow: 60, fio2: 90, ie: 1.0, cao2: 14.0, cvo2: 10.0, cco2: 20.0, peco2: 15, vco2: 220, hco3: 20},
+        edema:        {vt: 400, rr: 24, pip: 30, pplat: 25, peep: 12, flow: 50, fio2: 50, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.0, peco2: 20, vco2: 210, hco3: 24},
+        cf:           {vt: 450, rr: 20, pip: 35, pplat: 20, peep: 8,  flow: 50, fio2: 45, ie: 3.0, cao2: 17.0, cvo2: 12.5, cco2: 20.2, peco2: 22, vco2: 220, hco3: 28},
+        kypho:        {vt: 250, rr: 24, pip: 35, pplat: 32, peep: 5,  flow: 40, fio2: 30, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 32, vco2: 190, hco3: 29},
+        bronch:       {vt: 480, rr: 16, pip: 28, pplat: 18, peep: 5,  flow: 45, fio2: 35, ie: 2.5, cao2: 18.0, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 200, hco3: 26},
+        mild_ards:    {vt: 400, rr: 20, pip: 28, pplat: 24, peep: 10, flow: 55, fio2: 50, ie: 2.0, cao2: 17.5, cvo2: 13.0, cco2: 20.2, peco2: 22, vco2: 210, hco3: 24},
+        atelectasis:  {vt: 380, rr: 20, pip: 26, pplat: 22, peep: 5,  flow: 50, fio2: 40, ie: 2.0, cao2: 18.2, cvo2: 13.8, cco2: 20.3, peco2: 26, vco2: 200, hco3: 24},
+        flail:        {vt: 400, rr: 26, pip: 28, pplat: 20, peep: 8,  flow: 50, fio2: 40, ie: 2.0, cao2: 17.8, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 210, hco3: 23},
+        p_htn:        {vt: 450, rr: 22, pip: 25, pplat: 18, peep: 5,  flow: 55, fio2: 50, ie: 2.0, cao2: 15.0, cvo2: 10.0, cco2: 19.5, peco2: 18, vco2: 180, hco3: 22},
+        co_poison:    {vt: 500, rr: 16, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 100,ie: 2.0, cao2: 12.0, cvo2: 8.0,  cco2: 20.0, peco2: 30, vco2: 200, hco3: 20},
+        ards_mod:     {vt: 380, rr: 24, pip: 32, pplat: 28, peep: 12, flow: 55, fio2: 60, ie: 1.5, cao2: 16.5, cvo2: 12.0, cco2: 20.1, peco2: 20, vco2: 230, hco3: 22}
+    };
+
+    function loadPreset(type) {
+        if (!type || type === "custom") return;
+        const data = PRESETS[type];
+        document.getElementById('preset_id').value = type;
+        document.getElementById('preset-dropdown').value = type;
+        
+        const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
+        const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
+        const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
+        
+        document.getElementById('vt_input').value = data.vt;
+        document.getElementById('rr').value = data.rr;
+        document.getElementById('pip').value = data.pip;
+        document.getElementById('pplat').value = data.pplat;
+        document.getElementById('peep').value = data.peep;
+        document.getElementById('peak_flow').value = data.flow;
+        document.getElementById('fio2').value = data.fio2;
+        document.getElementById('ie_ratio').value = data.ie;
+        document.getElementById('cao2').value = data.cao2;
+        document.getElementById('cvo2').value = data.cvo2;
+        document.getElementById('cco2').value = data.cco2;
+        document.getElementById('peco2').value = data.peco2;
+        document.getElementById('vco2').value = data.vco2;
+        document.getElementById('hco3_input').value = data.hco3;
+        
+        document.getElementById('calc-form').submit();
     }
 </script>
 """
@@ -1027,14 +1432,10 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 </body>
 """
 
-# ==========================================
-# 4. FLASK SERVER ROUTES
-# ==========================================
 @app.route('/')
 def home():
-    if 'user' in session: 
-        return redirect(url_for('dashboard'))
-    return render_template_string(HOME_HTML)
+    if 'user' in session: return redirect(url_for('dashboard'))
+    return render_template_string(LOGIN_HTML)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -1042,57 +1443,41 @@ def login():
     password = request.form.get('password')
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username=?", (username,))
-    user = c.fetchone()
+    c.execute("SELECT password FROM users WHERE username=?", (username,))
+    row = c.fetchone()
     conn.close()
-    
-    if user and check_password_hash(user[2], password):
-        session['user'] = user[1]
+    if row and check_password_hash(row[0], password):
+        session['user'] = username
         return redirect(url_for('dashboard'))
-    
-    flash('Invalid credentials')
     return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
-    session.pop('last_sim_data', None)
+    session.clear()
     return redirect(url_for('home'))
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if 'user' not in session: return redirect(url_for('home'))
     if request.method == 'POST':
-        np = request.form.get('new_password')
         curr = session['user']
+        nu = request.form.get('new_username').strip()
+        np = request.form.get('new_password').strip()
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        if nu:
+            try:
+                c.execute("UPDATE users SET username=? WHERE username=?", (nu, curr))
+                session['user'] = nu
+                curr = nu
+            except sqlite3.IntegrityError:
+                pass
         if np:
-            conn = sqlite3.connect(DB_NAME)
-            c = conn.cursor()
             c.execute("UPDATE users SET password=? WHERE username=?", (generate_password_hash(np), curr))
-            conn.commit()
-            conn.close()
-            return redirect(url_for('dashboard'))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('dashboard'))
     return render_template_string(SETTINGS_HTML)
-
-# ==========================================
-# ASYNCHRONOUS API ROUTES FOR AI INTEGRATION
-# ==========================================
-@app.route('/api/analyze-report', methods=['POST'])
-def api_analyze_report():
-    data = request.get_json() or {}
-    report_text = data.get("report_text", "")
-    if not report_text.strip():
-        return jsonify({"error": "Report text field cannot be blank."}), 400
-    return jsonify(NLPAnalyzer.analyze_report(report_text))
-
-@app.route('/api/lyra-chat', methods=['POST'])
-def api_lyra_chat():
-    data = request.get_json() or {}
-    user_message = data.get("message", "")
-    chat_history = data.get("history", [])
-    active_context = session.get("last_sim_data", {})
-    reply = LyraAssistant.chat_response(user_message, active_context, chat_history)
-    return jsonify({"reply": reply})
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
@@ -1109,10 +1494,6 @@ def dashboard():
         clean_inputs = {k: RespiratoryEngine.safe_float(v, 0) for k, v in inputs.items()}
         try:
             sim_data = RespiratoryEngine.calculate_simulation(clean_inputs, preset, custom_desc, custom_cond, custom_plan)
-            
-            # SAVES COMPUTE STATE SO LYRA CAN RETRIEVE THE CLINICAL CONTEXT REAL-TIME
-            session['last_sim_data'] = sim_data
-            
         except Exception:
             flash(f"Error calculating metrics: {traceback.format_exc()}")
             
@@ -1120,8 +1501,7 @@ def dashboard():
         inputs['custom_ai_cond'] = custom_cond
         inputs['custom_ai_plan'] = custom_plan
 
-    return render_template_string(INDEX_HTML, sim_data=sim_data, inputs=inputs, preset=preset)
+    return render_template_string(DASHBOARD_HTML, sim_data=sim_data, inputs=inputs, current_preset=preset)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
