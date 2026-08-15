@@ -419,10 +419,6 @@ class RespiratoryEngine:
 class AdvancedCardiopulmonaryEngine:
     @staticmethod
     def calculate_hemodynamics(inputs):
-        """
-        Calculates advanced hemodynamics including systemic oxygen delivery (DO2)
-        and estimates the impact of Positive End-Expiratory Pressure (PEEP) on the myocardium.
-        """
         fio2 = float(inputs.get('fio2', 21.0)) / 100.0
         paco2 = float(inputs.get('peco2', 40.0)) 
         hco3 = float(inputs.get('hco3_input', 24.0))
@@ -430,21 +426,16 @@ class AdvancedCardiopulmonaryEngine:
         cardiac_output = float(inputs.get('cardiac_output', 5.0)) 
         peep = float(inputs.get('peep', 5.0))
 
-        # 1. Alveolar Gas Equation (PAO2)
         p_A_O2 = round(((760 - 47) * fio2) - (paco2 / 0.8), 1)
-        
-        # 2. Henderson-Hasselbalch (pH)
         try:
             ph = round(6.1 + math.log10(hco3 / (0.0301 * paco2)), 2)
         except ValueError:
             ph = 7.40
 
-        # 3. Arterial Oxygen Content (CaO2) and Delivery (DO2)
         sao2 = 0.98 if p_A_O2 > 80 else 0.88 
         cao2 = round((1.34 * hb * sao2) + (0.0031 * p_A_O2), 2)
         do2 = round(cardiac_output * cao2 * 10, 1)
 
-        # 4. Myocardial Impact Estimate
         myocardial_impact = "Stable"
         if peep > 12:
             myocardial_impact = "Caution: High intrathoracic pressure may reduce venous return, potentially compromising coronary perfusion gradient."
@@ -464,8 +455,6 @@ class AdvancedCardiopulmonaryEngine:
 # ==========================================
 @app.route('/api/gemini_analyze', methods=['POST'])
 def gemini_rest_api():
-    """Bypasses standard SDKs using direct HTTP requests to Google's API."""
-    
     api_key = os.environ.get("GEMINI_API_KEY", "")
     data = request.json
     notes = data.get('notes', '')
@@ -523,13 +512,363 @@ def gemini_rest_api():
 
 @app.route('/api/hemodynamics', methods=['POST'])
 def calculate_hemodynamics():
-    """Endpoint for processing cardiopulmonary calculations."""
     data = request.json
     results = AdvancedCardiopulmonaryEngine.calculate_hemodynamics(data)
     return jsonify(results)
 
 # ==========================================
-# 5. MAIN APPLICATION EXECUTION
+# 5. DASHBOARD & UI ROUTES
+# ==========================================
+@app.route('/')
+def index():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template_string(MAIN_DASHBOARD_HTML, username=session['user'])
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute("SELECT password FROM users WHERE username = ?", (username,))
+        row = c.fetchone()
+        conn.close()
+        if row and check_password_hash(row[0], password):
+            session['user'] = username
+            return redirect(url_for('index'))
+        error = "Invalid username or password."
+    return render_template_string(LOGIN_HTML, error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
+
+@app.route('/api/simulate', methods=['POST'])
+def api_simulate():
+    data = request.json or request.form
+    inputs = {
+        'vt_input': RespiratoryEngine.safe_float(data.get('vt_input'), 500),
+        'peep': RespiratoryEngine.safe_float(data.get('peep'), 5),
+        'pplat': RespiratoryEngine.safe_float(data.get('pplat'), 20),
+        'pip': RespiratoryEngine.safe_float(data.get('pip'), 25),
+        'peak_flow': RespiratoryEngine.safe_float(data.get('peak_flow'), 60),
+        'peco2': RespiratoryEngine.safe_float(data.get('peco2'), 40),
+        'cao2': RespiratoryEngine.safe_float(data.get('cao2'), 20),
+        'cco2': RespiratoryEngine.safe_float(data.get('cco2'), 22),
+        'cvo2': RespiratoryEngine.safe_float(data.get('cvo2'), 15),
+        'hco3_input': RespiratoryEngine.safe_float(data.get('hco3_input'), 24),
+        'rr': RespiratoryEngine.safe_float(data.get('rr'), 12),
+        'ie_ratio': RespiratoryEngine.safe_float(data.get('ie_ratio'), 2.0),
+        'vco2': RespiratoryEngine.safe_float(data.get('vco2'), 200),
+        'fio2': RespiratoryEngine.safe_float(data.get('fio2'), 21)
+    }
+    preset_id = data.get('preset_id', '')
+    custom_desc = data.get('custom_desc', '')
+    custom_cond = data.get('custom_cond', '')
+    custom_plan_str = data.get('custom_plan', '')
+    
+    sim_results = RespiratoryEngine.calc_simulation(inputs, preset_id, custom_desc, custom_cond, custom_plan_str)
+    return jsonify(sim_results)
+
+# ==========================================
+# 6. HTML FRONTEND TEMPLATES
+# ==========================================
+LOGIN_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AeroLung Absolute Sync - Login</title>
+    <style>
+        body { background: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #1e293b; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; border: 1px solid #334155; }
+        h2 { margin-top: 0; color: #38bdf8; text-align: center; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8; }
+        input { width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #38bdf8; }
+        button { width: 100%; padding: 0.75rem; background: #0284c7; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #0369a1; }
+        .error { color: #f87171; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>AeroLung System</h2>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type: "submit">Authenticate Access</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
+
+MAIN_DASHBOARD_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AeroLung Absolute Sync 2026 - Clinical Dashboard</title>
+    <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+    <style>
+        :root { --bg: #0b0f19; --card: #111827; --border: #1f2937; --accent: #0ea5e9; --text: #f3f4f6; --text-muted: #9ca3af; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; margin: 0; padding: 1.5rem; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
+        .user-badge { color: var(--text-muted); font-size: 0.875rem; }
+        .logout-btn { background: #dc2626; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; text-decoration: none; font-size: 0.75rem; margin-left: 1rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media(max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        h3 { margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem; color: #38bdf8; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; }
+        label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        input, select, textarea { width: 100%; background: #030712; border: 1px solid var(--border); color: white; padding: 0.5rem; border-radius: 4px; box-sizing: border-box; }
+        button.action-btn { background: var(--accent); color: white; border: none; padding: 0.75rem; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        button.action-btn:hover { background: #0284c7; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; }
+        .metric-box { background: #030712; border: 1px solid var(--border); padding: 0.75rem; border-radius: 6px; }
+        .metric-val { font-size: 1.25rem; font-weight: bold; color: #38bdf8; }
+        .metric-lbl { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+        ul { padding-left: 1.2rem; margin: 0.5rem 0; font-size: 0.875rem; }
+        li { margin-bottom: 0.3rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>AeroLung Absolute Sync 2026</h1>
+            <span class="user-badge">Operational Engine Active</span>
+        </div>
+        <div>
+            <span class="user-badge">User: {{ username }}</span>
+            <a href="/logout" class="logout-btn">Log Out</a>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- Left Column: Controls & AI Analysis -->
+        <div>
+            <div class="card">
+                <h3>Ventilator & Physiological Controls</h3>
+                <div class="form-row">
+                    <div><label>Preset Pathology</label>
+                        <select id="preset_id" onchange="runSimulation()">
+                            <option value="healthy">Healthy Baseline</option>
+                            <option value="ards">Severe ARDS</option>
+                            <option value="copd">COPD / Emphysema</option>
+                            <option value="asthma">Status Asthmaticus</option>
+                            <option value="edema">Cardiogenic Edema</option>
+                            <option value="pe">Massive PE</option>
+                            <option value="custom">Custom Parameters</option>
+                        </select>
+                    </div>
+                    <div><label>Tidal Volume (mL)</label><input type="number" id="vt_input" value="500" oninput="runSimulation()"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>PEEP (cmH2O)</label><input type="number" id="peep" value="5" oninput="runSimulation()"></div>
+                    <div><label>Plateau Pressure (cmH2O)</label><input type="number" id="pplat" value="20" oninput="runSimulation()"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Peak Pressure (cmH2O)</label><input type="number" id="pip" value="25" oninput="runSimulation()"></div>
+                    <div><label>Respiratory Rate (/min)</label><input type="number" id="rr" value="12" oninput="runSimulation()"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>FiO2 (%)</label><input type="number" id="fio2" value="21" oninput="runSimulation()"></div>
+                    <div><label>Hemoglobin (g/dL)</label><input type="number" id="hemoglobin" value="14.0" oninput="runSimulation()"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Cardiac Output (L/min)</label><input type="number" id="cardiac_output" value="5.0" oninput="runSimulation()"></div>
+                    <div><label>HCO3 (mEq/L)</label><input type="number" id="hco3_input" value="24" oninput="runSimulation()"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Lyra AI Clinical Record Analyzer (REST API)</h3>
+                <label>Paste clinical notes or patient chart summary:</label>
+                <textarea id="clinical_notes" rows="4" placeholder="Patient presents with acute hypoxemic respiratory failure, bilateral infiltrates..."></textarea>
+                <button class="action-btn" onclick="analyzeNotes()">Analyze with Lyra AI</button>
+            </div>
+        </div>
+
+        <!-- Right Column: Outputs & Waveforms -->
+        <div>
+            <div class="card">
+                <h3>Real-Time Physiological Telemetry</h3>
+                <div class="metrics-grid">
+                    <div class="metric-box"><div class="metric-val" id="m_compliance">-</div><div class="metric-lbl">Compliance (mL/cm)</div></div>
+                    <div class="metric-box"><div class="metric-val" id="m_resistance">-</div><div class="metric-lbl">Resistance</div></div>
+                    <div class="metric-box"><div class="metric-val" id="m_shunt">-</div><div class="metric-lbl">Shunt %</div></div>
+                    <div class="metric-box"><div class="metric-val" id="m_paco2">-</div><div class="metric-lbl">PaCO2</div></div>
+                    <div class="metric-box"><div class="metric-val" id="m_pao2">-</div><div class="metric-lbl">PaO2</div></div>
+                    <div class="metric-box"><div class="metric-val" id="m_ph">-</div><div class="metric-lbl">pH</div></div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>Acid-Base Status: <span id="m_acidbase" style="color:#38bdf8; font-weight:bold;">-</span></label>
+                    <label>Cardiopulmonary DO2: <span id="m_do2" style="color:#38bdf8; font-weight:bold;">-</span> mL/min</label>
+                    <label>Myocardial Impact: <span id="m_myo" style="color:#f87171; font-weight:bold;">-</span></label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Pathology Analysis & Action Plan</h3>
+                <h4 id="ai_cond_title" style="color:#38bdf8; margin:0 0 0.5rem 0;">-</h4>
+                <p id="ai_desc_text" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">-</p>
+                <label>Recommended Action Protocols:</label>
+                <ul id="ai_solutions_list"></ul>
+            </div>
+
+            <div class="card">
+                <h3>Ventilator Waveform Simulation</h3>
+                <canvas id="waveformChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let waveChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('waveformChart').getContext('2d');
+            waveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Pressure (cmH2O)',
+                        data: [],
+                        borderColor: '#0ea5e9',
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                        y: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af', font: { size: 10 } } }
+                    },
+                    plugins: { legend: { labels: { color: '#f3f4f6', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        async function runSimulation() {
+            const payload = {
+                vt_input: document.getElementById('vt_input').value,
+                peep: document.getElementById('peep').value,
+                pplat: document.getElementById('pplat').value,
+                pip: document.getElementById('pip').value,
+                peak_flow: 60,
+                peco2: 40,
+                cao2: 20, cco2: 22, cvo2: 15,
+                hco3_input: document.getElementById('hco3_input').value,
+                rr: document.getElementById('rr').value,
+                ie_ratio: 2.0, vco2: 200,
+                fio2: document.getElementById('fio2').value,
+                hemoglobin: document.getElementById('hemoglobin').value,
+                cardiac_output: document.getElementById('cardiac_output').value,
+                preset_id: document.getElementById('preset_id').value
+            };
+
+            try {
+                // Run Simulation & Math Engine
+                const res = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                document.getElementById('m_compliance').innerText = data.compliance;
+                document.getElementById('m_resistance').innerText = data.resistance;
+                document.getElementById('m_shunt').innerText = data.shunt + '%';
+                document.getElementById('m_paco2').innerText = data.paco2;
+                document.getElementById('m_pao2').innerText = data.pao2;
+                document.getElementById('m_ph').innerText = data.ph;
+                document.getElementById('m_acidbase').innerText = data.acid_base_status;
+
+                document.getElementById('ai_cond_title').innerText = data.ai_condition;
+                document.getElementById('ai_desc_text').innerText = data.ai_description;
+
+                const listEl = document.getElementById('ai_solutions_list');
+                listEl.innerHTML = '';
+                data.ai_solutions.forEach(sol => {
+                    const li = document.createElement('li');
+                    li.innerText = sol;
+                    listEl.appendChild(li);
+                });
+
+                // Run Advanced Hemodynamics Calculation
+                const hemoRes = await fetch('/api/hemodynamics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const hemoData = await hemoRes.json();
+                document.getElementById('m_do2').innerText = hemoData.oxygen_delivery_DO2;
+                document.getElementById('m_myo').innerText = hemoData.myocardial_impact;
+
+                // Update Waveform Chart
+                const wf = JSON.parse(data.waveform_data);
+                waveChart.data.labels = wf.t;
+                waveChart.data.datasets[0].data = wf.p;
+                waveChart.update();
+
+            } catch (err) {
+                console.error("Simulation error:", err);
+            }
+        }
+
+        async function analyzeNotes() {
+            const notes = document.getElementById('clinical_notes').value;
+            if (!notes) return alert("Please enter clinical notes first.");
+
+            try {
+                const res = await fetch('/api/gemini_analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: notes })
+                });
+                const data = await res.json();
+                if(data.error) {
+                    alert("AI Error: " + data.error);
+                    return;
+                }
+                if(data.presetMap) {
+                    document.getElementById('preset_id').value = data.presetMap;
+                }
+                alert("Lyra Analysis Complete:\\nPrimary Suspicion: " + data.suspicion);
+                runSimulation();
+            } catch (err) {
+                alert("Failed to communicate with Lyra REST API.");
+            }
+        }
+
+        window.onload = () => {
+            initChart();
+            runSimulation();
+        };
+    </script>
+</body>
+</html>
+"""
+
+# ==========================================
+# 7. MAIN APPLICATION EXECUTION
 # ==========================================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
