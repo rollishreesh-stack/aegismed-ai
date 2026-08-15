@@ -1437,18 +1437,36 @@ def home():
     if 'user' in session: return redirect(url_for('dashboard'))
     return render_template_string(LOGIN_HTML)
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT password FROM users WHERE username=?", (username,))
-    row = c.fetchone()
-    conn.close()
-    if row and check_password_hash(row[0], password):
-        session['user'] = username
-        return redirect(url_for('dashboard'))
+    # GET: keep /login directly accessible.
+    if request.method == 'GET':
+        if 'user' in session:
+            return redirect(url_for('dashboard'))
+        return render_template_string(LOGIN_HTML)
+
+    username = (request.form.get('username') or '').strip()
+    password = request.form.get('password') or ''
+
+    if not username or not password:
+        flash('Architect ID and Passkey are required.')
+        return redirect(url_for('home'))
+
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute("SELECT password FROM users WHERE username=?", (username,))
+        row = c.fetchone()
+        conn.close()
+
+        if row and check_password_hash(row[0], password):
+            session.clear()
+            session['user'] = username
+            return redirect(url_for('dashboard'))
+    except Exception:
+        traceback.print_exc()
+
+    flash('Invalid Architect ID or Passkey.')
     return redirect(url_for('home'))
 
 @app.route('/logout')
