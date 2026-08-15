@@ -12,7 +12,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "aerolung_absolute_sync_2026")
 DB_NAME = "aerolung_database.db"
 
 # ==========================================
-# 1. DATABASE INITIALIZATION
+# 1. DATABASE INITIALIZATION & USER MANAGEMENT
 # ==========================================
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -20,6 +20,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users 
                  (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
     
+    # Check and create default admin
     c.execute("SELECT * FROM users WHERE username='admin'")
     if not c.fetchone():
         hashed_pw = generate_password_hash('admin2026')
@@ -31,9 +32,8 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. STRICT PATHOLOGY DATABASE & MATH ENGINE
+# 2. COMPLETE PATHOLOGY DATABASE (All 21 Profiles Preserved)
 # ==========================================
-
 DISEASE_PROFILES = {
     "healthy": {
         "condition": "Stable Pulmonary Homeostasis",
@@ -159,8 +159,8 @@ DISEASE_PROFILES = {
         "solutions": [
             "Apply immediate Non-Invasive Positive Pressure Ventilation (CPAP or BiPAP) to increase alveolar pressure and drive fluid back into the vasculature.",
             "Administer rapid-acting intravenous loop diuretics (e.g., Furosemide) to reduce circulating intravascular volume.",
-            "Initiate intravenous Nitroglycerin titration to decrease preload and afterload, reducing the workload on the failing left ventricle.",
-            "Provide supplemental oxygen to maintain adequate tissue oxygenation while active diuresis takes effect.",
+            "Initiate intravenous Nitroglycerin (NTG) titration to decrease preload and afterload, reducing the workload on the failing left ventricle.",
+            "Provide supplemental oxygen to maintain adequate tissue oxygenation while active diuresis and NTG vasodilation take effect.",
             "Obtain an urgent 12-lead ECG, troponins, and an echocardiogram to evaluate for acute myocardial infarction or structural dysfunction.",
             "Monitor urine output, serum electrolytes, and renal function closely during aggressive fluid clearance."
         ]
@@ -275,6 +275,9 @@ DISEASE_PROFILES = {
     }
 }
 
+# ==========================================
+# 3. RESPIRATORY ENGINE & MATH MODELS
+# ==========================================
 class RespiratoryEngine:
     @staticmethod
     def safe_float(val, default):
@@ -285,7 +288,7 @@ class RespiratoryEngine:
             return float(default)
 
     @classmethod
-    def calculate_simulation(cls, inputs, preset_id="", custom_desc="", custom_cond="", custom_plan_str=""):
+    def calc_simulation(cls, inputs, preset_id="", custom_desc="", custom_cond="", custom_plan_str=""):
         vt = max(10.0, inputs['vt_input'])
         peep = max(0.0, inputs['peep'])
         pplat = max(peep + 1.0, inputs['pplat'])
@@ -414,7 +417,7 @@ class RespiratoryEngine:
         return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts}
 
 # ==========================================
-# 3. ADVANCED CARDIOPULMONARY ENGINE
+# 4. ADVANCED CARDIOPULMONARY ENGINE
 # ==========================================
 class AdvancedCardiopulmonaryEngine:
     @staticmethod
@@ -451,7 +454,7 @@ class AdvancedCardiopulmonaryEngine:
         }
 
 # ==========================================
-# 4. RESTful API INTEGRATION (Render Safe)
+# 5. RESTFUL API INTEGRATION (Gemini REST Endpoint)
 # ==========================================
 @app.route('/api/gemini_analyze', methods=['POST'])
 def gemini_rest_api():
@@ -517,7 +520,7 @@ def calculate_hemodynamics():
     return jsonify(results)
 
 # ==========================================
-# 5. DASHBOARD & UI ROUTES
+# 6. FLASK WEB ROUTES & ENDPOINTS
 # ==========================================
 @app.route('/')
 def index():
@@ -575,7 +578,7 @@ def api_simulate():
     return jsonify(sim_results)
 
 # ==========================================
-# 6. HTML FRONTEND TEMPLATES
+# 7. COMPLETE FRONTEND HTML / CSS / JS TEMPLATES
 # ==========================================
 LOGIN_HTML = """
 <!DOCTYPE html>
@@ -609,7 +612,7 @@ LOGIN_HTML = """
                 <label>Password</label>
                 <input type="password" name="password" required>
             </div>
-            <button type: "submit">Authenticate Access</button>
+            <button type="submit">Authenticate Access</button>
         </form>
     </div>
 </body>
@@ -673,6 +676,19 @@ MAIN_DASHBOARD_HTML = """
                             <option value="asthma">Status Asthmaticus</option>
                             <option value="edema">Cardiogenic Edema</option>
                             <option value="pe">Massive PE</option>
+                            <option value="pneumonia">Severe Lobar Pneumonia</option>
+                            <option value="neuro">Neuromuscular Pump Failure</option>
+                            <option value="obesity">Obesity Hypoventilation</option>
+                            <option value="pneumothorax">Tension Pneumothorax</option>
+                            <option value="cf">Cystic Fibrosis Exacerbation</option>
+                            <option value="kypho">Kyphoscoliosis Decompensation</option>
+                            <option value="bronch">Bronchiectasis Exacerbation</option>
+                            <option value="mild_ards">Early / Mild ARDS</option>
+                            <option value="atelectasis">Major Lobar Atelectasis</option>
+                            <option value="flail">Flail Chest / Trauma</option>
+                            <option value="p_htn">Pulmonary Hypertension</option>
+                            <option value="co_poison">Carbon Monoxide Toxicity</option>
+                            <option value="ards_mod">Moderate ARDS</option>
                             <option value="custom">Custom Parameters</option>
                         </select>
                     </div>
@@ -785,7 +801,6 @@ MAIN_DASHBOARD_HTML = """
             };
 
             try {
-                // Run Simulation & Math Engine
                 const res = await fetch('/api/simulate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -812,7 +827,6 @@ MAIN_DASHBOARD_HTML = """
                     listEl.appendChild(li);
                 });
 
-                // Run Advanced Hemodynamics Calculation
                 const hemoRes = await fetch('/api/hemodynamics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -822,7 +836,6 @@ MAIN_DASHBOARD_HTML = """
                 document.getElementById('m_do2').innerText = hemoData.oxygen_delivery_DO2;
                 document.getElementById('m_myo').innerText = hemoData.myocardial_impact;
 
-                // Update Waveform Chart
                 const wf = JSON.parse(data.waveform_data);
                 waveChart.data.labels = wf.t;
                 waveChart.data.datasets[0].data = wf.p;
@@ -868,7 +881,7 @@ MAIN_DASHBOARD_HTML = """
 """
 
 # ==========================================
-# 7. MAIN APPLICATION EXECUTION
+# 8. EXECUTION BLOCK
 # ==========================================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
