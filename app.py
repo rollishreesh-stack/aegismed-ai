@@ -1205,6 +1205,59 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 
     </main>
 
+
+<section id="nexus3-hero" class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900/95 via-slate-900/75 to-cyan-950/40 p-6 md:p-8 shadow-[0_25px_80px_rgba(0,0,0,.45)]">
+  <canvas id="nexus3-particles" class="absolute inset-0 w-full h-full opacity-50 pointer-events-none"></canvas>
+  <div class="relative z-10 grid grid-cols-1 xl:grid-cols-[1.5fr_.8fr] gap-6 items-center">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300 text-[10px] font-bold uppercase tracking-[.28em]"><span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> NEXUS // ADAPTIVE CLINICAL SIM LAB</div>
+      <h2 class="mt-4 text-4xl md:text-6xl font-black tracking-tight leading-none">Make physiology<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-violet-400">visible.</span></h2>
+      <p class="mt-4 max-w-2xl text-slate-300 text-sm md:text-base leading-7">A cinematic teaching environment for respiratory mechanics, gas exchange, ventilator telemetry and pattern recognition.</p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button onclick="nexus3Scroll('nexus3-mission')" class="px-5 py-3 rounded-2xl bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-widest hover:bg-cyan-300 transition">Enter Mission Control</button>
+        <button onclick="nexus3ToggleCinema()" id="nx3-cinema-btn" class="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition">Cinema Mode</button>
+        <button onclick="nexus3Toast('Educational mode active — verify all outputs clinically.')" class="px-5 py-3 rounded-2xl bg-amber-400/10 border border-amber-300/20 text-amber-200 font-bold text-xs uppercase tracking-widest">Educational Mode</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">System Mood</div><div id="nx3-mood" class="mt-2 text-2xl font-black text-cyan-300">CALM</div><div class="mt-1 text-[11px] text-slate-400">Adaptive visual state</div></div>
+      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Cases</div><div id="nx3-case-count" class="mt-2 text-2xl font-black text-white">0</div><div class="mt-1 text-[11px] text-slate-400">In your learning ledger</div></div>
+      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Focus</div><div id="nx3-focus" class="mt-2 text-2xl font-black text-violet-300">100%</div><div class="mt-1 text-[11px] text-slate-400">Interface clarity</div></div>
+      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Session</div><div id="nx3-session" class="mt-2 text-2xl font-black text-emerald-300">00:00</div><div class="mt-1 text-[11px] text-slate-400">Current workspace</div></div>
+    </div>
+  </div>
+</section>
+<section id="nexus3-mission" class="mt-6 grid grid-cols-1 xl:grid-cols-[1.15fr_.85fr] gap-6">
+  <div class="glass-panel rounded-[2rem] p-6 border-white/10"><div class="flex items-center justify-between gap-4 mb-5"><div><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Mission Control</div><h3 class="text-2xl font-black text-white mt-1">Choose your case</h3></div><div id="nx3-score" class="px-4 py-2 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-violet-300 font-black text-sm">XP 0</div></div><div id="nx3-scenarios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div></div>
+  <div class="glass-panel rounded-[2rem] p-6 border-white/10"><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Clinical Lens</div><h3 id="nx3-lens-title" class="text-2xl font-black text-white mt-1">Nothing selected</h3><p id="nx3-lens-sub" class="text-sm text-slate-400 mt-2">Pick a mission to load a preset into the original simulator.</p><div class="mt-6 grid grid-cols-3 gap-3 text-center"><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Pressure</div><div id="nx3-lens-p" class="text-lg font-black text-cyan-300 mt-1">—</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Oxygen</div><div id="nx3-lens-o" class="text-lg font-black text-emerald-300 mt-1">—</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Gas</div><div id="nx3-lens-g" class="text-lg font-black text-violet-300 mt-1">—</div></div></div><button onclick="nexus3RandomCase()" class="w-full mt-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest">Surprise Me</button></div>
+</section>
+<section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Adaptive Insights</div><h3 class="text-xl font-black mt-1">What matters now?</h3><div id="nx3-insights" class="mt-4 space-y-3"></div></div>
+  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-emerald-400 font-bold uppercase tracking-[.25em]">Live Pulse</div><h3 class="text-xl font-black mt-1">Telemetry heartbeat</h3><div class="mt-5 h-40"><canvas id="nx3-spark"></canvas></div></div>
+  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Command Palette</div><h3 class="text-xl font-black mt-1">Fast actions</h3><div class="mt-4 grid grid-cols-2 gap-3"><button onclick="nexus3Quick('dashboard')" class="nx3-action">Workspace</button><button onclick="nexus3Quick('analytics')" class="nx3-action">Telemetry</button><button onclick="nexus3Quick('protocols')" class="nx3-action">Protocols</button><button onclick="nexus3Quick('top')" class="nx3-action">Top</button></div><div class="mt-4 text-[10px] text-slate-500">Tip: use <span class="font-mono text-slate-300">⌘/Ctrl + K</span> for search.</div></div>
+</section>
+<div id="nx3-toast" class="fixed right-5 bottom-5 z-[100] translate-y-24 opacity-0 transition-all duration-300 px-5 py-4 rounded-2xl bg-slate-900/95 border border-cyan-400/20 shadow-2xl max-w-sm text-xs text-slate-200"></div>
+<style>
+.nx3-action{padding:.8rem;border-radius:1rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#cbd5e1;transition:.2s}.nx3-action:hover{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.25);color:#fff;transform:translateY(-2px)}
+.nx3-cinema .glass-panel{box-shadow:0 0 0 1px rgba(34,211,238,.05),0 30px 100px rgba(0,0,0,.55)}
+</style>
+<script>
+const NEXUS3_SCENARIOS={{ scenarios|tojson }}; let nx3Started=Date.now(),nx3XP=0,nx3Spark=null;
+function nexus3Toast(t){const el=document.getElementById('nx3-toast');if(!el)return;el.innerText=t;el.classList.remove('translate-y-24','opacity-0');clearTimeout(window.__nx3toast);window.__nx3toast=setTimeout(()=>el.classList.add('translate-y-24','opacity-0'),2800)}
+function nexus3Scroll(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
+function nexus3Quick(tab){if(tab==='top')window.scrollTo({top:0,behavior:'smooth'});else if(typeof switchWorkspaceTab==='function')switchWorkspaceTab(tab)}
+function nexus3ToggleCinema(){document.documentElement.classList.toggle('nx3-cinema');const b=document.getElementById('nx3-cinema-btn');if(b)b.innerText=document.documentElement.classList.contains('nx3-cinema')?'Exit Cinema':'Cinema Mode';nexus3Toast(document.documentElement.classList.contains('nx3-cinema')?'Cinema mode engaged':'Cinema mode closed')}
+function nexus3LoadScenario(s){const p=document.getElementById('preset_id');if(p)p.value=s.preset;const d=document.getElementById('preset-dropdown');if(d){d.value=s.preset;if(typeof loadPreset==='function')loadPreset(s.preset)}document.getElementById('nx3-lens-title').innerText=s.title;document.getElementById('nx3-lens-sub').innerText=s.subtitle+' • '+s.difficulty;document.getElementById('nx3-lens-p').innerText=s.preset.toUpperCase();document.getElementById('nx3-lens-o').innerText='READY';document.getElementById('nx3-lens-g').innerText='SYNC';nx3XP+=25;document.getElementById('nx3-score').innerText='XP '+nx3XP;nexus3Toast(s.title+' loaded into the simulator')}
+function nexus3RenderScenarios(){const w=document.getElementById('nx3-scenarios');if(!w)return;w.innerHTML=NEXUS3_SCENARIOS.map(s=>`<button onclick='nexus3LoadScenario(${JSON.stringify(s)})' class="text-left rounded-3xl p-5 bg-white/[.03] border border-white/10 hover:border-cyan-400/30 hover:bg-cyan-400/[.04] transition group"><div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-[.2em] text-slate-500">${s.difficulty}</span><span class="w-2.5 h-2.5 rounded-full bg-${s.accent}-400"></span></div><div class="text-lg font-black text-white mt-3">${s.title}</div><div class="text-xs text-slate-400 mt-1">${s.subtitle}</div><div class="mt-4 text-[10px] uppercase tracking-widest text-cyan-300">Launch case →</div></button>`).join('')}
+function nexus3RandomCase(){nexus3LoadScenario(NEXUS3_SCENARIOS[Math.floor(Math.random()*NEXUS3_SCENARIOS.length)]);nexus3Scroll('nexus3-mission')}
+function nexus3Insights(){const vals=[['Model continuity','Compare the newest telemetry with your prior runs.','cyan'],['Guardrail','Review pressure and oxygenation thresholds before applying outputs clinically.','amber'],['Learning loop','Use pattern relationships rather than memorizing isolated numbers.','violet']];document.getElementById('nx3-insights').innerHTML=vals.map(v=>`<div class="p-3 rounded-2xl bg-black/20 border border-white/5"><div class="text-[10px] text-${v[2]}-300 font-bold uppercase tracking-widest">${v[0]}</div><div class="text-xs text-slate-400 mt-1 leading-5">${v[1]}</div></div>`).join('')}
+function nexus3Particles(){const c=document.getElementById('nexus3-particles');if(!c)return;const x=c.getContext('2d');function size(){c.width=c.clientWidth*devicePixelRatio;c.height=c.clientHeight*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}size();addEventListener('resize',size);const pts=Array.from({length:55},()=>({x:Math.random()*c.clientWidth,y:Math.random()*c.clientHeight,r:Math.random()*1.8+.3,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15}));function loop(){x.clearRect(0,0,c.clientWidth,c.clientHeight);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=c.clientWidth;if(p.x>c.clientWidth)p.x=0;if(p.y<0)p.y=c.clientHeight;if(p.y>c.clientHeight)p.y=0;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fillStyle='rgba(103,232,249,.45)';x.fill()}requestAnimationFrame(loop)}loop()}
+function nexus3Sparkline(){const c=document.getElementById('nx3-spark');if(!c||typeof Chart==='undefined')return;const data=Array.from({length:24},(_,i)=>70+Math.sin(i/2.2)*12+Math.random()*8);nx3Spark=new Chart(c,{type:'line',data:{labels:data.map((_,i)=>i+1),datasets:[{data,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.08)',fill:true,borderWidth:2,tension:.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}})}
+setInterval(()=>{const sec=Math.floor((Date.now()-nx3Started)/1000),mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0'),e=document.getElementById('nx3-session');if(e)e.innerText=`${mm}:${ss}`},1000);
+setInterval(()=>{const mood=document.getElementById('nx3-mood');if(mood)mood.innerText=['CALM','FOCUSED','ANALYTIC','ALERT'][Math.floor(Date.now()/5000)%4]},5000);
+document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3Insights();nexus3Particles();nexus3Sparkline();fetch('/api/nexus/history').then(r=>r.json()).then(d=>{document.getElementById('nx3-case-count').innerText=d.stats?.total||0}).catch(()=>{})})
+</script>
+
     <!-- NLP CLINICAL RECORD ANALYZER MODAL -->
     <div id="notes-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
         <div class="glass-panel p-8 rounded-3xl max-w-lg w-full space-y-4 border border-white/10">
@@ -1339,7 +1392,7 @@ def dashboard():
     if request.method == 'POST':
         _save_simulation(result, inputs)
         _audit('SIMULATION_RUN', json.dumps({'preset_id': preset_id, 'condition': result.get('ai_condition')}))
-    return render_template_string(DASHBOARD_HTML, result=result, DISEASE_PROFILES=DISEASE_PROFILES)
+    return render_template_string(DASHBOARD_HTML, result=result, DISEASE_PROFILES=DISEASE_PROFILES, scenarios=NEXUS3_SCENARIOS)
 
 
 # ==========================================
@@ -1414,5 +1467,30 @@ def nexus_clear():
     if not _login_required(): return {'error':'authentication_required'}, 401
     conn=sqlite3.connect(DB_NAME); conn.execute("DELETE FROM simulation_history WHERE user_id=?",(session['user_id'],)); conn.commit(); conn.close(); _audit('CLEAR_HISTORY'); return {'ok':True}
 
+
+
+# NEXUS v3 journal API
+@app.route('/api/nexus/journal', methods=['GET','POST','DELETE'])
+def nexus3_journal():
+    if 'user_id' not in session: return {'error':'authentication_required'}, 401
+    uid=session['user_id']; conn=sqlite3.connect(DB_NAME); conn.row_factory=sqlite3.Row
+    try:
+        if request.method=='POST':
+            data=request.get_json(silent=True) or {}
+            title=(data.get('title') or 'Untitled Case').strip()[:120]
+            note=(data.get('note') or '').strip()[:5000]
+            tag=(data.get('tag') or 'learning').strip()[:50]
+            conn.execute('INSERT INTO case_journal(user_id,title,note,tag) VALUES(?,?,?,?)',(uid,title,note,tag)); conn.commit(); return {'ok':True}
+        if request.method=='DELETE':
+            conn.execute('DELETE FROM case_journal WHERE user_id=?',(uid,)); conn.commit(); return {'ok':True}
+        rows=[dict(r) for r in conn.execute('SELECT * FROM case_journal WHERE user_id=? ORDER BY id DESC LIMIT 50',(uid,)).fetchall()]
+        return {'journal':rows}
+    finally: conn.close()
+
+@app.route('/api/nexus/mission-pack')
+def nexus3_mission_pack():
+    if 'user_id' not in session: return {'error':'authentication_required'}, 401
+    return {'missions':NEXUS3_SCENARIOS,'education_only':True}
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
