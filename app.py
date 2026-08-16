@@ -3,7 +3,7 @@ import math
 import json
 import sqlite3
 import traceback
-from flask import Flask, request, redirect, url_for, session, flash, render_template_string
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -61,6 +61,52 @@ def init_advanced_db():
     conn.close()
 
 init_advanced_db()
+
+# ==========================================
+# 1B. NEXUS MISSION SCENARIOS
+# ==========================================
+NEXUS3_SCENARIOS = [
+    {
+        "id": "silent_hypoxemia",
+        "title": "Silent Hypoxemia",
+        "subtitle": "Oxygenation challenge • interpret telemetry before acting",
+        "difficulty": "Advanced",
+        "accent": "cyan",
+        "preset": "pneumonia"
+    },
+    {
+        "id": "obstructive_crisis",
+        "title": "Obstructive Crisis",
+        "subtitle": "High resistance • recognize the waveform pattern",
+        "difficulty": "Expert",
+        "accent": "purple",
+        "preset": "asthma"
+    },
+    {
+        "id": "stiff_lung",
+        "title": "Stiff Lung Protocol",
+        "subtitle": "Low compliance • pressure protection challenge",
+        "difficulty": "Expert",
+        "accent": "amber",
+        "preset": "ards"
+    },
+    {
+        "id": "dead_space",
+        "title": "Dead-Space Signal",
+        "subtitle": "Perfusion mismatch • detect the pattern",
+        "difficulty": "Advanced",
+        "accent": "rose",
+        "preset": "pe"
+    },
+    {
+        "id": "restrictive",
+        "title": "Restrictive Mechanics",
+        "subtitle": "Reduced compliance • distinguish pressure from volume",
+        "difficulty": "Intermediate",
+        "accent": "emerald",
+        "preset": "fibrosis"
+    }
+]
 
 def _now_iso():
     from datetime import datetime, timezone
