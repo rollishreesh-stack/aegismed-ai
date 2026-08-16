@@ -1224,98 +1224,6 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
     </main>
 
 
-<section id="nexus3-hero" class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900/95 via-slate-900/75 to-cyan-950/40 p-6 md:p-8 shadow-[0_25px_80px_rgba(0,0,0,.45)]">
-  <canvas id="nexus3-particles" class="absolute inset-0 w-full h-full opacity-50 pointer-events-none"></canvas>
-  <div class="relative z-10 grid grid-cols-1 xl:grid-cols-[1.5fr_.8fr] gap-6 items-center">
-    <div>
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300 text-[10px] font-bold uppercase tracking-[.28em]"><span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> NEXUS // ADAPTIVE CLINICAL SIM LAB</div>
-      <h2 class="mt-4 text-4xl md:text-6xl font-black tracking-tight leading-none">Make physiology<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-violet-400">visible.</span></h2>
-      <p class="mt-4 max-w-2xl text-slate-300 text-sm md:text-base leading-7">A cinematic teaching environment for respiratory mechanics, gas exchange, ventilator telemetry and pattern recognition.</p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <button onclick="nexus3Scroll('nexus3-mission')" class="px-5 py-3 rounded-2xl bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-widest hover:bg-cyan-300 transition">Enter Mission Control</button>
-        <button onclick="nexus3ToggleCinema()" id="nx3-cinema-btn" class="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition">Cinema Mode</button>
-        <button onclick="nexus3Toast('Educational mode active — verify all outputs clinically.')" class="px-5 py-3 rounded-2xl bg-amber-400/10 border border-amber-300/20 text-amber-200 font-bold text-xs uppercase tracking-widest">Educational Mode</button>
-      </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">System Mood</div><div id="nx3-mood" class="mt-2 text-2xl font-black text-cyan-300">CALM</div><div class="mt-1 text-[11px] text-slate-400">Adaptive visual state</div></div>
-      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Cases</div><div id="nx3-case-count" class="mt-2 text-2xl font-black text-white">0</div><div class="mt-1 text-[11px] text-slate-400">In your learning ledger</div></div>
-      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Focus</div><div id="nx3-focus" class="mt-2 text-2xl font-black text-violet-300">100%</div><div class="mt-1 text-[11px] text-slate-400">Interface clarity</div></div>
-      <div class="rounded-3xl bg-black/30 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-slate-500">Session</div><div id="nx3-session" class="mt-2 text-2xl font-black text-emerald-300">00:00</div><div class="mt-1 text-[11px] text-slate-400">Current workspace</div></div>
-    </div>
-  </div>
-</section>
-<section id="nexus3-mission" class="mt-6 grid grid-cols-1 xl:grid-cols-[1.05fr_.95fr] gap-6">
-  <div class="glass-panel rounded-[2rem] p-6 border-white/10">
-    <div class="flex items-center justify-between gap-4 mb-5">
-      <div><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Mission Control</div><h3 class="text-2xl font-black text-white mt-1">Choose your case</h3></div>
-      <div id="nx3-score" class="px-4 py-2 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-violet-300 font-black text-sm">XP 0</div>
-    </div>
-    <div id="nx3-scenarios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-  </div>
-  <div class="glass-panel rounded-[2rem] p-6 border-white/10 relative overflow-hidden">
-    <div class="absolute -top-16 -right-16 w-40 h-40 bg-violet-500/10 blur-3xl rounded-full"></div>
-    <div class="relative">
-      <div class="flex items-center justify-between gap-3">
-        <div><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Decision Lens</div><h3 id="nx3-lens-title" class="text-2xl font-black text-white mt-1">Live physiology</h3></div>
-        <div id="nx3-lens-risk" class="px-3 py-1.5 rounded-xl bg-emerald-400/10 border border-emerald-400/20 text-emerald-300 text-[10px] font-black uppercase tracking-widest">LOW RISK</div>
-      </div>
-      <p id="nx3-lens-sub" class="text-sm text-slate-400 mt-2">The lens now reads directly from the active simulator values.</p>
-      <div class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Pplat</div><div id="nx3-lens-pplat" class="text-xl font-black text-cyan-300 mt-1">—</div><div class="text-[9px] text-slate-500">cmH₂O</div></div>
-        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Drive ΔP</div><div id="nx3-lens-drive" class="text-xl font-black text-cyan-300 mt-1">—</div><div class="text-[9px] text-slate-500">cmH₂O</div></div>
-        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">P/F</div><div id="nx3-lens-pf" class="text-xl font-black text-emerald-300 mt-1">—</div><div class="text-[9px] text-slate-500">oxygenation</div></div>
-        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">pH</div><div id="nx3-lens-ph" class="text-xl font-black text-violet-300 mt-1">—</div><div class="text-[9px] text-slate-500">acid-base</div></div>
-      </div>
-      <div class="mt-4 rounded-2xl bg-white/[.03] border border-white/10 p-4">
-        <div class="flex items-center justify-between gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500">Interpretation</span><span id="nx3-lens-pulse" class="text-[10px] text-cyan-300 font-mono">SYNCED</span></div>
-        <div id="nx3-lens-interpretation" class="text-sm text-slate-300 leading-6 mt-2">Select a scenario or change a ventilator parameter to generate a live interpretation.</div>
-      </div>
-      <div class="mt-4 flex flex-wrap gap-2"><button onclick="nexus3RandomCase()" class="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest">Surprise Me</button><button onclick="nexus3Quick('dashboard')" class="px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-[10px] font-black uppercase tracking-widest">Open Simulator</button></div>
-    </div>
-  </div>
-</section>
-<section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Adaptive Insights</div><h3 class="text-xl font-black mt-1">What matters now?</h3><div id="nx3-insights" class="mt-4 space-y-3"></div></div>
-  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-emerald-400 font-bold uppercase tracking-[.25em]">Live Pulse</div><h3 class="text-xl font-black mt-1">Telemetry heartbeat</h3><div class="mt-5 h-40"><canvas id="nx3-spark"></canvas></div></div>
-  <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Command Palette</div><h3 class="text-xl font-black mt-1">Fast actions</h3><div class="mt-4 grid grid-cols-2 gap-3"><button onclick="nexus3Quick('dashboard')" class="nx3-action">Workspace</button><button onclick="nexus3Quick('analytics')" class="nx3-action">Telemetry</button><button onclick="nexus3Quick('protocols')" class="nx3-action">Protocols</button><button onclick="nexus3Quick('top')" class="nx3-action">Top</button></div><div class="mt-4 text-[10px] text-slate-500">Tip: use <span class="font-mono text-slate-300">⌘/Ctrl + K</span> for search.</div></div>
-</section>
-<div id="nx3-toast" class="fixed right-5 bottom-5 z-[100] translate-y-24 opacity-0 transition-all duration-300 px-5 py-4 rounded-2xl bg-slate-900/95 border border-cyan-400/20 shadow-2xl max-w-sm text-xs text-slate-200"></div>
-<style>
-.nx3-action{padding:.8rem;border-radius:1rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#cbd5e1;transition:.2s}.nx3-action:hover{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.25);color:#fff;transform:translateY(-2px)}
-.nx3-cinema .glass-panel{box-shadow:0 0 0 1px rgba(34,211,238,.05),0 30px 100px rgba(0,0,0,.55)}
-</style>
-<script>
-const NEXUS3_SCENARIOS={{ scenarios|tojson }}; let nx3Started=Date.now(),nx3XP=0,nx3Spark=null;
-function nexus3Toast(t){const el=document.getElementById('nx3-toast');if(!el)return;el.innerText=t;el.classList.remove('translate-y-24','opacity-0');clearTimeout(window.__nx3toast);window.__nx3toast=setTimeout(()=>el.classList.add('translate-y-24','opacity-0'),2800)}
-function nexus3Scroll(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
-function nexus3Quick(tab){if(tab==='top')window.scrollTo({top:0,behavior:'smooth'});else if(typeof switchWorkspaceTab==='function')switchWorkspaceTab(tab)}
-function nexus3ToggleCinema(){document.documentElement.classList.toggle('nx3-cinema');const b=document.getElementById('nx3-cinema-btn');if(b)b.innerText=document.documentElement.classList.contains('nx3-cinema')?'Exit Cinema':'Cinema Mode';nexus3Toast(document.documentElement.classList.contains('nx3-cinema')?'Cinema mode engaged':'Cinema mode closed')}
-function nexus3ReadField(id,fallback=0){const e=document.getElementById(id);const n=parseFloat(e?.value);return Number.isFinite(n)?n:fallback}
-function nexus3ClinicalLens(){
-  const pplat=nexus3ReadField('pplat',15), peep=nexus3ReadField('peep',5), fio2=nexus3ReadField('fio2',30), pao2=parseFloat(document.getElementById('val-pao2')?.innerText||90), ph=parseFloat((document.querySelector('#section-analytics')?.innerText.match(/pH:\s*([0-9.]+)/)||[])[1]||7.4);
-  const drive=pplat-peep, pf=fio2>0?pao2/(fio2/100):0; let risk=0, flags=[];
-  if(pplat>30){risk+=35;flags.push('plateau pressure is above the 30 cmH₂O safety threshold');}
-  if(drive>15){risk+=25;flags.push('driving pressure is above 15 cmH₂O');}
-  if(pf<200){risk+=20;flags.push('oxygenation is reduced by the P/F ratio');}
-  if(pao2<60){risk+=20;flags.push('PaO₂ is below 60 mmHg');}
-  risk=Math.min(100,risk); const riskLabel=risk>=60?'HIGH RISK':risk>=30?'WATCH':'LOW RISK';
-  const riskEl=document.getElementById('nx3-lens-risk'); if(riskEl){riskEl.innerText=riskLabel;riskEl.className='px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest '+(risk>=60?'bg-rose-400/10 border border-rose-400/20 text-rose-300':risk>=30?'bg-amber-400/10 border border-amber-400/20 text-amber-300':'bg-emerald-400/10 border border-emerald-400/20 text-emerald-300');}
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v}; set('nx3-lens-pplat',pplat.toFixed(1)); set('nx3-lens-drive',drive.toFixed(1)); set('nx3-lens-pf',pf.toFixed(0)); set('nx3-lens-ph',ph.toFixed(2));
-  set('nx3-lens-pulse',new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
-  set('nx3-lens-interpretation',flags.length?('Priority signals: '+flags.join('; ')+'.'):'No configured threshold alert detected. Compare the complete patient context, waveform pattern, and serial trends.');
-}
-function nexus3LoadScenario(s){const p=document.getElementById('preset_id');if(p)p.value=s.preset;const d=document.getElementById('preset-dropdown');if(d){d.value=s.preset;if(typeof loadPreset==='function')loadPreset(s.preset)}document.getElementById('nx3-lens-title').innerText=s.title;document.getElementById('nx3-lens-sub').innerText=s.subtitle+' • '+s.difficulty;nx3XP+=25;document.getElementById('nx3-score').innerText='XP '+nx3XP;setTimeout(nexus3ClinicalLens,100);nexus3Toast(s.title+' loaded into the simulator')}
-function nexus3RenderScenarios(){const w=document.getElementById('nx3-scenarios');if(!w)return;w.innerHTML=NEXUS3_SCENARIOS.map(s=>`<button onclick='nexus3LoadScenario(${JSON.stringify(s)})' class="text-left rounded-3xl p-5 bg-white/[.03] border border-white/10 hover:border-cyan-400/30 hover:bg-cyan-400/[.04] transition group"><div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-[.2em] text-slate-500">${s.difficulty}</span><span class="w-2.5 h-2.5 rounded-full bg-${s.accent}-400"></span></div><div class="text-lg font-black text-white mt-3">${s.title}</div><div class="text-xs text-slate-400 mt-1">${s.subtitle}</div><div class="mt-4 text-[10px] uppercase tracking-widest text-cyan-300">Launch case →</div></button>`).join('')}
-function nexus3RandomCase(){nexus3LoadScenario(NEXUS3_SCENARIOS[Math.floor(Math.random()*NEXUS3_SCENARIOS.length)]);nexus3Scroll('nexus3-mission')}
-function nexus3Insights(){const vals=[['Model continuity','Compare the newest telemetry with your prior runs.','cyan'],['Guardrail','Review pressure and oxygenation thresholds before applying outputs clinically.','amber'],['Learning loop','Use pattern relationships rather than memorizing isolated numbers.','violet']];document.getElementById('nx3-insights').innerHTML=vals.map(v=>`<div class="p-3 rounded-2xl bg-black/20 border border-white/5"><div class="text-[10px] text-${v[2]}-300 font-bold uppercase tracking-widest">${v[0]}</div><div class="text-xs text-slate-400 mt-1 leading-5">${v[1]}</div></div>`).join('')}
-function nexus3Particles(){const c=document.getElementById('nexus3-particles');if(!c)return;const x=c.getContext('2d');function size(){c.width=c.clientWidth*devicePixelRatio;c.height=c.clientHeight*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}size();addEventListener('resize',size);const pts=Array.from({length:55},()=>({x:Math.random()*c.clientWidth,y:Math.random()*c.clientHeight,r:Math.random()*1.8+.3,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15}));function loop(){x.clearRect(0,0,c.clientWidth,c.clientHeight);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=c.clientWidth;if(p.x>c.clientWidth)p.x=0;if(p.y<0)p.y=c.clientHeight;if(p.y>c.clientHeight)p.y=0;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fillStyle='rgba(103,232,249,.45)';x.fill()}requestAnimationFrame(loop)}loop()}
-function nexus3Sparkline(){const c=document.getElementById('nx3-spark');if(!c||typeof Chart==='undefined')return;const data=Array.from({length:24},(_,i)=>70+Math.sin(i/2.2)*12+Math.random()*8);nx3Spark=new Chart(c,{type:'line',data:{labels:data.map((_,i)=>i+1),datasets:[{data,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.08)',fill:true,borderWidth:2,tension:.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}})}
-setInterval(()=>{const sec=Math.floor((Date.now()-nx3Started)/1000),mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0'),e=document.getElementById('nx3-session');if(e)e.innerText=`${mm}:${ss}`},1000);
-setInterval(()=>{const mood=document.getElementById('nx3-mood');if(mood)mood.innerText=['CALM','FOCUSED','ANALYTIC','ALERT'][Math.floor(Date.now()/5000)%4]},5000);
-document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3Insights();nexus3Particles();nexus3Sparkline();nexus3ClinicalLens();document.querySelectorAll('#calc-form input').forEach(e=>e.addEventListener('input',nexus3ClinicalLens));fetch('/api/nexus/history').then(r=>r.json()).then(d=>{document.getElementById('nx3-case-count').innerText=d.stats?.total||0}).catch(()=>{})})
-</script>
-
     <div id="lyra-hub" class="fixed inset-0 z-[120] hidden siri-overlay items-center justify-center p-5">
       <div class="w-full max-w-2xl text-center">
         <button onclick="closeLyraHub()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300">✕</button>
@@ -1344,17 +1252,31 @@ document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3
     <section id="operator-deck" class="hidden"></section>
 <style>.lyra-chip,.deck-btn{padding:.55rem .7rem;border-radius:.75rem;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#cbd5e1;transition:.18s}.lyra-chip:hover,.deck-btn:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:white}.lyra-history-item{padding:.7rem .8rem;border-radius:.9rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:10px}</style><script>function lyraHubRun(){const e=document.getElementById('lyra-hub-input');if(!e)return;const v=e.value.trim();if(!v)return;processLyraCommand(v,localStorage.getItem('selectedLang')||'en');e.value='';renderLyraHub()}async function lyraSaveNote(){const title=document.getElementById('lyra-note-title')?.value||'Lyra learning note',note=document.getElementById('lyra-note-text')?.value||'';if(!note.trim()){lyraSetStatus('Enter a note before saving.','alert');return}try{const r=await fetch('/api/nexus/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,note,tag:'lyra'})});if(!r.ok)throw new Error();lyraSetStatus('Journal note saved.');lyraLog('save note','Journal note saved.');document.getElementById('lyra-note-text').value='';renderLyraHub()}catch(e){lyraSetStatus('Could not save the journal note.','alert')}}</script>
 
-    <button id="advanced-tools-fab" onclick="openAdvancedTools()" class="fixed right-5 bottom-5 z-[95] w-12 h-12 rounded-full bg-slate-900/90 border border-white/10 text-slate-300 shadow-2xl hover:text-white" title="Advanced tools">⌘</button>
-    <div id="advanced-tools" class="fixed inset-0 z-[110] hidden bg-black/70 backdrop-blur-md p-5 items-end justify-center">
-      <div class="w-full max-w-lg rounded-[2rem] glass-panel p-5 border-white/10">
-        <div class="flex items-center justify-between"><div><div class="text-[10px] uppercase tracking-[.3em] text-cyan-300 font-black">Advanced tools</div><div class="text-lg font-black text-white">AEROLUNG Studio</div></div><button onclick="closeAdvancedTools()" class="w-9 h-9 rounded-full bg-white/5 text-slate-300">✕</button></div>
-        <div class="grid grid-cols-2 gap-2 mt-5">
-          <button class="deck-btn" onclick="closeAdvancedTools();switchWorkspaceTab('analytics')">Telemetry</button>
-          <button class="deck-btn" onclick="closeAdvancedTools();switchWorkspaceTab('protocols')">Protocols</button>
-          <button class="deck-btn" onclick="closeAdvancedTools();nexus3RandomCase()">Case Lab</button>
-          <button class="deck-btn" onclick="closeAdvancedTools();lyraRunQuick('compare COPD vs ARDS')">Compare</button>
-          <button class="deck-btn" onclick="closeAdvancedTools();document.getElementById('notes-modal')?.classList.remove('hidden')">Record Analyzer</button>
-          <button class="deck-btn" onclick="closeAdvancedTools();window.location.href='/api/nexus/export?format=csv'">Export Ledger</button>
+    <button id="advanced-tools-fab" onclick="openAdvancedTools()" class="fixed right-5 bottom-5 z-[95] w-13 h-13 rounded-full bg-slate-950/95 border border-cyan-400/20 text-cyan-300 shadow-[0_0_30px_rgba(34,211,238,.15)] hover:bg-slate-900 hover:scale-105 transition" title="Advanced Clinical Studio">✦</button>
+    <div id="advanced-tools" class="fixed inset-0 z-[110] hidden bg-black/75 backdrop-blur-xl p-4 sm:p-6 items-center justify-center">
+      <div class="w-full max-w-4xl rounded-[2rem] glass-panel p-5 sm:p-7 border border-white/10 shadow-[0_30px_120px_rgba(0,0,0,.65)] max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-[10px] uppercase tracking-[.32em] text-cyan-300 font-black">AEROLUNG // STUDIO</div>
+            <div class="text-2xl sm:text-3xl font-black text-white mt-1">Advanced Clinical Tools</div>
+            <p class="text-xs text-slate-400 mt-2 max-w-2xl">Deep analysis without filling the main workspace. Open a tool only when you need it.</p>
+          </div>
+          <button onclick="closeAdvancedTools()" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:text-white">✕</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
+          <button class="studio-card" onclick="studioRun('optimizer')"><div class="studio-icon">◈</div><div><b>Ventilator Optimizer</b><span>Analyze Pplat, driving pressure, FiO₂, RR and generate guardrail suggestions.</span></div></button>
+          <button class="studio-card" onclick="studioRun('abg')"><div class="studio-icon">◉</div><div><b>ABG Intelligence</b><span>Interpret pH, PaCO₂ and HCO₃ with a compact acid–base explanation.</span></div></button>
+          <button class="studio-card" onclick="studioRun('oxygen')"><div class="studio-icon">◇</div><div><b>Oxygenation Lab</b><span>Display P/F ratio, shunt context and an oxygenation severity readout.</span></div></button>
+          <button class="studio-card" onclick="studioRun('waveform')"><div class="studio-icon">∿</div><div><b>Waveform Lab</b><span>Jump directly to the high-resolution pressure / volume waveform workspace.</span></div></button>
+          <button class="studio-card" onclick="studioRun('compare')"><div class="studio-icon">⇄</div><div><b>Pathology Compare</b><span>Compare two major pulmonary patterns through Lyra without cluttering the dashboard.</span></div></button>
+          <button class="studio-card" onclick="studioRun('case')"><div class="studio-icon">✧</div><div><b>Scenario Lab</b><span>Launch a challenging learning case and load it into the simulator.</span></div></button>
+          <button class="studio-card" onclick="studioRun('record')"><div class="studio-icon">▣</div><div><b>Clinical Record Analyzer</b><span>Analyze a narrative and map the strongest supported respiratory pattern.</span></div></button>
+          <button class="studio-card" onclick="studioRun('ledger')"><div class="studio-icon">◫</div><div><b>Simulation Ledger</b><span>Review longitudinal runs and export your learning / simulation history.</span></div></button>
+          <button class="studio-card" onclick="studioRun('protocols')"><div class="studio-icon">✓</div><div><b>Protocol Library</b><span>Open safety directives and core ventilator protocol references.</span></div></button>
+        </div>
+        <div id="studio-result" class="hidden mt-5 rounded-2xl bg-black/30 border border-white/10 p-5">
+          <div class="flex items-center justify-between gap-3"><div><div id="studio-result-kicker" class="text-[9px] uppercase tracking-[.25em] text-cyan-300 font-black"></div><h3 id="studio-result-title" class="text-lg font-black text-white mt-1"></h3></div><button onclick="document.getElementById('studio-result').classList.add('hidden')" class="text-slate-500 hover:text-white">✕</button></div>
+          <div id="studio-result-body" class="mt-4 text-sm text-slate-300 leading-6"></div>
         </div>
       </div>
     </div>
@@ -1365,16 +1287,45 @@ document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3
       #advanced-tools.hidden{display:none!important}
       #lyra-hub.hidden{display:none!important}
       #lyra-hub.flex{display:flex!important}
+      .studio-card{display:flex;gap:.9rem;align-items:flex-start;text-align:left;padding:1rem;border-radius:1.2rem;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);color:#e2e8f0;transition:.2s}
+      .studio-card:hover{transform:translateY(-2px);border-color:rgba(34,211,238,.28);background:linear-gradient(180deg,rgba(34,211,238,.08),rgba(255,255,255,.02));box-shadow:0 14px 35px rgba(0,0,0,.25)}
+      .studio-card b{display:block;font-size:.85rem;color:#fff}.studio-card span{display:block;margin-top:.28rem;font-size:.68rem;line-height:1.35rem;color:#94a3b8}
+      .studio-icon{width:2rem;height:2rem;display:grid;place-items:center;border-radius:.8rem;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.14);color:#67e8f9;font-weight:900;flex:0 0 auto}
     </style>
     <script>
+      function studioEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+      function studioSet(title,body,kicker='ADVANCED ANALYSIS'){const r=document.getElementById('studio-result');document.getElementById('studio-result-kicker').innerText=kicker;document.getElementById('studio-result-title').innerText=title;document.getElementById('studio-result-body').innerHTML=body;r.classList.remove('hidden')}
+      function studioRead(id,d=0){const n=parseFloat(document.getElementById(id)?.value);return Number.isFinite(n)?n:d}
+      function studioRun(tool){
+        if(tool==='optimizer'){
+          const vt=studioRead('vt_input',500),rr=studioRead('rr',14),pplat=studioRead('pplat',15),peep=studioRead('peep',5),fio2=studioRead('fio2',30),drive=pplat-peep,flags=[];
+          if(pplat>30)flags.push('Plateau pressure is above 30 cmH₂O.'); if(drive>15)flags.push('Driving pressure is above 15 cmH₂O.'); if(rr>30)flags.push('Respiratory rate is elevated.'); if(fio2>60)flags.push('FiO₂ is high and should be interpreted with oxygenation context.');
+          studioSet('Ventilator Optimizer',`<div class='grid grid-cols-2 md:grid-cols-4 gap-3 mb-4'><div class='p-3 rounded-xl bg-white/5'><span class='text-[9px] text-slate-500 uppercase'>VT</span><b class='block mt-1 text-cyan-300'>${vt.toFixed(0)} mL</b></div><div class='p-3 rounded-xl bg-white/5'><span class='text-[9px] text-slate-500 uppercase'>RR</span><b class='block mt-1 text-cyan-300'>${rr.toFixed(0)}</b></div><div class='p-3 rounded-xl bg-white/5'><span class='text-[9px] text-slate-500 uppercase'>Pplat</span><b class='block mt-1 text-cyan-300'>${pplat.toFixed(1)}</b></div><div class='p-3 rounded-xl bg-white/5'><span class='text-[9px] text-slate-500 uppercase'>ΔP</span><b class='block mt-1 text-cyan-300'>${drive.toFixed(1)}</b></div></div>${flags.length?`<div class='text-amber-200'>${flags.map(x=>`<div class='mb-2'>• ${studioEsc(x)}</div>`).join('')}</div>`:`<div class='text-emerald-300'>✓ No configured ventilator guardrail is currently triggered.</div>`}<div class='mt-3 text-xs text-slate-500'>Educational decision-support only; interpret with patient context and local protocols.</div>`,'VENTILATOR SAFETY')
+        }
+        if(tool==='abg'){
+          const ph=parseFloat('{{ result.ph }}')||7.4,co2=parseFloat('{{ result.paco2 }}')||40,hco3=parseFloat('{{ result.hco3 }}')||24; let primary='Near-normal acid–base state'; if(ph<7.35)primary=co2>45?'Respiratory acidosis pattern':'Metabolic acidosis pattern'; else if(ph>7.45)primary=co2<35?'Respiratory alkalosis pattern':'Metabolic alkalosis pattern'; studioSet('ABG Intelligence',`<div class='grid grid-cols-3 gap-3 mb-4'><div class='p-4 rounded-xl bg-white/5 text-center'><span class='text-[9px] text-slate-500'>pH</span><b class='block text-violet-300 text-xl mt-1'>${ph.toFixed(2)}</b></div><div class='p-4 rounded-xl bg-white/5 text-center'><span class='text-[9px] text-slate-500'>PaCO₂</span><b class='block text-cyan-300 text-xl mt-1'>${co2.toFixed(1)}</b></div><div class='p-4 rounded-xl bg-white/5 text-center'><span class='text-[9px] text-slate-500'>HCO₃</span><b class='block text-emerald-300 text-xl mt-1'>${hco3.toFixed(1)}</b></div></div><div class='text-white font-bold'>${studioEsc(primary)}</div><div class='mt-2 text-xs text-slate-500'>Uses the simulator’s current calculated ABG values.</div>`,'ACID–BASE')
+        }
+        if(tool==='oxygen'){
+          const pao2=parseFloat(document.getElementById('val-pao2')?.innerText||'90')||90,fio2=studioRead('fio2',30),pf=fio2? pao2 / (fio2/100):0;
+        }
+        if(tool==='oxygen'){
+          const pao2=parseFloat(document.getElementById('val-pao2')?.innerText||'90')||90,fio2=studioRead('fio2',30),pf=fio2?pao2/(fio2/100):0,band=pf<100?'Severely impaired':pf<200?'Moderately impaired':pf<300?'Reduced':'Relatively preserved'; studioSet('Oxygenation Lab',`<div class='flex items-center justify-between rounded-2xl bg-black/20 border border-white/5 p-5'><div><div class='text-[9px] uppercase tracking-widest text-slate-500'>PaO₂ / FiO₂</div><div class='text-4xl font-black text-emerald-300 mt-1'>${pf.toFixed(0)}</div></div><div class='text-right'><div class='text-[9px] uppercase tracking-widest text-slate-500'>Interpretation</div><div class='text-white font-bold mt-1'>${band}</div></div></div><div class='mt-3 text-xs text-slate-500'>PaO₂ ${pao2.toFixed(0)} mmHg at FiO₂ ${fio2.toFixed(0)}%.</div>`,'OXYGENATION')
+        }
+        if(tool==='waveform'){closeAdvancedTools();switchWorkspaceTab('analytics');document.getElementById('section-analytics')?.scrollIntoView({behavior:'smooth',block:'start'});}
+        if(tool==='compare'){closeAdvancedTools();openLyraHub();setTimeout(()=>{const e=document.getElementById('lyra-console');if(e){e.value='compare COPD vs ARDS';submitLyraText()}},150)}
+        if(tool==='case'){closeAdvancedTools();openLyraHub();setTimeout(()=>{const e=document.getElementById('lyra-console');if(e){e.value='new case';submitLyraText()}},150)}
+        if(tool==='record'){closeAdvancedTools();document.getElementById('notes-modal')?.classList.remove('hidden')}
+        if(tool==='ledger'){window.location.href='/api/nexus/export?format=csv'}
+        if(tool==='protocols'){closeAdvancedTools();switchWorkspaceTab('protocols');document.getElementById('section-protocols')?.scrollIntoView({behavior:'smooth',block:'start'})}
+      }
       function openAdvancedTools(){const e=document.getElementById('advanced-tools');if(e){e.classList.remove('hidden');e.classList.add('flex')}}
       function closeAdvancedTools(){const e=document.getElementById('advanced-tools');if(e){e.classList.add('hidden');e.classList.remove('flex')}}
       function openLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.remove('hidden');h.classList.add('flex')}renderLyraHub();setTimeout(()=>document.getElementById('lyra-console')?.focus(),120)}
       function closeLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.add('hidden');h.classList.remove('flex')}if(lyraActive)toggleLyra()}
-      function renderLyraHub(){const reply=document.getElementById('lyra-siri-reply');if(reply)reply.innerText=LYRA.lastReply||'Ask me anything about the simulator, telemetry, pathology presets, or learning cases.';const mode=document.getElementById('lyra-mode');if(mode)mode.innerText=lyraActive?'Listening…':'Ready when you are';const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',!!lyraActive)}
+      function renderLyraHub(){const reply=document.getElementById('lyra-siri-reply');if(reply)reply.innerText=LYRA.lastReply||'Ask for a pathology, telemetry, risk, a comparison, or a learning case.';const mode=document.getElementById('lyra-mode');if(mode)mode.innerText=lyraActive?'Listening…':'Ready when you are';const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',!!lyraActive)}
       function lyraSetStatus(msg,tone='normal'){const e=document.getElementById('lyra-status');if(e)e.innerText=msg;LYRA.lastReply=msg;const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',tone==='busy'||lyraActive);renderLyraHub()}
       function lyraSpeak(text,lang){if(LYRA.voiceOut&&'speechSynthesis'in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==='es'?'es-ES':lang==='fr'?'fr-FR':'en-US';u.pitch=.96;u.rate=.96;window.speechSynthesis.speak(u)}}
-      document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLyraHub();closeAdvancedTools()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub();toggleLyra()}});
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLyraHub();closeAdvancedTools();document.getElementById('studio-result')?.classList.add('hidden')}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub();toggleLyra()}});
     </script>
     <!-- NLP CLINICAL RECORD ANALYZER MODAL -->
     <div id="notes-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
