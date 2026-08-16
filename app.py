@@ -565,6 +565,9 @@ GLOBAL_CSS_JS = """
     .workspace-tab.active { background: rgba(34, 211, 238, 0.15); border-color: #22d3ee; color: #22d3ee; }
     @keyframes pulseAlert { 0% { opacity: 1; border-color: rgba(244,63,94,0.8); } 50% { opacity: 0.4; border-color: rgba(244,63,94,0.2); } 100% { opacity: 1; border-color: rgba(244,63,94,0.8); } }
     .alarm-active { animation: pulseAlert 1.2s infinite; }
+    .metric-orbit{animation: orbitPulse 3.2s ease-in-out infinite}
+    @keyframes orbitPulse{0%,100%{transform:translateY(0);opacity:.9}50%{transform:translateY(-3px);opacity:1}}
+    .nx3-cinema body{background:#000b12}
 </style>
 <script>
     function updateClock() {
@@ -870,91 +873,33 @@ GLOBAL_CSS_JS = """
 
     let recognition;
     let lyraActive = false;
-
-    function toggleLyra() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert("Speech API not supported. Please use Chrome/Edge/Safari.");
-            return;
-        }
-        
-        const btn = document.getElementById('lyra-btn');
-        const status = document.getElementById('lyra-status');
-        const langCode = localStorage.getItem('selectedLang') || 'en';
-
-        if (!lyraActive) {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRec();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            
-            if (langCode === 'es') recognition.lang = 'es-ES';
-            else if (langCode === 'fr') recognition.lang = 'fr-FR';
-            else recognition.lang = 'en-US';
-
-            recognition.onresult = function(event) {
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-                status.innerText = "Heard: " + transcript;
-                processLyraCommand(transcript, langCode);
-            };
-
-            recognition.onend = function() { if (lyraActive) recognition.start(); };
-            
-            try {
-                recognition.start();
-                lyraActive = true;
-                btn.innerText = "Stop Lyra";
-                btn.className = "w-full py-3 rounded-xl bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
-                status.innerText = "Listening... Just say the pathology (e.g. 'Load COPD')";
-                lyraSpeak("Lyra activated. Awaiting pathology command.", langCode);
-            } catch(e) { console.log(e); }
-        } else {
-            lyraActive = false;
-            recognition.stop();
-            btn.innerText = TRANSLATIONS[langCode]['lyra_btn'];
-            btn.className = "w-full py-3 rounded-xl bg-purple-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)]";
-            status.innerText = TRANSLATIONS[langCode]['lyra_status'];
-        }
+    const LYRA_COMMANDS = {
+        healthy:'healthy', normal:'healthy', ards:'ards', copd:'copd', epoc:'copd', bpco:'copd', asthma:'asthma', asma:'asthma', fibrosis:'fibrosis', embolism:'pe', embolus:'pe', 'pulmonary embolism':'pe', pe:'pe', pneumonia:'pneumonia', neumonia:'pneumonia', edema:'edema', oedema:'edema', pneumothorax:'pneumothorax', bronchiectasis:'bronch', 'cystic fibrosis':'cf', obesity:'obesity', kyphoscoliosis:'kypho', atelectasis:'atelectasis', 'flail chest':'flail', 'pulmonary hypertension':'p_htn', 'carbon monoxide':'co_poison', 'moderate ards':'ards_mod', 'mild ards':'mild_ards'
+    };
+    function lyraSetStatus(msg){const e=document.getElementById('lyra-status');if(e)e.innerText=msg;}
+    function lyraMatchPathology(text){const t=text.toLowerCase(); const keys=Object.keys(LYRA_COMMANDS).sort((a,b)=>b.length-a.length); for(const k of keys){if(t.includes(k)) return LYRA_COMMANDS[k];} return null;}
+    function lyraHelp(){const msg='Lyra commands: load COPD, load ARDS, analyze note, show telemetry, show risk, go to protocols, cinema mode, or stop listening.';lyraSetStatus(msg);lyraSpeak(msg,localStorage.getItem('selectedLang')||'en');}
+    function toggleLyra(){
+      const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SpeechRec){lyraSetStatus('Voice input unavailable here. Use the Lyra command box instead.');document.getElementById('lyra-console')?.focus();return;}
+      const btn=document.getElementById('lyra-btn'), langCode=localStorage.getItem('selectedLang')||'en';
+      if(!lyraActive){recognition=new SpeechRec();recognition.continuous=true;recognition.interimResults=true;recognition.maxAlternatives=3;recognition.lang=langCode==='es'?'es-ES':langCode==='fr'?'fr-FR':'en-US';recognition.onresult=e=>{const r=e.results[e.results.length-1],t=r[0].transcript.trim();lyraSetStatus((r.isFinal?'Heard: ':'Listening: ')+t);if(r.isFinal)processLyraCommand(t,langCode)};recognition.onerror=e=>lyraSetStatus('Lyra voice error: '+(e.error||'unknown'));recognition.onend=()=>{if(lyraActive){try{recognition.start()}catch(err){}}};try{recognition.start();lyraActive=true;btn.innerText='Stop Lyra';btn.className='w-full py-3 rounded-xl bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,.55)]';lyraSetStatus('Listening • say “help” for commands');lyraSpeak('Lyra activated. Listening for commands.',langCode)}catch(e){lyraSetStatus('Could not start voice recognition. Use the typed command box.')}}
+      else{lyraActive=false;try{recognition.stop()}catch(e){};btn.innerText=TRANSLATIONS[langCode]['lyra_btn'];btn.className='w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,.3)]';lyraSetStatus(TRANSLATIONS[langCode]['lyra_status']);}
     }
-
-    function processLyraCommand(text, lang) {
-        let matched = null;
-        if (text.includes('healthy') || text.includes('saludable') || text.includes('sain') || text.includes('normal')) matched = 'healthy';
-        else if (text.includes('ards')) matched = 'ards';
-        else if (text.includes('copd') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
-        else if (text.includes('asthma') || text.includes('asma')) matched = 'asthma';
-        else if (text.includes('fibrosis')) matched = 'fibrosis';
-        else if (text.includes('embol') || text.includes('pe')) matched = 'pe';
-        else if (text.includes('pneumonia') || text.includes('neumonia')) matched = 'pneumonia';
-        else if (text.includes('edema')) matched = 'edema';
-
-        if (matched) {
-            let msg = "Synchronizing matrix for " + matched;
-            const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
-            const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
-            const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
-            
-            lyraSpeak(msg, lang);
-            document.getElementById('lyra-status').innerText = msg;
-            lyraActive = false;
-            recognition.stop();
-            setTimeout(() => { loadPreset(matched); }, 2500);
-        } else {
-            document.getElementById('lyra-status').innerText = "Pathology not recognized. Repeat command.";
-        }
+    function processLyraCommand(text,lang){
+      const t=(text||'').toLowerCase().trim(); if(!t)return;
+      if(t==='help'||t.includes('what can you do')||t.includes('commands'))return lyraHelp();
+      if(t.includes('analyze')||t.includes('record')||t.includes('clinical note')){document.getElementById('notes-modal')?.classList.remove('hidden');lyraSetStatus('Clinical Record Synchronizer opened. Paste the note and process it.');return;}
+      if(t.includes('telemetry')||t.includes('waveform')||t.includes('analytics')){switchWorkspaceTab('analytics');lyraSetStatus('Advanced telemetry opened.');return;}
+      if(t.includes('protocol')){switchWorkspaceTab('protocols');lyraSetStatus('Clinical protocols opened.');return;}
+      if(t.includes('dashboard')||t.includes('workspace')){switchWorkspaceTab('dashboard');lyraSetStatus('Live workspace opened.');return;}
+      if(t.includes('cinema')){nexus3ToggleCinema();return;}
+      if(t.includes('risk')||t.includes('safety')){switchWorkspaceTab('dashboard');setTimeout(()=>nexus3ClinicalLens(),150);lyraSetStatus('Decision Lens refreshed with current safety signals.');return;}
+      if(t.includes('stop')||t.includes('sleep')){if(lyraActive)toggleLyra();return;}
+      const matched=lyraMatchPathology(t); if(matched){document.getElementById('custom_ai_desc')&&(document.getElementById('custom_ai_desc').value='');document.getElementById('custom_ai_cond')&&(document.getElementById('custom_ai_cond').value='');document.getElementById('custom_ai_plan')&&(document.getElementById('custom_ai_plan').value='');loadPreset(matched);lyraSetStatus('Loaded '+matched.toUpperCase()+' • telemetry recalculated.');lyraSpeak('Loading '+matched.replace('_',' '),lang);setTimeout(nexus3ClinicalLens,100);return;}
+      lyraSetStatus('Command not recognized. Say “help” or use the typed Lyra box.');
     }
-
-    function lyraSpeak(text, lang) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            if(lang === 'es') u.lang = 'es-ES';
-            else if(lang === 'fr') u.lang = 'fr-FR';
-            else u.lang = 'en-US';
-            u.pitch = 1.1;
-            u.rate = 1.0;
-            window.speechSynthesis.speak(u);
-        }
-    }
+    function submitLyraText(){const e=document.getElementById('lyra-console');if(e){processLyraCommand(e.value,localStorage.getItem('selectedLang')||'en');e.value='';e.focus();}}
+    function lyraSpeak(text,lang){if(!('speechSynthesis' in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==='es'?'es-ES':lang==='fr'?'fr-FR':'en-US';u.pitch=.96;u.rate=1.02;window.speechSynthesis.speak(u);}
 
     const PRESETS = {
         healthy:      {vt: 500, rr: 14, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 30, ie: 2.0, cao2: 19.8, cvo2: 14.8, cco2: 20.4, peco2: 28, vco2: 200, hco3: 24},
@@ -1097,12 +1042,14 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                 </div>
 
                 <!-- Lyra Voice Assistant Panel -->
-                <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between">
-                    <div>
-                        <h2 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Lyra Voice Neural Link</h2>
-                        <p id="lyra-status" class="text-xs text-slate-300 font-mono" data-i18n="lyra_status">Lyra Sleeping</p>
+                <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-28 h-28 rounded-full bg-purple-500/10 blur-2xl"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between"><h2 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Lyra Neural Copilot</h2><span class="text-[9px] px-2 py-1 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-300 uppercase tracking-widest">v4</span></div>
+                        <p id="lyra-status" class="text-xs text-slate-300 font-mono min-h-[32px]" data-i18n="lyra_status">Lyra Sleeping</p>
+                        <div class="mt-3 flex gap-2"><input id="lyra-console" onkeydown="if(event.key==='Enter')submitLyraText()" placeholder="Try: load ARDS / telemetry / risk / help" class="flex-1 glass-input px-3 py-2 rounded-xl text-[10px] font-mono"><button onclick="submitLyraText()" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase">Run</button></div>
                     </div>
-                    <button id="lyra-btn" onclick="toggleLyra()" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)]" data-i18n="lyra_btn">Wake Lyra</button>
+                    <button id="lyra-btn" onclick="toggleLyra()" class="relative w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)] mt-4" data-i18n="lyra_btn">Wake Lyra</button>
                 </div>
 
                 <!-- Export & Config Copy -->
@@ -1273,9 +1220,35 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
     </div>
   </div>
 </section>
-<section id="nexus3-mission" class="mt-6 grid grid-cols-1 xl:grid-cols-[1.15fr_.85fr] gap-6">
-  <div class="glass-panel rounded-[2rem] p-6 border-white/10"><div class="flex items-center justify-between gap-4 mb-5"><div><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Mission Control</div><h3 class="text-2xl font-black text-white mt-1">Choose your case</h3></div><div id="nx3-score" class="px-4 py-2 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-violet-300 font-black text-sm">XP 0</div></div><div id="nx3-scenarios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div></div>
-  <div class="glass-panel rounded-[2rem] p-6 border-white/10"><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Clinical Lens</div><h3 id="nx3-lens-title" class="text-2xl font-black text-white mt-1">Nothing selected</h3><p id="nx3-lens-sub" class="text-sm text-slate-400 mt-2">Pick a mission to load a preset into the original simulator.</p><div class="mt-6 grid grid-cols-3 gap-3 text-center"><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Pressure</div><div id="nx3-lens-p" class="text-lg font-black text-cyan-300 mt-1">—</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Oxygen</div><div id="nx3-lens-o" class="text-lg font-black text-emerald-300 mt-1">—</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Gas</div><div id="nx3-lens-g" class="text-lg font-black text-violet-300 mt-1">—</div></div></div><button onclick="nexus3RandomCase()" class="w-full mt-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest">Surprise Me</button></div>
+<section id="nexus3-mission" class="mt-6 grid grid-cols-1 xl:grid-cols-[1.05fr_.95fr] gap-6">
+  <div class="glass-panel rounded-[2rem] p-6 border-white/10">
+    <div class="flex items-center justify-between gap-4 mb-5">
+      <div><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Mission Control</div><h3 class="text-2xl font-black text-white mt-1">Choose your case</h3></div>
+      <div id="nx3-score" class="px-4 py-2 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-violet-300 font-black text-sm">XP 0</div>
+    </div>
+    <div id="nx3-scenarios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+  </div>
+  <div class="glass-panel rounded-[2rem] p-6 border-white/10 relative overflow-hidden">
+    <div class="absolute -top-16 -right-16 w-40 h-40 bg-violet-500/10 blur-3xl rounded-full"></div>
+    <div class="relative">
+      <div class="flex items-center justify-between gap-3">
+        <div><div class="text-[10px] text-violet-300 font-bold uppercase tracking-[.25em]">Decision Lens</div><h3 id="nx3-lens-title" class="text-2xl font-black text-white mt-1">Live physiology</h3></div>
+        <div id="nx3-lens-risk" class="px-3 py-1.5 rounded-xl bg-emerald-400/10 border border-emerald-400/20 text-emerald-300 text-[10px] font-black uppercase tracking-widest">LOW RISK</div>
+      </div>
+      <p id="nx3-lens-sub" class="text-sm text-slate-400 mt-2">The lens now reads directly from the active simulator values.</p>
+      <div class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Pplat</div><div id="nx3-lens-pplat" class="text-xl font-black text-cyan-300 mt-1">—</div><div class="text-[9px] text-slate-500">cmH₂O</div></div>
+        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">Drive ΔP</div><div id="nx3-lens-drive" class="text-xl font-black text-cyan-300 mt-1">—</div><div class="text-[9px] text-slate-500">cmH₂O</div></div>
+        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">P/F</div><div id="nx3-lens-pf" class="text-xl font-black text-emerald-300 mt-1">—</div><div class="text-[9px] text-slate-500">oxygenation</div></div>
+        <div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[10px] text-slate-500 uppercase">pH</div><div id="nx3-lens-ph" class="text-xl font-black text-violet-300 mt-1">—</div><div class="text-[9px] text-slate-500">acid-base</div></div>
+      </div>
+      <div class="mt-4 rounded-2xl bg-white/[.03] border border-white/10 p-4">
+        <div class="flex items-center justify-between gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500">Interpretation</span><span id="nx3-lens-pulse" class="text-[10px] text-cyan-300 font-mono">SYNCED</span></div>
+        <div id="nx3-lens-interpretation" class="text-sm text-slate-300 leading-6 mt-2">Select a scenario or change a ventilator parameter to generate a live interpretation.</div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2"><button onclick="nexus3RandomCase()" class="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest">Surprise Me</button><button onclick="nexus3Quick('dashboard')" class="px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-[10px] font-black uppercase tracking-widest">Open Simulator</button></div>
+    </div>
+  </div>
 </section>
 <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
   <div class="glass-panel rounded-[2rem] p-6"><div class="text-[10px] text-cyan-400 font-bold uppercase tracking-[.25em]">Adaptive Insights</div><h3 class="text-xl font-black mt-1">What matters now?</h3><div id="nx3-insights" class="mt-4 space-y-3"></div></div>
@@ -1293,7 +1266,21 @@ function nexus3Toast(t){const el=document.getElementById('nx3-toast');if(!el)ret
 function nexus3Scroll(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 function nexus3Quick(tab){if(tab==='top')window.scrollTo({top:0,behavior:'smooth'});else if(typeof switchWorkspaceTab==='function')switchWorkspaceTab(tab)}
 function nexus3ToggleCinema(){document.documentElement.classList.toggle('nx3-cinema');const b=document.getElementById('nx3-cinema-btn');if(b)b.innerText=document.documentElement.classList.contains('nx3-cinema')?'Exit Cinema':'Cinema Mode';nexus3Toast(document.documentElement.classList.contains('nx3-cinema')?'Cinema mode engaged':'Cinema mode closed')}
-function nexus3LoadScenario(s){const p=document.getElementById('preset_id');if(p)p.value=s.preset;const d=document.getElementById('preset-dropdown');if(d){d.value=s.preset;if(typeof loadPreset==='function')loadPreset(s.preset)}document.getElementById('nx3-lens-title').innerText=s.title;document.getElementById('nx3-lens-sub').innerText=s.subtitle+' • '+s.difficulty;document.getElementById('nx3-lens-p').innerText=s.preset.toUpperCase();document.getElementById('nx3-lens-o').innerText='READY';document.getElementById('nx3-lens-g').innerText='SYNC';nx3XP+=25;document.getElementById('nx3-score').innerText='XP '+nx3XP;nexus3Toast(s.title+' loaded into the simulator')}
+function nexus3ReadField(id,fallback=0){const e=document.getElementById(id);const n=parseFloat(e?.value);return Number.isFinite(n)?n:fallback}
+function nexus3ClinicalLens(){
+  const pplat=nexus3ReadField('pplat',15), peep=nexus3ReadField('peep',5), fio2=nexus3ReadField('fio2',30), pao2=parseFloat(document.getElementById('val-pao2')?.innerText||90), ph=parseFloat((document.querySelector('#section-analytics')?.innerText.match(/pH:\s*([0-9.]+)/)||[])[1]||7.4);
+  const drive=pplat-peep, pf=fio2>0?pao2/(fio2/100):0; let risk=0, flags=[];
+  if(pplat>30){risk+=35;flags.push('plateau pressure is above the 30 cmH₂O safety threshold');}
+  if(drive>15){risk+=25;flags.push('driving pressure is above 15 cmH₂O');}
+  if(pf<200){risk+=20;flags.push('oxygenation is reduced by the P/F ratio');}
+  if(pao2<60){risk+=20;flags.push('PaO₂ is below 60 mmHg');}
+  risk=Math.min(100,risk); const riskLabel=risk>=60?'HIGH RISK':risk>=30?'WATCH':'LOW RISK';
+  const riskEl=document.getElementById('nx3-lens-risk'); if(riskEl){riskEl.innerText=riskLabel;riskEl.className='px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest '+(risk>=60?'bg-rose-400/10 border border-rose-400/20 text-rose-300':risk>=30?'bg-amber-400/10 border border-amber-400/20 text-amber-300':'bg-emerald-400/10 border border-emerald-400/20 text-emerald-300');}
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v}; set('nx3-lens-pplat',pplat.toFixed(1)); set('nx3-lens-drive',drive.toFixed(1)); set('nx3-lens-pf',pf.toFixed(0)); set('nx3-lens-ph',ph.toFixed(2));
+  set('nx3-lens-pulse',new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  set('nx3-lens-interpretation',flags.length?('Priority signals: '+flags.join('; ')+'.'):'No configured threshold alert detected. Compare the complete patient context, waveform pattern, and serial trends.');
+}
+function nexus3LoadScenario(s){const p=document.getElementById('preset_id');if(p)p.value=s.preset;const d=document.getElementById('preset-dropdown');if(d){d.value=s.preset;if(typeof loadPreset==='function')loadPreset(s.preset)}document.getElementById('nx3-lens-title').innerText=s.title;document.getElementById('nx3-lens-sub').innerText=s.subtitle+' • '+s.difficulty;nx3XP+=25;document.getElementById('nx3-score').innerText='XP '+nx3XP;setTimeout(nexus3ClinicalLens,100);nexus3Toast(s.title+' loaded into the simulator')}
 function nexus3RenderScenarios(){const w=document.getElementById('nx3-scenarios');if(!w)return;w.innerHTML=NEXUS3_SCENARIOS.map(s=>`<button onclick='nexus3LoadScenario(${JSON.stringify(s)})' class="text-left rounded-3xl p-5 bg-white/[.03] border border-white/10 hover:border-cyan-400/30 hover:bg-cyan-400/[.04] transition group"><div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-[.2em] text-slate-500">${s.difficulty}</span><span class="w-2.5 h-2.5 rounded-full bg-${s.accent}-400"></span></div><div class="text-lg font-black text-white mt-3">${s.title}</div><div class="text-xs text-slate-400 mt-1">${s.subtitle}</div><div class="mt-4 text-[10px] uppercase tracking-widest text-cyan-300">Launch case →</div></button>`).join('')}
 function nexus3RandomCase(){nexus3LoadScenario(NEXUS3_SCENARIOS[Math.floor(Math.random()*NEXUS3_SCENARIOS.length)]);nexus3Scroll('nexus3-mission')}
 function nexus3Insights(){const vals=[['Model continuity','Compare the newest telemetry with your prior runs.','cyan'],['Guardrail','Review pressure and oxygenation thresholds before applying outputs clinically.','amber'],['Learning loop','Use pattern relationships rather than memorizing isolated numbers.','violet']];document.getElementById('nx3-insights').innerHTML=vals.map(v=>`<div class="p-3 rounded-2xl bg-black/20 border border-white/5"><div class="text-[10px] text-${v[2]}-300 font-bold uppercase tracking-widest">${v[0]}</div><div class="text-xs text-slate-400 mt-1 leading-5">${v[1]}</div></div>`).join('')}
@@ -1301,7 +1288,7 @@ function nexus3Particles(){const c=document.getElementById('nexus3-particles');i
 function nexus3Sparkline(){const c=document.getElementById('nx3-spark');if(!c||typeof Chart==='undefined')return;const data=Array.from({length:24},(_,i)=>70+Math.sin(i/2.2)*12+Math.random()*8);nx3Spark=new Chart(c,{type:'line',data:{labels:data.map((_,i)=>i+1),datasets:[{data,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.08)',fill:true,borderWidth:2,tension:.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}})}
 setInterval(()=>{const sec=Math.floor((Date.now()-nx3Started)/1000),mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0'),e=document.getElementById('nx3-session');if(e)e.innerText=`${mm}:${ss}`},1000);
 setInterval(()=>{const mood=document.getElementById('nx3-mood');if(mood)mood.innerText=['CALM','FOCUSED','ANALYTIC','ALERT'][Math.floor(Date.now()/5000)%4]},5000);
-document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3Insights();nexus3Particles();nexus3Sparkline();fetch('/api/nexus/history').then(r=>r.json()).then(d=>{document.getElementById('nx3-case-count').innerText=d.stats?.total||0}).catch(()=>{})})
+document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3Insights();nexus3Particles();nexus3Sparkline();nexus3ClinicalLens();document.querySelectorAll('#calc-form input').forEach(e=>e.addEventListener('input',nexus3ClinicalLens));fetch('/api/nexus/history').then(r=>r.json()).then(d=>{document.getElementById('nx3-case-count').innerText=d.stats?.total||0}).catch(()=>{})})
 </script>
 
     <!-- NLP CLINICAL RECORD ANALYZER MODAL -->
