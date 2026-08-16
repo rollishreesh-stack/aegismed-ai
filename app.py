@@ -1,8 +1,3 @@
-Library
-/
-AEROLUNG_NEXUS_v2.py
-
-
 import os
 import math
 import json
