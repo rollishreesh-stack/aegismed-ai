@@ -1,3 +1,8 @@
+Library
+/
+AEROLUNG_NEXUS_v2.py
+
+
 import os
 import math
 import json
@@ -28,6 +33,72 @@ def init_db():
     conn.close()
 
 init_db()
+
+# ==========================================
+# 1A. NEXT-GENERATION PLATFORM SERVICES
+# ==========================================
+def init_advanced_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS simulation_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        username TEXT,
+        created_at TEXT NOT NULL,
+        preset_id TEXT,
+        condition TEXT,
+        vt REAL, rr REAL, pip REAL, pplat REAL, peep REAL, fio2 REAL,
+        compliance REAL, resistance REAL, vd_vt REAL, shunt REAL,
+        ph REAL, paco2 REAL, pao2 REAL, hco3 REAL, minute_vent REAL,
+        acid_base_status TEXT
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT,
+        event TEXT NOT NULL, details TEXT, created_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS clinical_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL, title TEXT, note_text TEXT, result_json TEXT
+    )""")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_history_user_time ON simulation_history(user_id, created_at DESC)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_log(user_id, created_at DESC)")
+    conn.commit()
+    conn.close()
+
+init_advanced_db()
+
+def _now_iso():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+
+def _login_required():
+    return 'user_id' in session
+
+def _audit(event, details=''):
+    if not _login_required():
+        return
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("INSERT INTO audit_log (user_id, username, event, details, created_at) VALUES (?, ?, ?, ?, ?)",
+                 (session.get('user_id'), session.get('username'), event, details, _now_iso()))
+    conn.commit()
+    conn.close()
+
+def _save_simulation(result, inputs):
+    if not _login_required():
+        return
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("""INSERT INTO simulation_history
+        (user_id, username, created_at, preset_id, condition, vt, rr, pip, pplat, peep, fio2,
+         compliance, resistance, vd_vt, shunt, ph, paco2, pao2, hco3, minute_vent, acid_base_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (session.get('user_id'), session.get('username'), _now_iso(), result.get('preset_id'),
+         result.get('ai_condition'), inputs.get('vt_input'), inputs.get('rr'), inputs.get('pip'),
+         inputs.get('pplat'), inputs.get('peep'), inputs.get('fio2'), result.get('compliance'),
+         result.get('resistance'), result.get('vd_vt'), result.get('shunt'), result.get('ph'),
+         result.get('paco2'), result.get('pao2'), result.get('hco3'), result.get('minute_vent'),
+         result.get('acid_base_status')))
+    conn.commit()
+    conn.close()
 
 # ==========================================
 # 2. STRICT PATHOLOGY DATABASE & MATH ENGINE
@@ -1270,7 +1341,83 @@ def dashboard():
     }
     
     result = RespiratoryEngine.calculate_simulation(inputs, preset_id, custom_desc, custom_cond, custom_plan_str)
+    if request.method == 'POST':
+        _save_simulation(result, inputs)
+        _audit('SIMULATION_RUN', json.dumps({'preset_id': preset_id, 'condition': result.get('ai_condition')}))
     return render_template_string(DASHBOARD_HTML, result=result, DISEASE_PROFILES=DISEASE_PROFILES)
+
+
+# ==========================================
+# 5. NEXT-GENERATION COMMAND CENTER
+# ==========================================
+ADVANCED_COMMAND_CENTER = r"""
+<section id="advanced-command-center" class="space-y-6 mt-8">
+  <div class="glass-panel rounded-3xl p-6 border border-cyan-400/20 overflow-hidden relative">
+    <div class="absolute -right-20 -top-20 w-56 h-56 rounded-full bg-cyan-500/10 blur-3xl"></div>
+    <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3"><span class="px-2 py-1 rounded-md bg-cyan-400/10 border border-cyan-400/20 text-cyan-300 text-[9px] font-bold uppercase tracking-widest">NEXUS v2</span><span id="nexus-status" class="text-[10px] text-emerald-400 font-mono">● ONLINE</span></div>
+        <h2 class="text-2xl font-black mt-2">Advanced Command Center</h2>
+        <p class="text-xs text-slate-400 mt-1 max-w-2xl">Longitudinal simulation history, safety scoring, live trend analytics, and export tools layered on top of the original AEROLUNG engine.</p>
+      </div>
+      <div class="flex flex-wrap gap-2"><button onclick="refreshNexus()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase tracking-wider">↻ Refresh</button><button onclick="exportNexus('json')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold uppercase tracking-wider">Export JSON</button><button onclick="exportNexus('csv')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold uppercase tracking-wider">Export CSV</button></div>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="glass-panel p-5 rounded-2xl"><span class="text-[9px] uppercase tracking-widest text-slate-500">Simulations</span><div id="nx-total" class="text-2xl font-black font-mono mt-1">—</div></div>
+    <div class="glass-panel p-5 rounded-2xl"><span class="text-[9px] uppercase tracking-widest text-slate-500">Avg Compliance</span><div id="nx-compliance" class="text-2xl font-black font-mono mt-1 text-cyan-400">—</div></div>
+    <div class="glass-panel p-5 rounded-2xl"><span class="text-[9px] uppercase tracking-widest text-slate-500">Avg P/F</span><div id="nx-pf" class="text-2xl font-black font-mono mt-1 text-amber-300">—</div></div>
+    <div class="glass-panel p-5 rounded-2xl"><span class="text-[9px] uppercase tracking-widest text-slate-500">Safety Score</span><div id="nx-safety" class="text-2xl font-black font-mono mt-1 text-emerald-400">—</div></div>
+    <div class="glass-panel p-5 rounded-2xl"><span class="text-[9px] uppercase tracking-widest text-slate-500">Current Risk</span><div id="nx-risk" class="text-2xl font-black font-mono mt-1 text-rose-300">—</div></div>
+  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="xl:col-span-2 glass-panel p-6 rounded-3xl"><div class="flex justify-between items-center mb-4"><div><h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Longitudinal Telemetry</h3><p class="text-[10px] text-slate-500 mt-1">Last 20 synchronized runs</p></div><select id="nx-chart-mode" onchange="refreshNexus()" class="glass-input rounded-lg px-3 py-2 text-[10px]"><option value="compliance">Compliance</option><option value="pao2">PaO2</option><option value="paco2">PaCO2</option><option value="shunt">Shunt</option><option value="vd_vt">Dead Space</option></select></div><div class="h-[320px]"><canvas id="nexusTrendChart"></canvas></div></div>
+    <div class="glass-panel p-6 rounded-3xl"><h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-4">Current Safety Matrix</h3><div class="space-y-3 text-xs"><div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span>Pplat</span><b id="nx-pplat">—</b></div><div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span>Driving Pressure</span><b id="nx-driving">—</b></div><div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span>FiO₂</span><b id="nx-fio2">—</b></div><div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span>PaO₂/FiO₂</span><b id="nx-current-pf">—</b></div><div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span>pH</span><b id="nx-ph">—</b></div></div><div id="nx-alerts" class="mt-4 space-y-2"></div><p class="text-[9px] text-slate-500 mt-4 leading-relaxed">Decision-support visualization only. It does not replace bedside assessment, local protocols, or specialist judgment.</p></div>
+  </div>
+  <div class="glass-panel rounded-3xl p-6"><div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4"><div><h3 class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Simulation Ledger</h3><p class="text-[10px] text-slate-500 mt-1">Persistent audit trail for your account</p></div><input id="nx-search" oninput="filterNexusHistory()" placeholder="Search pathology or status…" class="glass-input rounded-xl px-4 py-2 text-xs w-full md:w-72"></div><div class="overflow-x-auto"><table class="w-full text-left text-[10px] font-mono"><thead><tr class="text-slate-500 uppercase border-b border-white/10"><th class="py-3">Time</th><th>Pathology</th><th>Compliance</th><th>PaO₂</th><th>PaCO₂</th><th>P/F</th><th>Shunt</th><th>pH</th></tr></thead><tbody id="nx-history-body"><tr><td colspan="8" class="py-8 text-center text-slate-500">Loading ledger…</td></tr></tbody></table></div></div>
+</section>
+<script>
+let nexusHistory=[]; let nexusChart=null;
+async function nexusFetch(url){const r=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error('Request failed');return r.json();}
+function nexusNum(v,d=0){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
+function currentNexusRisk(){const pao2=nexusNum(document.getElementById('val-pao2')?.innerText,90),fio2=nexusNum(document.getElementById('fio2')?.value,30),peep=nexusNum(document.getElementById('peep')?.value,5),pplat=nexusNum(document.getElementById('pplat')?.value,15),rr=nexusNum(document.getElementById('rr')?.value,14),pf=fio2>0?pao2/(fio2/100):0;let risk=0,alerts=[];if(pplat>30){risk+=35;alerts.push('Pplat > 30 cmH₂O');}if(pplat-peep>15){risk+=25;alerts.push('Driving pressure > 15 cmH₂O');}if(pf<100){risk+=30;alerts.push('Very low P/F ratio');}else if(pf<200){risk+=15;alerts.push('Reduced P/F ratio');}if(pao2<60){risk+=20;alerts.push('PaO₂ < 60 mmHg');}if(rr>30){risk+=10;alerts.push('High respiratory rate');}risk=Math.min(100,risk);document.getElementById('nx-risk').innerText=risk+'%';document.getElementById('nx-safety').innerText=(100-risk)+'%';document.getElementById('nx-pplat').innerText=pplat.toFixed(1)+' cmH₂O';document.getElementById('nx-driving').innerText=(pplat-peep).toFixed(1)+' cmH₂O';document.getElementById('nx-fio2').innerText=fio2.toFixed(0)+'%';document.getElementById('nx-current-pf').innerText=pf.toFixed(0);document.getElementById('nx-ph').innerText=document.querySelector('#section-analytics')?.innerText.match(/pH:\s*([0-9.]+)/)?.[1]||'—';document.getElementById('nx-alerts').innerHTML=alerts.length?alerts.map(x=>`<div class="px-3 py-2 rounded-lg bg-rose-950/40 border border-rose-500/20 text-rose-300">⚠ ${x}</div>`).join(''):'<div class="px-3 py-2 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-emerald-300">✓ No threshold alert detected</div>';}
+function renderNexusHistory(){const q=(document.getElementById('nx-search')?.value||'').toLowerCase(),body=document.getElementById('nx-history-body'),rows=nexusHistory.filter(x=>(x.condition+' '+x.acid_base_status).toLowerCase().includes(q));body.innerHTML=rows.length?rows.map(x=>`<tr class="border-b border-white/5 hover:bg-white/[0.03]"><td class="py-3 text-slate-500">${new Date(x.created_at).toLocaleString()}</td><td class="text-white">${x.condition||x.preset_id}</td><td>${nexusNum(x.compliance).toFixed(1)}</td><td>${nexusNum(x.pao2).toFixed(1)}</td><td>${nexusNum(x.paco2).toFixed(1)}</td><td>${x.fio2?(nexusNum(x.pao2)/(nexusNum(x.fio2)/100)).toFixed(0):'—'}</td><td>${nexusNum(x.shunt).toFixed(1)}%</td><td>${nexusNum(x.ph).toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="8" class="py-8 text-center text-slate-500">No matching records.</td></tr>';}
+function drawNexusChart(){const mode=document.getElementById('nx-chart-mode').value,labels=nexusHistory.slice().reverse().map(x=>new Date(x.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})),data=nexusHistory.slice().reverse().map(x=>nexusNum(x[mode])),ctx=document.getElementById('nexusTrendChart');if(!ctx)return;if(nexusChart)nexusChart.destroy();nexusChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:mode.toUpperCase(),data,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.08)',borderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#f8fafc'}}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,.04)'}}}}});}
+async function refreshNexus(){try{const d=await nexusFetch('/api/nexus/history');nexusHistory=d.history||[];const s=d.stats||{};document.getElementById('nx-total').innerText=s.total||0;document.getElementById('nx-compliance').innerText=s.avg_compliance!=null?Number(s.avg_compliance).toFixed(1):'—';document.getElementById('nx-pf').innerText=s.avg_pf!=null?Number(s.avg_pf).toFixed(0):'—';renderNexusHistory();drawNexusChart();currentNexusRisk();document.getElementById('nexus-status').innerText='● SYNCED';}catch(e){document.getElementById('nexus-status').innerText='● OFFLINE';console.error(e);}}
+function filterNexusHistory(){renderNexusHistory();} function exportNexus(fmt){window.location.href='/api/nexus/export?format='+encodeURIComponent(fmt);}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('nx-search')?.focus();}if(e.key==='Escape')document.getElementById('notes-modal')?.classList.add('hidden');});
+setTimeout(()=>{refreshNexus();currentNexusRisk();},300);setInterval(currentNexusRisk,5000);
+</script>
+"""
+DASHBOARD_HTML = DASHBOARD_HTML.replace('    </main>\n\n    <!-- NLP CLINICAL RECORD ANALYZER MODAL -->', ADVANCED_COMMAND_CENTER + '\n    </main>\n\n    <!-- NLP CLINICAL RECORD ANALYZER MODAL -->')
+
+@app.route('/api/nexus/history')
+def nexus_history():
+    if not _login_required(): return {'error':'authentication_required'}, 401
+    conn=sqlite3.connect(DB_NAME); conn.row_factory=sqlite3.Row
+    rows=conn.execute("SELECT * FROM simulation_history WHERE user_id=? ORDER BY id DESC LIMIT 100",(session['user_id'],)).fetchall(); conn.close()
+    history=[dict(r) for r in rows]; recent=history[:20]
+    comps=[r['compliance'] for r in recent if r['compliance'] is not None]
+    pfs=[r['pao2']/(r['fio2']/100.0) for r in recent if r['fio2'] and r['fio2']>0 and r['pao2'] is not None]
+    return {'history':history[:20],'stats':{'total':len(history),'avg_compliance':sum(comps)/len(comps) if comps else None,'avg_pf':sum(pfs)/len(pfs) if pfs else None}}
+
+@app.route('/api/nexus/export')
+def nexus_export():
+    if not _login_required(): return {'error':'authentication_required'}, 401
+    import io,csv
+    fmt=request.args.get('format','json').lower(); conn=sqlite3.connect(DB_NAME); conn.row_factory=sqlite3.Row
+    rows=[dict(r) for r in conn.execute("SELECT * FROM simulation_history WHERE user_id=? ORDER BY id DESC",(session['user_id'],)).fetchall()]; conn.close(); _audit('EXPORT_HISTORY',fmt)
+    if fmt=='csv':
+        out=io.StringIO(); fields=list(rows[0].keys()) if rows else ['message']; w=csv.DictWriter(out,fieldnames=fields); w.writeheader(); w.writerows(rows if rows else [{'message':'No simulation history'}])
+        from flask import Response
+        return Response(out.getvalue(),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=aerolung_simulation_history.csv'})
+    from flask import Response
+    return Response(json.dumps(rows,indent=2),mimetype='application/json',headers={'Content-Disposition':'attachment; filename=aerolung_simulation_history.json'})
+
+@app.route('/api/nexus/clear',methods=['POST'])
+def nexus_clear():
+    if not _login_required(): return {'error':'authentication_required'}, 401
+    conn=sqlite3.connect(DB_NAME); conn.execute("DELETE FROM simulation_history WHERE user_id=?",(session['user_id'],)); conn.commit(); conn.close(); _audit('CLEAR_HISTORY'); return {'ok':True}
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
