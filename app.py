@@ -1342,7 +1342,7 @@ document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3
       </div>
     </div>
     <section id="operator-deck" class="hidden"></section>
-<style>.lyra-chip,.deck-btn{padding:.55rem .7rem;border-radius:.75rem;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#cbd5e1;transition:.18s}.lyra-chip:hover,.deck-btn:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:white}.lyra-history-item{padding:.7rem .8rem;border-radius:.9rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:10px}</style><script>function lyraHubRun(){const e=document.getElementById('lyra-hub-input');if(!e)return;const v=e.value.trim();if(!v)return;processLyraCommand(v,localStorage.getItem('selectedLang')||'en');e.value='';renderLyraHub()}async function lyraSaveNote(){const title=document.getElementById('lyra-note-title')?.value||'Lyra learning note',note=document.getElementById('lyra-note-text')?.value||'';if(!note.trim()){lyraSetStatus('Enter a note before saving.','alert');return}try{const r=await fetch('/api/nexus/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,note,tag:'lyra'})});if(!r.ok)throw new Error();lyraSetStatus('Journal note saved.');lyraLog('save note','Journal note saved.');document.getElementById('lyra-note-text').value='';renderLyraHub()}catch(e){lyraSetStatus('Could not save the journal note.','alert')}}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub()}});</script>
+<style>.lyra-chip,.deck-btn{padding:.55rem .7rem;border-radius:.75rem;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#cbd5e1;transition:.18s}.lyra-chip:hover,.deck-btn:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:white}.lyra-history-item{padding:.7rem .8rem;border-radius:.9rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:10px}</style><script>function lyraHubRun(){const e=document.getElementById('lyra-hub-input');if(!e)return;const v=e.value.trim();if(!v)return;processLyraCommand(v,localStorage.getItem('selectedLang')||'en');e.value='';renderLyraHub()}async function lyraSaveNote(){const title=document.getElementById('lyra-note-title')?.value||'Lyra learning note',note=document.getElementById('lyra-note-text')?.value||'';if(!note.trim()){lyraSetStatus('Enter a note before saving.','alert');return}try{const r=await fetch('/api/nexus/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,note,tag:'lyra'})});if(!r.ok)throw new Error();lyraSetStatus('Journal note saved.');lyraLog('save note','Journal note saved.');document.getElementById('lyra-note-text').value='';renderLyraHub()}catch(e){lyraSetStatus('Could not save the journal note.','alert')}}</script>
 
     <button id="advanced-tools-fab" onclick="openAdvancedTools()" class="fixed right-5 bottom-5 z-[95] w-12 h-12 rounded-full bg-slate-900/90 border border-white/10 text-slate-300 shadow-2xl hover:text-white" title="Advanced tools">⌘</button>
     <div id="advanced-tools" class="fixed inset-0 z-[110] hidden bg-black/70 backdrop-blur-md p-5 items-end justify-center">
@@ -1360,13 +1360,15 @@ document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3
     </div>
     <style>
       #nexus3-hero,#nexus3-mission,#operator-deck,#advanced-command-center{display:none!important}
-      #advanced-tools{display:flex}
-      #lyra-hub{display:flex!important}
+      #advanced-tools{display:none}
+      #advanced-tools.flex{display:flex!important}
+      #advanced-tools.hidden{display:none!important}
       #lyra-hub.hidden{display:none!important}
+      #lyra-hub.flex{display:flex!important}
     </style>
     <script>
-      function openAdvancedTools(){document.getElementById('advanced-tools')?.classList.remove('hidden')}
-      function closeAdvancedTools(){document.getElementById('advanced-tools')?.classList.add('hidden')}
+      function openAdvancedTools(){const e=document.getElementById('advanced-tools');if(e){e.classList.remove('hidden');e.classList.add('flex')}}
+      function closeAdvancedTools(){const e=document.getElementById('advanced-tools');if(e){e.classList.add('hidden');e.classList.remove('flex')}}
       function openLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.remove('hidden');h.classList.add('flex')}renderLyraHub();setTimeout(()=>document.getElementById('lyra-console')?.focus(),120)}
       function closeLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.add('hidden');h.classList.remove('flex')}if(lyraActive)toggleLyra()}
       function renderLyraHub(){const reply=document.getElementById('lyra-siri-reply');if(reply)reply.innerText=LYRA.lastReply||'Ask me anything about the simulator, telemetry, pathology presets, or learning cases.';const mode=document.getElementById('lyra-mode');if(mode)mode.innerText=lyraActive?'Listening…':'Ready when you are';const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',!!lyraActive)}
