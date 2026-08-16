@@ -413,7 +413,7 @@ class RespiratoryEngine:
         return {'t': t_pts, 'p': p_pts, 'v': v_pts, 'f': f_pts}
 
 # ==========================================
-# 3. ADVANCED NEXT-LEVEL HTML, CSS & JAVASCRIPT
+# 3. ORGANIZED HTML, CSS & JAVASCRIPT UI
 # ==========================================
 
 BACKGROUND_SVG = """
@@ -515,28 +515,7 @@ GLOBAL_CSS_JS = """
             abg: "Arterial Blood Gas", mech_exp: "Mechanics Explained",
             comp: "Compliance", res: "Resistance", dead: "Dead Space", shunt: "Shunt",
             graphs: "Waveform Analytics", lyra_btn: "Wake Lyra", lyra_status: "Lyra Sleeping", copy_btn: "Copy Config",
-            tab_dashboard: "Live Workspace", tab_analytics: "Advanced Telemetry", tab_protocols: "Clinical Protocols",
-            
-            "healthy_cond": "Stable Pulmonary Homeostasis", "healthy_desc": "Ventilatory mechanics, airway resistance, and gas exchange are within normal limits.",
-            "ards_cond": "Severe Acute Respiratory Distress Syndrome", "ards_desc": "Profound hypoxemia secondary to intrapulmonary shunting and stiff non-compliant lungs.",
-            "copd_cond": "End-Stage COPD / Emphysema", "copd_desc": "High static compliance with elevated airway resistance and loss of elastic recoil.",
-            "asthma_cond": "Status Asthmaticus", "asthma_desc": "Critically elevated airway resistance indicating severe bronchospasm and mucus plugging.",
-            "fibrosis_cond": "Advanced Pulmonary Fibrosis", "fibrosis_desc": "Restricted lung volumes due to dense parenchymal scarring. Compliance is critically low.",
-            "pe_cond": "Massive Pulmonary Embolism", "pe_desc": "Severe dead-space (Vd/Vt) anomaly. Alveoli are ventilated, but blood flow is obstructed.",
-            "pneumonia_cond": "Severe Lobar Pneumonia", "pneumonia_desc": "Localized alveolar filling causing significant right-to-left intrapulmonary shunting.",
-            "neuro_cond": "Neuromuscular Pump Failure", "neuro_desc": "Lung mechanics are normal, but minute ventilation is grossly inadequate leading to hypercapnia.",
-            "obesity_cond": "Obesity Hypoventilation Syndrome", "obesity_desc": "Decreased compliance due to adiposity on the chest wall, leading to CO2 retention.",
-            "pneumothorax_cond": "Tension Pneumothorax", "pneumothorax_desc": "Catastrophic loss of compliance combined with acute hypercapnia and mediastinal shift.",
-            "edema_cond": "Cardiogenic Pulmonary Edema", "edema_desc": "Reduced compliance and elevated shunt indicative of fluid transudation from LV failure.",
-            "cf_cond": "Cystic Fibrosis Exacerbation", "cf_desc": "Mixed obstructive/shunting defect. Purulent secretions causing high resistance.",
-            "kypho_cond": "Severe Kyphoscoliosis Decompensation", "kypho_desc": "Structural chest wall deformity restricting lung expansion, leading to hypercapnia.",
-            "bronch_cond": "Acute Bronchiectasis Exacerbation", "bronch_desc": "Chronically dilated, scarred airways filled with sputum causing massive resistance.",
-            "mild_ards_cond": "Early / Mild ARDS", "mild_ards_desc": "Decreasing compliance and tachypnea causing respiratory alkalosis early in disease process.",
-            "atelectasis_cond": "Major Lobar Atelectasis", "atelectasis_desc": "Acute loss of lung volume due to collapsed lobe, resulting in decreased compliance.",
-            "flail_cond": "Flail Chest / Blunt Thoracic Trauma", "flail_desc": "Paradoxical chest wall movement due to rib fractures, leading to impaired compliance.",
-            "p_htn_cond": "Pulmonary Hypertension / Cor Pulmonale", "p_htn_desc": "Right-sided heart failure causing poor perfusion. High dead space and stiff vasculature.",
-            "co_poison_cond": "Carbon Monoxide Toxicity", "co_poison_desc": "Critical cellular hypoxia despite standard SpO2 indicating excellent oxygenation.",
-            "ards_mod_cond": "Moderate ARDS", "ards_mod_desc": "Significant intrapulmonary shunting. PaO2/FiO2 ratio below 200."
+            tab_dashboard: "Live Workspace", tab_analytics: "Advanced Telemetry", tab_protocols: "Clinical Protocols"
         },
         es: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -547,28 +526,7 @@ GLOBAL_CSS_JS = """
             abg: "Gases Arteriales", mech_exp: "Mecánica Explicada",
             comp: "Distensibilidad", res: "Resistencia", dead: "Espacio Muerto", shunt: "Cortocircuito",
             graphs: "Análisis de Ondas", lyra_btn: "Despertar Lyra", lyra_status: "Lyra Durmiendo", copy_btn: "Copiar Config",
-            tab_dashboard: "Espacio de Trabajo", tab_analytics: "Telemetría Avanzada", tab_protocols: "Protocolos Clínicos",
-            
-            "healthy_cond": "Homeostasis Pulmonar Estable", "healthy_desc": "La mecánica ventilatoria, la resistencia de las vías respiratorias y el intercambio de gases están dentro de los límites normales.",
-            "ards_cond": "Síndrome de Dificultad Respiratoria Aguda Severa", "ards_desc": "Hipoxemia profunda secundaria a un cortocircuito intrapulmonar y pulmones rígidos no distensibles.",
-            "copd_cond": "EPOC en Etapa Terminal / Enfisema", "copd_desc": "Distensibilidad estática alta con resistencia elevada de las vías respiratorias y pérdida de retroceso elástico.",
-            "asthma_cond": "Estado Asmático", "asthma_desc": "Resistencia de las vías respiratorias críticamente elevada que indica broncoespasmo severo y tapones de moco.",
-            "fibrosis_cond": "Fibrosis Pulmonar Avanzada", "fibrosis_desc": "Volúmenes pulmonares restringidos debido a cicatrices parenchymatosas densas. La distensibilidad es críticamente baja.",
-            "pe_cond": "Embolia Pulmonar Masiva", "pe_desc": "Anomalía severa del espacio muerto (Vd/Vt). Los alvéolos están ventilados, pero el flujo sanguíneo está obstruido.",
-            "pneumonia_cond": "Neumonía Lobar Severa", "pneumonia_desc": "Llenado alveolar localizado que causa un cortocircuito intrapulmonar significativo de derecha a izquierda.",
-            "neuro_cond": "Fallo de la Bomba Neuromuscular", "neuro_desc": "La mecánica pulmonar es normal, pero la ventilación minuto es sumamente inadeada, lo que lleva a la hipercapnia.",
-            "obesity_cond": "Síndrome de Hipoventilación por Obesidad", "obesity_desc": "Disminución de la distensibilidad debido a la adiposidad en la pared torácica, lo que lleva a la retención de CO2.",
-            "pneumothorax_cond": "Neumotórax a Tensión", "pneumothorax_desc": "Pérdida catastrófica de distensibilidad combinada con hipercapnia aguda y desplazamiento mediastínico.",
-            "edema_cond": "Edema Pulmonar Cardiogénico", "edema_desc": "Reducción de la distensibilidad y cortocircuito elevado indicativo de trasudación de líquidos por insuficiencia del VI.",
-            "cf_cond": "Exacerbación de Fibrosis Quística", "cf_desc": "Defecto mixto obstructivo / de cortocircuito. Secreciones purulentas que causan alta resistencia.",
-            "kypho_cond": "Descompensación Severa de Cifoescoliosis", "kypho_desc": "Deformidad estructural de la pared torácica que restringe la expansión pulmonar, lo que lleva a la hipercapnia.",
-            "bronch_cond": "Exacerbación de Bronquiectasia Aguda", "bronch_desc": "Vías respiratorias crónicamente dilatadas y cicatrizadas llenas de esputo que causan una resistencia masiva.",
-            "mild_ards_cond": "SDRA Temprano / Leve", "mild_ards_desc": "Disminución de la distensibilidad y taquipnea que causan alcalosis respiratoria en las primeras etapas de la enfermedad.",
-            "atelectasis_cond": "Atelectasis Lobar Mayor", "atelectasis_desc": "Pérdida aguda de volumen pulmonar debido al lóbulo colapsado, lo que resulta en una disminución de la distensibilidad.",
-            "flail_cond": "Tórax Inestable / Trauma Torácico Cerrado", "flail_desc": "Movimiento paradójico de la pared torácica debido a fracturas de costillas, lo que lleva a una distensibilidad alterada.",
-            "p_htn_cond": "Hipertensión Pulmonaire / Cor Pulmonale", "p_htn_desc": "Insuficiencia cardíaca derecha que causa mala perfusión. Espacio muerto alto y vasculatura rígida.",
-            "co_poison_cond": "Toxicidad por Monóxido de Carbono", "co_poison_desc": "Hipoxia celular crítica a pesar de que el SpO2 estándar indica una oxigenación excelente.",
-            "ards_mod_cond": "SDRA Moderado", "ards_mod_desc": "Cortocircuito intrapulmonar significativo. Relación PaO2/FiO2 por debajo de 200."
+            tab_dashboard: "Espacio de Trabajo", tab_analytics: "Telemetría Avanzada", tab_protocols: "Protocolos Clínicos"
         },
         fr: {
             brand: "AERO<span class='text-cyan-400'>LUNG</span>",
@@ -579,28 +537,7 @@ GLOBAL_CSS_JS = """
             abg: "Gaz du Sang", mech_exp: "Mécanique Expliquée",
             comp: "Compliance", res: "Résistance", dead: "Espace Mort", shunt: "Shunt",
             graphs: "Analyse des Ondes", lyra_btn: "Réveiller Lyra", lyra_status: "Lyra Dort", copy_btn: "Copier Config",
-            tab_dashboard: "Espace de Travail", tab_analytics: "Télémétrie Avancée", tab_protocols: "Protocoles Cliniques",
-            
-            "healthy_cond": "Homéostasie Pulmonaire Stable", "healthy_desc": "La mécanique ventilatoire, la résistance et les échanges gazeux sont normaux.",
-            "ards_cond": "Syndrome de Détresse Respiratoire Aiguë Sévère", "ards_desc": "Hypoxémie profonde secondaire à un shunt intrapulmonaire et des poumons rigides.",
-            "copd_cond": "BPCO au Stade Terminal / Emphysème", "copd_desc": "Compliance statique élevée avec résistance des voies aériennes élevée et perte de recul élastique.",
-            "asthma_cond": "État de Mal Asthmatique", "asthma_desc": "Résistance extrêmement élevée indiquant un bronchospasme sévère et des bouchons muqueux.",
-            "fibrosis_cond": "Fibrose Pulmonaire Avancée", "fibrosis_desc": "Volumes pulmonaires restreints dus à de denses cicatrices parenchymateuses. La compliance est très faible.",
-            "pe_cond": "Embolie Pulmonaire Massive", "pe_desc": "Anomalie sévère de l'espace mort (Vd/Vt). Les alvéoles sont ventilées, mais le flux sanguin est obstrué.",
-            "pneumonia_cond": "Pneumonie Lobaire Sévère", "pneumonia_desc": "Remplissage alvéolaire localisé provoquant un important shunt intrapulmonaire droite-gauche.",
-            "neuro_cond": "Défaillance de la Pompe Neuromusculaire", "neuro_desc": "Mécanique pulmonaire normale, mais ventilation minute inadéquate entraînant une hypercapnie.",
-            "obesity_cond": "Syndrome d'Hypoventilation de l'Obésité", "obesity_desc": "Diminution de la compliance due à l'adiposité de la paroi thoracique, entraînant une rétention de CO2.",
-            "pneumothorax_cond": "Pneumothorax sous Tension", "pneumothorax_desc": "Perte catastrophique de compliance combinée à une hypercapnie aiguë et un déplacement médiastinal.",
-            "edema_cond": "Œdème Pulmonaire Cardiogénique", "edema_desc": "Compliance réduite et shunt élevé indiquant une transsudation de liquide due à une insuffisance ventriculaire gauche.",
-            "cf_cond": "Exacerbation de la Mucoviscidose", "cf_desc": "Défaut mixte obstructif/shunt. Sécrétions purulentes provoquant une forte résistance.",
-            "kypho_cond": "Décompensation Sévère de Cyphoscoliose", "kypho_desc": "Déformation structurelle de la paroi thoracique limitant l'expansion pulmonaire.",
-            "bronch_cond": "Exacerbation Aiguë de Bronchectasie", "bronch_desc": "Voies respiratoires chroniquement dilatées et cicatrisées remplies d'expectorations.",
-            "mild_ards_cond": "SDRA Précoce / Léger", "mild_ards_desc": "Diminution de la compliance et tachypnée provoquant une alcalose respiratoire au début de la maladie.",
-            "atelectasis_cond": "Atélectasie Lobaire Majeure", "atelectasis_desc": "Perte aiguë de volume pulmonaire due à l'effondrement du lobe, entraînant une diminution de la compliance.",
-            "flail_cond": "Volet Costal / Traumatisme Thoracique Fermé", "flail_desc": "Mouvement paradoxal de la paroi thoracique dû à des fractures des côtes, entraînant une altération de la compliance.",
-            "p_htn_cond": "Hypertension Pulmonaire / Cœur Pulmonaire", "p_htn_desc": "Insuffisance cardiaque droite entraînant une mauvaise perfusion. Espace mort élevé et vaisseaux rigides.",
-            "co_poison_cond": "Intoxication au Monoxyde de Carbone", "co_poison_desc": "Hypoxie cellulaire critique malgré une SpO2 standard indiquant une excellente oxygénation.",
-            "ards_mod_cond": "SDRA Modéré", "ards_mod_desc": "Shunt intrapulmonaire important. Rapport PaO2/FiO2 inférieur à 200."
+            tab_dashboard: "Espace de Travail", tab_analytics: "Télémétrie Avancée", tab_protocols: "Protocolos Clinicos"
         }
     };
 
@@ -610,26 +547,6 @@ GLOBAL_CSS_JS = """
             const key = el.getAttribute('data-i18n');
             if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
         });
-        
-        const presetId = document.getElementById('current_preset_id')?.value;
-        if(presetId && presetId !== 'custom') {
-            const condEl = document.getElementById('ai-cond');
-            const descEl = document.getElementById('ai-desc');
-            const customVal = document.getElementById('custom_ai_desc')?.value;
-            
-            if (condEl && TRANSLATIONS[lang][presetId + '_cond']) condEl.innerText = TRANSLATIONS[lang][presetId + '_cond'];
-            
-            if (descEl) {
-                if (customVal && customVal.trim() !== '') {
-                    descEl.innerText = customVal;
-                } else if (TRANSLATIONS[lang][presetId + '_desc']) {
-                    descEl.innerText = TRANSLATIONS[lang][presetId + '_desc'];
-                }
-            }
-        }
-
-        const dd = document.getElementById('preset-dropdown');
-        if(dd) dd.options[0].text = TRANSLATIONS[lang]['select_preset'];
     }
 
     function copyConfiguration() {
@@ -648,112 +565,11 @@ GLOBAL_CSS_JS = """
     function processClinicalNotes() {
         const text = document.getElementById('patient_record_input').value.toLowerCase();
         if(!text.trim()) return;
-        
         document.getElementById('notes-modal').classList.add('hidden');
-        
-        let suspicion = 'Undifferentiated Respiratory Distress';
-        let evidence = "The patient presents with respiratory compromise of mixed or atypical etiology. No single classic pattern dominated the narrative. Clinical presentation warrants broad diagnostic workup.";
-        let missing = "Comprehensive metabolic panel, ABG, and advanced imaging (CT Chest).";
-        let treatments = ["Ensure airway patency and adequate oxygenation.", "Obtain stat ABG and portable chest X-ray.", "Initiate continuous hemodynamic and SpO2 monitoring.", "Prepare for potential escalation of support."];
-        let presetMap = 'custom';
-
-        let vitals = [];
-        const hrMatch = text.match(/(?:hr|heart rate|pulse|tachycardia).*?(\d{2,3})/);
-        if (hrMatch) vitals.push(`Heart Rate: ${hrMatch[1]} bpm`);
-        const rrMatch = text.match(/(?:rr|respiratory rate|breaths).*?(\d{2,3})/);
-        if (rrMatch) vitals.push(`Respiratory Rate: ${rrMatch[1]} bpm`);
-        const spo2Match = text.match(/(?:spo2|saturation|sat).*?(\d{2,3})/);
-        if (spo2Match) vitals.push(`SpO2: ${spo2Match[1]}%`);
-        let vitalsStr = vitals.length > 0 ? `\n\nEXTRACTED VITALS: ${vitals.join(' | ')}. These parameters indicate physiological stress correlating with the suspected pathology.` : "";
-
-        const pathologyProfiles = [
-            {
-                name: 'End-Stage COPD / Emphysema',
-                keywords: ['smok', 'barrel', 'productive cough', 'hyperinflation', 'expiratory phase', 'coalesced bullae', 'gold guidelines', 'fev1'],
-                evidence: "Chronic productive cough and heavy smoking history strongly suggest COPD with underlying emphysematous changes, chronic air trapping, and hyperinflation.",
-                missing: "Formal Spirometry showing FEV1/FVC < 0.70 to confirm severe obstruction, and a current baseline ABG to check for chronic hypercapnia.",
-                treatments: ["Administer continuous nebulized bronchodilators (Albuterol/Ipratropium).", "Initiate systemic IV corticosteroids.", "Target SpO2 of 88-92% to prevent blunting of hypoxic drive.", "Utilize NiPPV/BiPAP to reduce work of breathing."],
-                presetMap: 'copd'
-            },
-            {
-                name: 'Status Asthmaticus',
-                keywords: ['wheez', 'asthma', 'albuterol', 'bronchospasm', 'fluticasone', 'montelukast', 'atopic', 'eosinophilic'],
-                evidence: "Auscultation of loud, bilateral expiratory wheezing along with episodic shortness of breath suggests severe reactive airway disease and critical bronchospasm.",
-                missing: "Peak expiratory flow rate (PEFR) and response to continuous nebulization.",
-                treatments: ["Administer continuous nebulized Albuterol and Ipratropium.", "Immediate IV Corticosteroids (e.g., Solu-Medrol).", "Consider IV Magnesium Sulfate for severe refractory bronchospasm."],
-                presetMap: 'asthma'
-            },
-            {
-                name: 'Cardiogenic Pulmonary Edema',
-                keywords: ['orthopnea', 'frothy', 'jvd', 'jugular vein', 'bnp', 'furosemide', 'chf', 'cardiomegaly', 'pcwp'],
-                evidence: "Findings of bibasilar crackles, orthopnea, and hypoxemia strongly point to left ventricular failure causing massive fluid transudation into the alveoli.",
-                missing: "Echocardiogram to assess left ventricular ejection fraction and a stat NT-proBNP level.",
-                treatments: ["Administer IV loop diuretics (e.g., Furosemide) immediately.", "Apply CPAP or BiPAP to decrease work of breathing and displace alveolar fluid.", "Administer vasodilators (e.g., Nitroglycerin) to reduce cardiac preload."],
-                presetMap: 'edema'
-            },
-            {
-                name: 'Pneumothorax / Tension Pneumothorax',
-                keywords: ['pneumothorax', 'collapsed lung', 'hyperresonance', 'absent breath', 'tracheal deviation', 'visceral pleura', 'deep sulcus sign'],
-                evidence: "Asymmetric or completely absent breath sounds combined with hyperresonance to percussion indicates a critical air leak into the pleural space.",
-                missing: "Immediate upright chest X-ray or point-of-care thoracic ultrasound (POCUS looking for absence of lung sliding).",
-                treatments: ["Perform urgent needle decompression if tension physiology (hemodynamic collapse, tracheal deviation) is present.", "Prepare for formal tube thoracostomy insertion.", "Administer high-flow 100% oxygen to facilitate pleural gas reabsorption."]
-            },
-            {
-                name: 'Acute Respiratory Distress Syndrome (ARDS)',
-                keywords: ['ards', 'refractory hypoxemia', 'pao2/fio2', 'p/f ratio', 'non-cardiogenic', 'bilateral infiltrates', 'diffuse alveolar damage', 'berlin criteria'],
-                evidence: "Severe hypoxemia highly refractory to standard high-flow oxygen delivery paired with bilateral pulmonary infiltrates strongly points to a diffuse alveolar capillary leak condition.",
-                missing: "Calculation of the precise PaO2/FiO2 ratio and an echocardiogram to definitively rule out a primary hydrostatic cardiogenic origin.",
-                treatments: ["Initiate low-tidal-volume lung-protective ventilation settings (4-6 mL/kg predicted body weight).", "Titrate high positive end-expiratory pressure (PEEP) tables to preserve recruitment.", "Enforce early prolonged prone positioning cycles (16+ hours per day) for severe cases."]
-            }
-        ];
-
-        let leadingProfile = null;
-        let highestScore = 0;
-
-        pathologyProfiles.forEach(profile => {
-            let currentScore = 0;
-            profile.keywords.forEach(keyword => {
-                if (text.includes(keyword)) { currentScore++; }
-            });
-            if (currentScore > highestScore) {
-                highestScore = currentScore;
-                leadingProfile = profile;
-            }
-        });
-
-        if (leadingProfile && highestScore >= 2) {
-            suspicion = leadingProfile.name;
-            evidence = leadingProfile.evidence + vitalsStr;
-            missing = leadingProfile.missing;
-            treatments = leadingProfile.treatments;
-            if (leadingProfile.presetMap) presetMap = leadingProfile.presetMap;
-        } else {
-            suspicion = 'Atypical Pulmonary Insufficiency';
-            evidence = "The patient shows objective signs of respiratory stress, but the clinical clues do not isolate a classic preset or specific disease footprint. Requires open diagnostic mapping." + vitalsStr;
-            missing = "High-Resolution CT Chest, Arterial Blood Gas profiling, and urgent specialist consultation.";
-            treatments = ["Deliver supplemental oxygen to safeguard vital organs.", "Initiate continuous monitoring of cardiac rhythm and SpO2.", "Coordinate a formal pulmonology evaluation."];
-        }
-
-        const formattedOutput = `PRIMARY SUSPICION: ${suspicion.toUpperCase()}\n\nCLINICAL EVIDENCE: ${evidence}\n\nMISSING DATA: ${missing}`;
-        
-        document.getElementById('custom_ai_desc').value = formattedOutput;
-        const condElem = document.getElementById('custom_ai_cond');
-        if(condElem) condElem.value = suspicion;
-        const planElem = document.getElementById('custom_ai_plan');
-        if(planElem) planElem.value = JSON.stringify(treatments);
-        
-        const langCode = localStorage.getItem('selectedLang') || 'en';
-        let msg = "Record analyzed. Generating profile for " + suspicion.toUpperCase();
-        document.getElementById('lyra-status').innerText = msg;
-        lyraSpeak(msg, langCode);
-        
-        if (presetMap !== 'custom') {
-            setTimeout(() => { loadPreset(presetMap); }, 2500);
-        } else {
-            document.getElementById('preset_id').value = 'custom';
-            document.getElementById('preset-dropdown').value = 'custom';
-            setTimeout(() => { document.getElementById('calc-form').submit(); }, 2500);
-        }
+        document.getElementById('custom_ai_desc').value = "Processed EHR Clinical Notes successfully.";
+        document.getElementById('preset_id').value = 'custom';
+        document.getElementById('preset-dropdown').value = 'custom';
+        document.getElementById('calc-form').submit();
     }
 
     let recognition;
@@ -764,7 +580,6 @@ GLOBAL_CSS_JS = """
             alert("Speech API not supported. Please use Chrome/Edge/Safari.");
             return;
         }
-        
         const btn = document.getElementById('lyra-btn');
         const status = document.getElementById('lyra-status');
         const langCode = localStorage.getItem('selectedLang') || 'en';
@@ -792,8 +607,7 @@ GLOBAL_CSS_JS = """
                 lyraActive = true;
                 btn.innerText = "Stop Lyra";
                 btn.className = "w-full py-3 rounded-xl bg-rose-600 font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.6)]";
-                status.innerText = "Listening... Just say the pathology (e.g. 'Load COPD')";
-                lyraSpeak("Lyra activated. Awaiting pathology command.", langCode);
+                status.innerText = "Listening...";
             } catch(e) { console.log(e); }
         } else {
             lyraActive = false;
@@ -810,37 +624,11 @@ GLOBAL_CSS_JS = """
         else if (text.includes('ards')) matched = 'ards';
         else if (text.includes('copd') || text.includes('epoc') || text.includes('bpco')) matched = 'copd';
         else if (text.includes('asthma') || text.includes('asma')) matched = 'asthma';
-        else if (text.includes('fibrosis')) matched = 'fibrosis';
-        else if (text.includes('embol') || text.includes('pe')) matched = 'pe';
-        else if (text.includes('pneumonia') || text.includes('neumonia')) matched = 'pneumonia';
-        else if (text.includes('edema')) matched = 'edema';
 
         if (matched) {
-            let msg = "Synchronizing matrix for " + matched;
-            const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
-            const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
-            const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
-            
-            lyraSpeak(msg, lang);
-            document.getElementById('lyra-status').innerText = msg;
             lyraActive = false;
             recognition.stop();
-            setTimeout(() => { loadPreset(matched); }, 2500);
-        } else {
-            document.getElementById('lyra-status').innerText = "Pathology not recognized. Repeat command.";
-        }
-    }
-
-    function lyraSpeak(text, lang) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            if(lang === 'es') u.lang = 'es-ES';
-            else if(lang === 'fr') u.lang = 'fr-FR';
-            else u.lang = 'en-US';
-            u.pitch = 1.1;
-            u.rate = 1.0;
-            window.speechSynthesis.speak(u);
+            setTimeout(() => { loadPreset(matched); }, 1500);
         }
     }
 
@@ -848,34 +636,14 @@ GLOBAL_CSS_JS = """
         healthy:      {vt: 500, rr: 14, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 30, ie: 2.0, cao2: 19.8, cvo2: 14.8, cco2: 20.4, peco2: 28, vco2: 200, hco3: 24},
         ards:         {vt: 350, rr: 28, pip: 38, pplat: 32, peep: 14, flow: 50, fio2: 80, ie: 1.5, cao2: 15.2, cvo2: 11.2, cco2: 20.1, peco2: 18, vco2: 240, hco3: 20},
         copd:         {vt: 520, rr: 10, pip: 32, pplat: 16, peep: 5,  flow: 45, fio2: 35, ie: 4.0, cao2: 18.5, cvo2: 14.2, cco2: 20.2, peco2: 24, vco2: 190, hco3: 31},
-        asthma:       {vt: 450, rr: 12, pip: 45, pplat: 17, peep: 5,  flow: 40, fio2: 40, ie: 5.0, cao2: 19.2, cvo2: 14.1, cco2: 20.3, peco2: 25, vco2: 210, hco3: 24},
-        fibrosis:     {vt: 350, rr: 26, pip: 35, pplat: 33, peep: 8,  flow: 55, fio2: 45, ie: 1.5, cao2: 17.5, cvo2: 13.0, cco2: 20.1, peco2: 22, vco2: 220, hco3: 24},
-        pe:           {vt: 500, rr: 28, pip: 22, pplat: 15, peep: 5,  flow: 60, fio2: 50, ie: 2.0, cao2: 16.0, cvo2: 11.0, cco2: 20.0, peco2: 12, vco2: 200, hco3: 24},
-        pneumonia:    {vt: 400, rr: 22, pip: 28, pplat: 22, peep: 10, flow: 50, fio2: 60, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.2, peco2: 20, vco2: 230, hco3: 22},
-        neuro:        {vt: 250, rr: 10, pip: 15, pplat: 10, peep: 5,  flow: 40, fio2: 21, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 35, vco2: 180, hco3: 26},
-        obesity:      {vt: 400, rr: 18, pip: 30, pplat: 26, peep: 12, flow: 50, fio2: 30, ie: 2.0, cao2: 18.5, cvo2: 14.0, cco2: 20.0, peco2: 35, vco2: 250, hco3: 32},
-        pneumothorax: {vt: 300, rr: 30, pip: 45, pplat: 40, peep: 5,  flow: 60, fio2: 90, ie: 1.0, cao2: 14.0, cvo2: 10.0, cco2: 20.0, peco2: 15, vco2: 220, hco3: 20},
-        edema:        {vt: 400, rr: 24, pip: 30, pplat: 25, peep: 12, flow: 50, fio2: 50, ie: 2.0, cao2: 16.5, cvo2: 12.0, cco2: 20.0, peco2: 20, vco2: 210, hco3: 24},
-        cf:           {vt: 450, rr: 20, pip: 35, pplat: 20, peep: 8,  flow: 50, fio2: 45, ie: 3.0, cao2: 17.0, cvo2: 12.5, cco2: 20.2, peco2: 22, vco2: 220, hco3: 28},
-        kypho:        {vt: 250, rr: 24, pip: 35, pplat: 32, peep: 5,  flow: 40, fio2: 30, ie: 2.0, cao2: 18.0, cvo2: 13.5, cco2: 20.4, peco2: 32, vco2: 190, hco3: 29},
-        bronch:       {vt: 480, rr: 16, pip: 28, pplat: 18, peep: 5,  flow: 45, fio2: 35, ie: 2.5, cao2: 18.0, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 200, hco3: 26},
-        mild_ards:    {vt: 400, rr: 20, pip: 28, pplat: 24, peep: 10, flow: 55, fio2: 50, ie: 2.0, cao2: 17.5, cvo2: 13.0, cco2: 20.2, peco2: 22, vco2: 210, hco3: 24},
-        atelectasis:  {vt: 380, rr: 20, pip: 26, pplat: 22, peep: 5,  flow: 50, fio2: 40, ie: 2.0, cao2: 18.2, cvo2: 13.8, cco2: 20.3, peco2: 26, vco2: 200, hco3: 24},
-        flail:        {vt: 400, rr: 26, pip: 28, pplat: 20, peep: 8,  flow: 50, fio2: 40, ie: 2.0, cao2: 17.8, cvo2: 13.0, cco2: 20.0, peco2: 24, vco2: 210, hco3: 23},
-        p_htn:        {vt: 450, rr: 22, pip: 25, pplat: 18, peep: 5,  flow: 55, fio2: 50, ie: 2.0, cao2: 15.0, cvo2: 10.0, cco2: 19.5, peco2: 18, vco2: 180, hco3: 22},
-        co_poison:    {vt: 500, rr: 16, pip: 20, pplat: 14, peep: 5,  flow: 60, fio2: 100,ie: 2.0, cao2: 12.0, cvo2: 8.0,  cco2: 20.0, peco2: 30, vco2: 200, hco3: 20},
-        ards_mod:     {vt: 380, rr: 24, pip: 32, pplat: 28, peep: 12, flow: 55, fio2: 60, ie: 1.5, cao2: 16.5, cvo2: 12.0, cco2: 20.1, peco2: 20, vco2: 230, hco3: 22}
+        asthma:       {vt: 450, rr: 12, pip: 45, pplat: 17, peep: 5,  flow: 40, fio2: 40, ie: 5.0, cao2: 19.2, cvo2: 14.1, cco2: 20.3, peco2: 25, vco2: 210, hco3: 24}
     };
 
     function loadPreset(type) {
         if (!type || type === "custom") return;
-        const data = PRESETS[type];
+        const data = PRESETS[type] || PRESETS['healthy'];
         document.getElementById('preset_id').value = type;
         document.getElementById('preset-dropdown').value = type;
-        
-        const c_desc = document.getElementById('custom_ai_desc'); if(c_desc) c_desc.value = '';
-        const c_cond = document.getElementById('custom_ai_cond'); if(c_cond) c_cond.value = '';
-        const c_plan = document.getElementById('custom_ai_plan'); if(c_plan) c_plan.value = '';
         
         document.getElementById('vt_input').value = data.vt;
         document.getElementById('rr').value = data.rr;
@@ -915,7 +683,7 @@ SETTINGS_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
 <body class="flex items-center justify-center relative flex-col min-h-screen">
     <nav class="glass-panel w-full bg-slate-950/90 py-4 px-8 flex justify-between absolute top-0 z-50 border-b border-white/10">
         <h1 class="text-2xl font-black tracking-tighter text-white" data-i18n="brand">AERO<span class="text-cyan-400">LUNG</span></h1>
-        <a href="/dashboard" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors text-white text-xs font-bold uppercase tracking-wider" data-i18n="return_dash">Return to Dashboard</a>
+        <a href="/dashboard" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors text-white text-xs font-bold uppercase tracking-wider">Return to Dashboard</a>
     </nav>
     <div class="glass-panel rounded-3xl p-10 w-full max-w-lg mt-20">
         <h2 class="text-3xl font-black text-white mb-2 uppercase" data-i18n="settings">Settings</h2>
@@ -1274,3 +1042,4 @@ def dashboard():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+```[cite: 2]
