@@ -568,7 +568,12 @@ GLOBAL_CSS_JS = """
     .workspace-tab { transition: all 0.2s ease-in-out; }
     .workspace-tab.active { background: rgba(34, 211, 238, 0.15); border-color: #22d3ee; color: #22d3ee; }
     @keyframes pulseAlert { 0% { opacity: 1; border-color: rgba(244,63,94,0.8); } 50% { opacity: 0.4; border-color: rgba(244,63,94,0.2); } 100% { opacity: 1; border-color: rgba(244,63,94,0.8); } }
-    .alarm-active { animation: pulseAlert 1.2s infinite; }
+    .siri-orb { width:96px;height:96px;border-radius:999px;position:relative;background:radial-gradient(circle at 35% 30%,#f8fbff 0%,#b9eaff 16%,#6d5dfc 42%,#7c3aed 67%,#090b1a 100%);box-shadow:0 0 0 1px rgba(255,255,255,.16),0 0 45px rgba(99,102,241,.55),inset 0 0 30px rgba(255,255,255,.18);transition:transform .35s,box-shadow .35s;overflow:hidden}
+    .siri-orb:before,.siri-orb:after{content:"";position:absolute;inset:14px;border-radius:50%;border:1px solid rgba(255,255,255,.18);animation:siriSpin 7s linear infinite}
+    .siri-orb:after{inset:24px;border-color:rgba(103,232,249,.35);animation-duration:4s;animation-direction:reverse}
+    .siri-orb.listening{transform:scale(1.08);box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 70px rgba(56,189,248,.7),0 0 120px rgba(124,58,237,.38)}
+    @keyframes siriSpin{to{transform:rotate(360deg)}}
+    .siri-overlay{background:radial-gradient(circle at 50% 35%,rgba(79,70,229,.18),transparent 42%),rgba(2,6,23,.78);backdrop-filter:blur(24px)}
     .metric-orbit{animation: orbitPulse 3.2s ease-in-out infinite}
     @keyframes orbitPulse{0%,100%{transform:translateY(0);opacity:.9}50%{transform:translateY(-3px);opacity:1}}
     .nx3-cinema body{background:#000b12}
@@ -877,7 +882,7 @@ GLOBAL_CSS_JS = """
 
     let recognition;
     let lyraActive = false;
-    const LYRA = {active:false, voiceOut:true, mode:'COPILOT', history:[], contexts:[], confidence:1};
+    const LYRA = {active:false, voiceOut:true, mode:'SIRI', history:[], contexts:[], confidence:1, lastReply:'Ready when you are.'};
     const LYRA_COMMANDS = {healthy:'healthy',normal:'healthy',ards:'ards',copd:'copd',epoc:'copd',bpco:'copd',asthma:'asthma',fibrosis:'fibrosis',embolism:'pe',embolus:'pe','pulmonary embolism':'pe',pe:'pe',pneumonia:'pneumonia',neumonia:'pneumonia',edema:'edema',oedema:'edema',pneumothorax:'pneumothorax',bronchiectasis:'bronch','cystic fibrosis':'cf',obesity:'obesity',kyphoscoliosis:'kypho',atelectasis:'atelectasis','flail chest':'flail','pulmonary hypertension':'p_htn','carbon monoxide':'co_poison','moderate ards':'ards_mod','mild ards':'mild_ards'};
     function lyraSetStatus(msg,tone='normal'){
       const e=document.getElementById('lyra-status'); if(e)e.innerText=msg;
@@ -901,7 +906,7 @@ GLOBAL_CSS_JS = """
     function lyraCompare(text){const clean=text.replace(/^compare\s+/,'').replace(/\s+versus\s+/,'|').replace(/\s+vs\s+/,'|').replace(/\s+with\s+/,'|');const parts=clean.split('|').map(x=>x.trim()).filter(Boolean);if(parts.length<2){lyraSetStatus('Use: compare COPD vs ARDS','alert');return}const find=q=>Object.keys(PRESETS).find(k=>q.includes(k))||lyraMatchPathology(q);const a=find(parts[0]),b=find(parts[1]);if(!a||!b){lyraSetStatus('I could not identify both comparison presets.','alert');return}const A=PRESETS[a],B=PRESETS[b],rows=[['VT',A.vt,B.vt],['RR',A.rr,B.rr],['PIP',A.pip,B.pip],['Pplat',A.pplat,B.pplat],['PEEP',A.peep,B.peep],['FiO2',A.fio2,B.fio2],['I:E',A.ie,B.ie]];document.getElementById('lyra-compare-card')?.classList.remove('hidden');document.getElementById('lyra-compare-a').innerText=a.toUpperCase();document.getElementById('lyra-compare-b').innerText=b.toUpperCase();document.getElementById('lyra-compare-output').innerHTML=rows.map(r=>`<div class="grid grid-cols-3 gap-2 py-2 border-b border-white/5 text-[10px]"><span class="text-slate-400">${r[0]}</span><span class="text-cyan-300 font-mono">${r[1]}</span><span class="text-violet-300 font-mono">${r[2]}</span></div>`).join('');const msg=`Comparison ready: ${a} versus ${b}.`;lyraSetStatus(msg);lyraLog(`compare ${a} ${b}`,msg);lyraSpeak(msg,localStorage.getItem('selectedLang')||'en')}
     function lyraApplyMetric(id,value,label){const el=document.getElementById(id);if(!el){lyraSetStatus('That parameter is not available.','alert');return}el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('preset_id').value='custom';lyraSetStatus(`${label.toUpperCase()} set to ${value}. Recomputing telemetry.`,'busy');lyraLog(`set ${label} ${value}`,`Applied ${label}=${value}`);document.getElementById('calc-form')?.requestSubmit()}
     function processLyraCommand(text,lang){
-      const raw=(text||'').trim(),t=raw.toLowerCase();if(!t)return;LYRA.confidence=1;
+      const raw=(text||'').trim(),t=raw.toLowerCase();if(!t)return;LYRA.confidence=1;openLyraHub();if(t==='new case'||t.includes('surprise me')||t.includes('give me a case')){nexus3RandomCase();LYRA.lastReply='I picked a new learning case for you.';lyraSetStatus(LYRA.lastReply);lyraSpeak(LYRA.lastReply,lang);lyraLog(raw,LYRA.lastReply);return;}
       if(t==='help'||t.includes('what can you do')||t.includes('commands'))return lyraHelp();
       if(t.includes('voice off')){LYRA.voiceOut=false;lyraSetStatus('Voice output muted.');lyraLog(raw,'Voice output muted.');return}
       if(t.includes('voice on')){LYRA.voiceOut=true;lyraSetStatus('Voice output enabled.');lyraLog(raw,'Voice output enabled.');return}
@@ -916,7 +921,7 @@ GLOBAL_CSS_JS = """
       if(t.includes('stop')||t.includes('sleep')){if(lyraActive)toggleLyra();else lyraSetStatus('Lyra is already in standby.');return}
       if(t.includes('save note')){openLyraHub();document.getElementById('lyra-note-text')?.focus();lyraSetStatus('Journal ready. Add a learning note.');lyraLog(raw,'Journal ready.');return}
       const matched=lyraMatchPathology(t);if(matched){['custom_ai_desc','custom_ai_cond','custom_ai_plan'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});loadPreset(matched);LYRA.contexts=[matched.toUpperCase(),'SIMULATOR','EDUCATIONAL'];lyraSetStatus('Loaded '+matched.toUpperCase()+' • telemetry synchronized.');lyraLog(raw,'Loaded '+matched.toUpperCase());lyraSpeak('Loading '+matched.replace('_',' '),lang);setTimeout(nexus3ClinicalLens,150);return}
-      LYRA.confidence=.35;lyraSetStatus('Command not recognized. Say “help” for the full command map.','alert');lyraLog(raw,'Unrecognized command.','alert')
+      LYRA.confidence=.35;lyraSetStatus('I didn’t catch that. Try pathology, risk, telemetry, compare, or new case.','alert');lyraSpeak(LYRA.lastReply,lang);lyraLog(raw,'Unrecognized command.','alert')
     }
     function submitLyraText(){const e=document.getElementById('lyra-console');if(e){processLyraCommand(e.value,localStorage.getItem('selectedLang')||'en');e.value='';e.focus()}}
     function lyraRunQuick(command){const e=document.getElementById('lyra-console');if(e)e.value=command;processLyraCommand(command,localStorage.getItem('selectedLang')||'en')}
@@ -1063,16 +1068,13 @@ DASHBOARD_HTML = GLOBAL_CSS_JS + BACKGROUND_SVG + """
                     </div>
                     <button onclick="document.getElementById('notes-modal').classList.remove('hidden')" class="w-full mt-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 transition font-bold text-white text-xs uppercase tracking-wider shadow-lg glow-cyan" data-i18n="btn_scan">Synchronize Data</button>
                 </div>
-
-                <!-- Lyra Voice Assistant Panel -->
-                <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden">
-                    <div class="absolute -right-10 -top-10 w-28 h-28 rounded-full bg-purple-500/10 blur-2xl"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between"><h2 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Lyra Neural Copilot</h2><span class="text-[9px] px-2 py-1 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-300 uppercase tracking-widest">v4</span></div>
-                        <p id="lyra-status" class="text-xs text-slate-300 font-mono min-h-[32px]" data-i18n="lyra_status">Lyra Sleeping</p>
-                        <div class="mt-3 flex gap-2"><input id="lyra-console" onkeydown="if(event.key==='Enter')submitLyraText()" placeholder="Try: load ARDS / telemetry / risk / help" class="flex-1 glass-input px-3 py-2 rounded-xl text-[10px] font-mono"><button onclick="submitLyraText()" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase">Run</button></div>
+                <!-- Minimal Lyra / Siri-like Assistant -->
+                <div class="glass-panel p-5 rounded-3xl flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <button onclick="openLyraHub()" class="siri-orb !w-14 !h-14 shrink-0" aria-label="Open Lyra"></button>
+                        <div class="min-w-0"><div class="text-xs font-black text-white">Lyra</div><p id="lyra-status" class="text-[11px] text-slate-400 truncate">Ready when you are</p></div>
                     </div>
-                    <button id="lyra-btn" onclick="toggleLyra()" class="relative w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition font-bold text-white text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(147,51,234,0.3)] mt-4" data-i18n="lyra_btn">Wake Lyra</button>
+                    <button id="lyra-btn" onclick="toggleLyra()" class="px-4 py-2.5 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-violet-200 text-[10px] font-black uppercase tracking-widest">Ask</button>
                 </div>
 
                 <!-- Export & Config Copy -->
@@ -1314,9 +1316,64 @@ setInterval(()=>{const mood=document.getElementById('nx3-mood');if(mood)mood.inn
 document.addEventListener('DOMContentLoaded',()=>{nexus3RenderScenarios();nexus3Insights();nexus3Particles();nexus3Sparkline();nexus3ClinicalLens();document.querySelectorAll('#calc-form input').forEach(e=>e.addEventListener('input',nexus3ClinicalLens));fetch('/api/nexus/history').then(r=>r.json()).then(d=>{document.getElementById('nx3-case-count').innerText=d.stats?.total||0}).catch(()=>{})})
 </script>
 
-    <div id="lyra-hub" class="fixed inset-0 z-[120] hidden bg-black/80 backdrop-blur-xl p-4 md:p-8 overflow-y-auto"><div class="max-w-6xl mx-auto glass-panel rounded-[2rem] border border-violet-400/20 overflow-hidden"><div class="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-violet-950/35 to-cyan-950/20"><div><div class="text-[10px] uppercase tracking-[.28em] text-violet-300 font-black">Lyra OS // Command Fabric</div><h2 class="text-3xl font-black text-white mt-1">Neural Operations Hub</h2><p class="text-sm text-slate-400 mt-2">One place for voice, commands, context, comparison and memory.</p></div><button onclick="closeLyraHub()" class="px-4 py-2.5 rounded-xl bg-rose-500/10 border border-rose-400/20 text-rose-200 text-xs font-black uppercase">Close</button></div><div class="p-6 grid grid-cols-1 xl:grid-cols-[1.05fr_.95fr] gap-6"><div class="space-y-6"><div class="grid grid-cols-2 md:grid-cols-4 gap-3"><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[9px] uppercase tracking-widest text-slate-500">Mode</div><div id="lyra-mode" class="text-xl font-black text-violet-300 mt-1">COPILOT</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[9px] uppercase tracking-widest text-slate-500">Confidence</div><div id="lyra-confidence" class="text-xl font-black text-cyan-300 mt-1">100%</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[9px] uppercase tracking-widest text-slate-500">Commands</div><div id="lyra-command-count" class="text-xl font-black text-emerald-300 mt-1">0</div></div><div class="rounded-2xl bg-black/25 border border-white/5 p-4"><div class="text-[9px] uppercase tracking-widest text-slate-500">Voice</div><div id="lyra-hub-voice-state" class="text-xl font-black text-amber-300 mt-1">ON</div></div></div><div class="rounded-3xl bg-black/20 border border-white/10 p-5"><div class="text-[10px] uppercase tracking-widest text-cyan-300 font-black">Command Grammar</div><div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px] mt-3"><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">load ARDS</div><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">set PEEP to 12</div><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">compare COPD vs ARDS</div><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">show risk</div><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">show telemetry</div><div class="p-3 rounded-xl bg-white/[.03] border border-white/5 text-slate-300">analyze note</div></div><div class="mt-4 flex gap-2"><input id="lyra-hub-input" class="flex-1 glass-input px-4 py-3 rounded-xl text-xs font-mono" placeholder="Enter a command…" onkeydown="if(event.key==='Enter')lyraHubRun()"><button onclick="lyraHubRun()" class="px-4 rounded-xl bg-violet-600 text-white text-xs font-black uppercase">Execute</button></div></div><div class="rounded-3xl bg-black/20 border border-white/10 p-5"><div class="text-[10px] text-cyan-300 font-black uppercase tracking-widest">Context Memory</div><div id="lyra-context" class="flex flex-wrap gap-2 mt-3"></div></div><div class="rounded-3xl bg-black/20 border border-white/10 p-5"><div class="flex gap-2"><input id="lyra-note-title" class="glass-input px-3 py-2 rounded-xl text-xs w-1/3" placeholder="Title"><input id="lyra-note-text" class="glass-input px-3 py-2 rounded-xl text-xs flex-1" placeholder="Learning note"><button onclick="lyraSaveNote()" class="px-4 rounded-xl bg-amber-400/10 border border-amber-300/20 text-amber-200 text-xs font-black uppercase">Save</button></div></div></div><div class="rounded-3xl bg-black/20 border border-white/10 p-5"><div class="flex justify-between items-center"><div><div class="text-[10px] text-violet-300 font-black uppercase tracking-widest">Activity Stream</div><div class="text-lg font-black text-white mt-1">Lyra command history</div></div><div id="lyra-hub-history-count" class="text-[10px] text-slate-500">0 events</div></div><div id="lyra-hub-history" class="mt-4 space-y-2 max-h-[620px] overflow-y-auto"></div></div></div></div></div>
-    <section id="operator-deck" class="mt-6 glass-panel rounded-[2rem] border border-cyan-400/10 p-6"><div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"><div><div class="text-[10px] text-cyan-300 font-black uppercase tracking-[.28em]">AEROLUNG // Operator Deck</div><h3 class="text-2xl font-black text-white mt-1">Control surface</h3><p class="text-xs text-slate-400 mt-1">Monitor, compare, challenge, document and navigate without hunting through the page.</p></div><button onclick="openLyraHub()" class="px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-400/20 text-violet-200 text-[10px] font-black uppercase">Launch Lyra OS</button></div><div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mt-5"><button class="deck-btn" onclick="lyraRunQuick('show risk')">Risk</button><button class="deck-btn" onclick="lyraRunQuick('show telemetry')">Telemetry</button><button class="deck-btn" onclick="lyraRunQuick('compare COPD vs ARDS')">Compare</button><button class="deck-btn" onclick="lyraRunQuick('analyze note')">Analyze</button><button class="deck-btn" onclick="nexus3RandomCase()">Random Case</button><button class="deck-btn" onclick="nexus3ToggleCinema()">Cinema</button><button class="deck-btn" onclick="switchWorkspaceTab('protocols')">Protocols</button><button class="deck-btn" onclick="switchWorkspaceTab('dashboard')">Workspace</button></div></section><style>.lyra-chip,.deck-btn{padding:.55rem .7rem;border-radius:.75rem;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#cbd5e1;transition:.18s}.lyra-chip:hover,.deck-btn:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:white}.lyra-history-item{padding:.7rem .8rem;border-radius:.9rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:10px}</style><script>function lyraHubRun(){const e=document.getElementById('lyra-hub-input');if(!e)return;const v=e.value.trim();if(!v)return;processLyraCommand(v,localStorage.getItem('selectedLang')||'en');e.value='';renderLyraHub()}async function lyraSaveNote(){const title=document.getElementById('lyra-note-title')?.value||'Lyra learning note',note=document.getElementById('lyra-note-text')?.value||'';if(!note.trim()){lyraSetStatus('Enter a note before saving.','alert');return}try{const r=await fetch('/api/nexus/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,note,tag:'lyra'})});if(!r.ok)throw new Error();lyraSetStatus('Journal note saved.');lyraLog('save note','Journal note saved.');document.getElementById('lyra-note-text').value='';renderLyraHub()}catch(e){lyraSetStatus('Could not save the journal note.','alert')}}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub()}});</script>
+    <div id="lyra-hub" class="fixed inset-0 z-[120] hidden siri-overlay items-center justify-center p-5">
+      <div class="w-full max-w-2xl text-center">
+        <button onclick="closeLyraHub()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300">✕</button>
+        <div class="text-[10px] uppercase tracking-[.35em] text-violet-300 font-black">LYRA</div>
+        <div id="lyra-siri-orb" class="siri-orb mx-auto mt-8"></div>
+        <div id="lyra-mode" class="mt-7 text-2xl md:text-4xl font-black text-white">Ready when you are</div>
+        <div id="lyra-confidence" class="hidden">100%</div>
+        <p id="lyra-siri-reply" class="mt-3 text-sm md:text-base text-slate-400 max-w-xl mx-auto min-h-[48px]">Ask for a pathology, telemetry, risk, a comparison, or a learning case.</p>
+        <div class="mt-8 flex justify-center gap-3">
+          <button id="lyra-voice-btn" onclick="toggleLyra()" class="px-6 py-3 rounded-full bg-white text-slate-950 text-xs font-black uppercase tracking-widest shadow-2xl">Tap to Talk</button>
+          <button onclick="lyraToggleVoice()" class="px-5 py-3 rounded-full bg-white/5 border border-white/10 text-slate-200 text-xs font-bold">Voice</button>
+        </div>
+        <div class="mt-6 max-w-xl mx-auto flex gap-2">
+          <input id="lyra-console" onkeydown="if(event.key==='Enter')submitLyraText()" placeholder="Or type to Lyra…" class="flex-1 glass-input px-4 py-3 rounded-full text-xs text-center">
+          <button onclick="submitLyraText()" class="px-5 rounded-full bg-violet-600 text-white text-xs font-black">Send</button>
+        </div>
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <button onclick="lyraRunQuick('load ARDS')" class="lyra-chip">ARDS</button>
+          <button onclick="lyraRunQuick('show risk')" class="lyra-chip">Risk</button>
+          <button onclick="lyraRunQuick('show telemetry')" class="lyra-chip">Telemetry</button>
+          <button onclick="lyraRunQuick('compare COPD vs ARDS')" class="lyra-chip">Compare</button>
+          <button onclick="lyraRunQuick('new case')" class="lyra-chip">Case</button>
+        </div>
+      </div>
+    </div>
+    <section id="operator-deck" class="hidden"></section>
+<style>.lyra-chip,.deck-btn{padding:.55rem .7rem;border-radius:.75rem;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#cbd5e1;transition:.18s}.lyra-chip:hover,.deck-btn:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:white}.lyra-history-item{padding:.7rem .8rem;border-radius:.9rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:10px}</style><script>function lyraHubRun(){const e=document.getElementById('lyra-hub-input');if(!e)return;const v=e.value.trim();if(!v)return;processLyraCommand(v,localStorage.getItem('selectedLang')||'en');e.value='';renderLyraHub()}async function lyraSaveNote(){const title=document.getElementById('lyra-note-title')?.value||'Lyra learning note',note=document.getElementById('lyra-note-text')?.value||'';if(!note.trim()){lyraSetStatus('Enter a note before saving.','alert');return}try{const r=await fetch('/api/nexus/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,note,tag:'lyra'})});if(!r.ok)throw new Error();lyraSetStatus('Journal note saved.');lyraLog('save note','Journal note saved.');document.getElementById('lyra-note-text').value='';renderLyraHub()}catch(e){lyraSetStatus('Could not save the journal note.','alert')}}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub()}});</script>
 
+    <button id="advanced-tools-fab" onclick="openAdvancedTools()" class="fixed right-5 bottom-5 z-[95] w-12 h-12 rounded-full bg-slate-900/90 border border-white/10 text-slate-300 shadow-2xl hover:text-white" title="Advanced tools">⌘</button>
+    <div id="advanced-tools" class="fixed inset-0 z-[110] hidden bg-black/70 backdrop-blur-md p-5 items-end justify-center">
+      <div class="w-full max-w-lg rounded-[2rem] glass-panel p-5 border-white/10">
+        <div class="flex items-center justify-between"><div><div class="text-[10px] uppercase tracking-[.3em] text-cyan-300 font-black">Advanced tools</div><div class="text-lg font-black text-white">AEROLUNG Studio</div></div><button onclick="closeAdvancedTools()" class="w-9 h-9 rounded-full bg-white/5 text-slate-300">✕</button></div>
+        <div class="grid grid-cols-2 gap-2 mt-5">
+          <button class="deck-btn" onclick="closeAdvancedTools();switchWorkspaceTab('analytics')">Telemetry</button>
+          <button class="deck-btn" onclick="closeAdvancedTools();switchWorkspaceTab('protocols')">Protocols</button>
+          <button class="deck-btn" onclick="closeAdvancedTools();nexus3RandomCase()">Case Lab</button>
+          <button class="deck-btn" onclick="closeAdvancedTools();lyraRunQuick('compare COPD vs ARDS')">Compare</button>
+          <button class="deck-btn" onclick="closeAdvancedTools();document.getElementById('notes-modal')?.classList.remove('hidden')">Record Analyzer</button>
+          <button class="deck-btn" onclick="closeAdvancedTools();window.location.href='/api/nexus/export?format=csv'">Export Ledger</button>
+        </div>
+      </div>
+    </div>
+    <style>
+      #nexus3-hero,#nexus3-mission,#operator-deck,#advanced-command-center{display:none!important}
+      #advanced-tools{display:flex}
+      #lyra-hub{display:flex!important}
+      #lyra-hub.hidden{display:none!important}
+    </style>
+    <script>
+      function openAdvancedTools(){document.getElementById('advanced-tools')?.classList.remove('hidden')}
+      function closeAdvancedTools(){document.getElementById('advanced-tools')?.classList.add('hidden')}
+      function openLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.remove('hidden');h.classList.add('flex')}renderLyraHub();setTimeout(()=>document.getElementById('lyra-console')?.focus(),120)}
+      function closeLyraHub(){const h=document.getElementById('lyra-hub');if(h){h.classList.add('hidden');h.classList.remove('flex')}if(lyraActive)toggleLyra()}
+      function renderLyraHub(){const reply=document.getElementById('lyra-siri-reply');if(reply)reply.innerText=LYRA.lastReply||'Ask me anything about the simulator, telemetry, pathology presets, or learning cases.';const mode=document.getElementById('lyra-mode');if(mode)mode.innerText=lyraActive?'Listening…':'Ready when you are';const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',!!lyraActive)}
+      function lyraSetStatus(msg,tone='normal'){const e=document.getElementById('lyra-status');if(e)e.innerText=msg;LYRA.lastReply=msg;const orb=document.getElementById('lyra-siri-orb');if(orb)orb.classList.toggle('listening',tone==='busy'||lyraActive);renderLyraHub()}
+      function lyraSpeak(text,lang){if(LYRA.voiceOut&&'speechSynthesis'in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==='es'?'es-ES':lang==='fr'?'fr-FR':'en-US';u.pitch=.96;u.rate=.96;window.speechSynthesis.speak(u)}}
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLyraHub();closeAdvancedTools()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();openLyraHub();toggleLyra()}});
+    </script>
     <!-- NLP CLINICAL RECORD ANALYZER MODAL -->
     <div id="notes-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
         <div class="glass-panel p-8 rounded-3xl max-w-lg w-full space-y-4 border border-white/10">
